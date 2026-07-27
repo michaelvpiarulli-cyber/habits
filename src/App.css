@@ -1,0 +1,1300 @@
+/* =========================================================================
+   Shell
+   ========================================================================= */
+
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom));
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px var(--gutter) 10px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.wordmark {
+  position: relative;
+  font-family: var(--display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* The wordmark sits on its own rule — a printer's registration mark, and the
+   only decoration in the chrome. */
+.wordmark__rule {
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 100%;
+  height: 3px;
+  background: var(--pink);
+}
+
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+  background: var(--card);
+}
+
+.account:hover {
+  color: var(--ink);
+}
+
+.account__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-soft);
+}
+
+.account__dot--synced {
+  background: var(--blue);
+}
+.account__dot--syncing {
+  background: var(--pink);
+}
+.account__dot--error {
+  background: var(--pink);
+  box-shadow: 0 0 0 3px var(--pink-wash);
+}
+.account__dot--local {
+  background: transparent;
+  border: 1.5px solid var(--rule);
+}
+
+.account__email {
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  margin-bottom: 10px;
+  word-break: break-all;
+}
+
+.main {
+  padding: 0 var(--gutter);
+}
+
+/* =========================================================================
+   Bottom navigation
+   ========================================================================= */
+
+.nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  max-width: 640px;
+  margin: 0 auto;
+  height: calc(var(--nav-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--card);
+  border-top: 1px solid var(--rule);
+}
+
+.nav__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.nav__icon {
+  width: 20px;
+  height: 20px;
+}
+
+.nav__tab.is-on {
+  color: var(--ink);
+}
+
+.nav__tab.is-on .nav__icon {
+  color: var(--blue);
+}
+
+/* =========================================================================
+   View scaffolding
+   ========================================================================= */
+
+.view {
+  padding: 22px 0 40px;
+}
+
+.view__head {
+  margin-bottom: 18px;
+}
+
+.view__head--row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.view__title {
+  font-family: var(--display);
+  font-size: 1.875rem;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  margin-top: 3px;
+}
+
+.view__title em {
+  font-style: normal;
+  color: var(--violet);
+}
+
+.section {
+  margin-top: 34px;
+}
+
+.section__note {
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+  margin: 6px 0 12px;
+  max-width: 46ch;
+}
+
+.rest {
+  margin-top: 30px;
+}
+
+.empty {
+  padding: 26px 18px;
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.empty__title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.empty__body {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  max-width: 42ch;
+  margin: 0 auto;
+}
+
+/* =========================================================================
+   Week strip
+   ========================================================================= */
+
+.strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 26px;
+}
+
+.strip__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.strip__initial {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.strip__box {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 26px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--sunk);
+  overflow: hidden;
+}
+
+.strip__ink {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fill, 0%);
+  background: var(--blue);
+}
+
+.strip__day.is-future .strip__box {
+  background: transparent;
+}
+
+.strip__day.is-today .strip__box {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 2px var(--pink-wash);
+}
+
+.strip__day.is-today .strip__initial {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* The overprint: both inks on the same day. Nothing else in the app is violet. */
+.strip__day.is-perfect .strip__ink {
+  background: var(--violet);
+}
+
+/* =========================================================================
+   Habit rows (Today)
+   ========================================================================= */
+
+.rows {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rows--muted {
+  opacity: 0.62;
+}
+
+.row {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.row.is-complete {
+  border-color: var(--blue);
+}
+
+.row__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
+.row__name {
+  font-size: 0.938rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.row.is-complete .row__name {
+  color: var(--ink-soft);
+}
+
+.row__status {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.row__streak {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  color: var(--pink);
+}
+
+.row__streak b {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.row__streak-unit {
+  font-family: var(--mono);
+  font-size: 0.563rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* =========================================================================
+   The mark
+   ========================================================================= */
+
+.mark {
+  position: relative;
+  flex: none;
+  border: 2px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--sunk);
+  overflow: hidden;
+  color: var(--on-ink);
+}
+
+.mark--md {
+  width: 44px;
+  height: 44px;
+}
+
+.mark--sm {
+  width: 30px;
+  height: 30px;
+}
+
+/* Offset a hair down and right of its outline — two plates, slightly out of
+   register, the way a real riso print lands. */
+.mark__fill {
+  position: absolute;
+  top: 1px;
+  bottom: -1px;
+  left: 1px;
+  width: var(--fill, 0%);
+  background: var(--blue);
+  transition: width 180ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.mark__segments i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--paper);
+  opacity: 0.85;
+}
+
+.mark__tick {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 9px;
+  stroke-linecap: square;
+  animation: stamp 200ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.mark.is-complete {
+  border-color: var(--blue);
+}
+
+.mark.is-partial {
+  border-color: var(--blue);
+}
+
+/* The one motion in the app: the tick lands like a stamp being pressed. */
+@keyframes stamp {
+  from {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* =========================================================================
+   Inline amount entry
+   ========================================================================= */
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+
+.entry__step {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.entry__field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.entry__field input {
+  width: 100%;
+  height: 38px;
+  padding: 0 46px 0 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 1rem;
+}
+
+.entry__unit {
+  position: absolute;
+  right: 10px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.entry__save {
+  flex: none;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  background: var(--blue);
+  color: var(--on-ink);
+  font-size: 0.813rem;
+  font-weight: 600;
+}
+
+.entry__clear {
+  flex: none;
+  height: 38px;
+  padding: 0 8px;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  text-decoration: underline;
+}
+
+/* =========================================================================
+   The record: overprint grid
+   ========================================================================= */
+
+.grid {
+  --cell: 11px;
+  overflow-x: auto;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  overscroll-behavior-x: contain;
+}
+
+.grid__inner {
+  width: max-content;
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.grid__row {
+  display: grid;
+  grid-template-columns: 24px repeat(var(--cols), var(--cell));
+  gap: 3px;
+  align-items: center;
+}
+
+.grid__gutter {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 24px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  background: var(--paper);
+}
+
+.grid__month {
+  font-family: var(--mono);
+  font-size: 0.563rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.grid__row--months {
+  height: 12px;
+  margin-bottom: 2px;
+}
+
+.grid__row--perfect {
+  margin-top: 5px;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule);
+}
+
+.cell {
+  aspect-ratio: 1;
+  border-radius: 1px;
+  /* Partial days print as a partly inked cell rather than an empty one. */
+  background: linear-gradient(to right, var(--blue) var(--fill, 0%), var(--sunk) var(--fill, 0%));
+}
+
+.cell.is-off {
+  background: transparent;
+  border: 1px solid var(--sunk);
+}
+
+.cell.is-today {
+  outline: 1.5px solid var(--pink);
+  outline-offset: 1px;
+}
+
+.cell--perfect {
+  background: var(--sunk);
+}
+
+.cell--perfect.is-perfect {
+  background: var(--violet);
+}
+
+.grid__key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.key {
+  width: 11px;
+  height: 11px;
+  border-radius: 1px;
+  margin-left: 8px;
+}
+
+.key--part {
+  margin-left: 0;
+  background: linear-gradient(to right, var(--blue) 45%, var(--sunk) 45%);
+}
+.key--full {
+  background: var(--blue);
+}
+.key--perfect {
+  background: var(--violet);
+}
+
+/* =========================================================================
+   Streak cards
+   ========================================================================= */
+
+.cards {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card {
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.card__name {
+  font-size: 0.938rem;
+  font-weight: 600;
+}
+
+.card__meta {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.card__figures {
+  display: flex;
+  align-items: baseline;
+  gap: 22px;
+  margin-top: 12px;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.figure__number {
+  font-family: var(--display);
+  font-size: 2.25rem;
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  color: var(--blue);
+}
+
+.figure--small .figure__number {
+  font-size: 1.375rem;
+  color: var(--ink-soft);
+}
+
+.figure__number i {
+  font-style: normal;
+  font-size: 0.6em;
+}
+
+/* =========================================================================
+   Trend chart
+   ========================================================================= */
+
+.trend {
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.trend__figures {
+  display: flex;
+  gap: 26px;
+  margin-bottom: 12px;
+}
+
+.trend__value {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--blue);
+}
+
+.trend__value--soft {
+  font-size: 1.25rem;
+  color: var(--ink-soft);
+}
+
+.trend__value.is-down {
+  color: var(--blue);
+}
+
+.trend__value.is-up {
+  color: var(--pink);
+}
+
+.trend__unit {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  margin-left: 3px;
+  color: var(--ink-soft);
+}
+
+.trend__chart {
+  width: 100%;
+  height: 96px;
+  overflow: visible;
+}
+
+.trend__raw {
+  stroke: var(--blue);
+  stroke-width: 1;
+  opacity: 0.28;
+  vector-effect: non-scaling-stroke;
+}
+
+.trend__avg {
+  stroke: var(--blue);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.trend__dot {
+  fill: var(--blue);
+  opacity: 0.45;
+}
+
+.trend__target line {
+  stroke: var(--pink);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.trend__caption,
+.trend__empty {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  color: var(--ink-soft);
+  margin-top: 8px;
+}
+
+.trend__empty {
+  margin: 0;
+}
+
+/* =========================================================================
+   Habit list (Habits tab)
+   ========================================================================= */
+
+.lines {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.lines--muted {
+  opacity: 0.62;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.line__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
+.line__name {
+  font-size: 0.938rem;
+  font-weight: 500;
+}
+
+.line__meta {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+}
+
+.line__action {
+  flex: none;
+  padding: 6px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+/* =========================================================================
+   Goals
+   ========================================================================= */
+
+.goals {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.goal {
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.goal.is-hit {
+  border-color: var(--violet);
+}
+
+.goal__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.goal__title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.goal__due {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  color: var(--ink-soft);
+}
+
+.goal__due.is-overdue {
+  color: var(--pink);
+}
+
+.goal__detail {
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+  margin-top: 3px;
+}
+
+.goal__bar {
+  height: 10px;
+  margin: 12px 0 8px;
+  background: var(--sunk);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.goal__fill {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  transition: width 240ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.goal.is-hit .goal__fill {
+  background: var(--violet);
+}
+
+.goal__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.goal__count {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.goal__count b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.goal__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.chip {
+  padding: 5px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.chip:hover {
+  color: var(--ink);
+}
+
+.chip--danger:hover {
+  color: var(--pink);
+  border-color: var(--pink);
+}
+
+/* =========================================================================
+   Sheets and forms
+   ========================================================================= */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  cursor: default;
+}
+
+.sheet__panel {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-top: 3px solid var(--pink);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: 0 -8px 40px var(--shadow);
+  animation: rise 220ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px var(--gutter) 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.sheet__title {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.sheet__close {
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+  text-decoration: underline;
+}
+
+.sheet__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px var(--gutter);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sheet__foot {
+  display: flex;
+  gap: 10px;
+  padding: 12px var(--gutter) calc(14px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--rule);
+}
+
+.sheet__foot .btn--primary {
+  flex: 1;
+}
+
+.field {
+  border: none;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.field--split {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 10px;
+  align-items: center;
+}
+
+.field__label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.field--split .field__label {
+  margin-bottom: 0;
+}
+
+.field__input {
+  width: 100%;
+  height: 42px;
+  padding: 0 11px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.field__input--emoji {
+  width: 56px;
+  text-align: center;
+  font-size: 1.125rem;
+}
+
+.field__input--num,
+.field__input--unit {
+  font-family: var(--mono);
+}
+
+.field__hint {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  margin-top: 7px;
+  max-width: 48ch;
+}
+
+.field__hint code {
+  font-family: var(--mono);
+  font-size: 0.938em;
+  background: var(--sunk);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.field > .field__label + .btn,
+.field > .segmented + .field__label {
+  margin-top: 10px;
+}
+
+.field form,
+form.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Radio card list — used for habit kind */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.option {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  padding: 11px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  cursor: pointer;
+}
+
+.option input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.option:has(input:focus-visible) {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+}
+
+.option.is-on {
+  border-color: var(--blue);
+  background: var(--blue-wash);
+}
+
+.option__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.option__hint {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+/* Segmented control */
+.segmented {
+  display: flex;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.segmented__item {
+  flex: 1;
+  padding: 9px 6px;
+  text-align: center;
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+  background: var(--card);
+  cursor: pointer;
+  border-right: 1px solid var(--rule);
+}
+
+.segmented__item:last-child {
+  border-right: none;
+}
+
+.segmented__item input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.segmented__item:has(input:focus-visible) {
+  outline: 2px solid var(--pink);
+  outline-offset: -2px;
+}
+
+.segmented__item.is-on {
+  background: var(--blue);
+  color: var(--on-ink);
+  font-weight: 600;
+}
+
+/* Weekday picker */
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.weekday {
+  height: 40px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+}
+
+.weekday.is-on {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--on-ink);
+  font-weight: 600;
+}
+
+.perweek {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.perweek input {
+  flex: 1;
+  accent-color: var(--blue);
+}
+
+.perweek output {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+}
+
+/* Buttons */
+.btn {
+  padding: 11px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.btn--primary {
+  background: var(--pink);
+  border-color: var(--pink);
+  color: var(--on-pink);
+}
+
+.btn--primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--danger {
+  color: var(--pink);
+  background: transparent;
+}
+
+/* Status and notes */
+.status {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.status--error {
+  color: var(--pink);
+}
+
+.note {
+  font-size: 0.813rem;
+  padding: 9px 11px;
+  border-radius: var(--radius);
+}
+
+.note--bad {
+  background: var(--pink-wash);
+  color: var(--ink);
+}
+
+.note--good {
+  background: var(--blue-wash);
+  color: var(--ink);
+}
+
+/* =========================================================================
+   Wider screens — the layout stays single-column, it just breathes more
+   ========================================================================= */
+
+@media (min-width: 560px) {
+  :root {
+    --gutter: 26px;
+  }
+
+  .view__title {
+    font-size: 2.25rem;
+  }
+
+  .grid {
+    --cell: 13px;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

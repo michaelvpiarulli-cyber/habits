@@ -1,0 +1,157 @@
+/**
+ * Tally — a risograph identity.
+ *
+ * Two spot inks on newsprint. Blue is the record of what you did; pink is the
+ * call to act today. Where a whole day comes in complete the two overprint to
+ * violet — a colour the interface cannot produce any other way, so it always
+ * means one thing.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Paper: a cool grey-white newsprint, deliberately not a warm cream. */
+  --paper: #ecede7;
+  --card: #f7f8f4;
+  --sunk: #e1e3db;
+  --rule: #cfd2c8;
+
+  --ink: #14161a;
+  --ink-soft: #6c7178;
+
+  /* The two spot inks, and the colour they make together. */
+  --blue: #1f4fd8;
+  --blue-deep: #163ba5;
+  --blue-wash: #d6dffa;
+  --pink: #ff4fa3;
+  --pink-wash: #ffdcee;
+  --violet: #6b3fc4;
+
+  --on-ink: #f7f8f4; /* text on a blue or violet fill */
+  --on-pink: #14161a; /* pink is bright in both themes — its text stays dark */
+  --scrim: rgba(20, 22, 26, 0.42);
+  --shadow: rgba(20, 22, 26, 0.14);
+
+  --nav-height: 62px;
+  --gutter: 18px;
+  --radius: 4px; /* print, not app-store: corners stay nearly square */
+
+  --sans: 'IBM Plex Sans', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --display: 'Anton', 'IBM Plex Sans', sans-serif;
+
+  font-family: var(--sans);
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Off the press and onto the plate: the inks stay vivid, the paper goes dark. */
+  --paper: #0f1216;
+  --card: #171b21;
+  --sunk: #1f242c;
+  --rule: #2b313a;
+
+  --ink: #e9ebe6;
+  --ink-soft: #8d949e;
+
+  --blue: #5b8cff;
+  --blue-deep: #7ba3ff;
+  --blue-wash: #1c2740;
+  --pink: #ff6fb4;
+  --pink-wash: #3a1f30;
+  --violet: #a07cf0;
+
+  --on-ink: #0f1216;
+  --on-pink: #0f1216;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow: rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  background-color: var(--paper);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+button {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+}
+
+/* An eyebrow: mono, letter-spaced, uppercase. Used for dates and section labels
+   so that structural text never competes with content set in the sans. */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

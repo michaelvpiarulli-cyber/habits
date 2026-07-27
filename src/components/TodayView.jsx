@@ -1,0 +1,214 @@
+import { useMemo, useState } from 'react';
+import { useData } from '../context/DataProvider';
+import { addDays, formatLong, startOfWeek, todayISO, WEEKDAY_INITIALS } from '../lib/dates';
+import { describeCadence, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
+import { countInWeek, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
+import { HabitMark } from './HabitMark';
+import { AmountEntry } from './AmountEntry';
+
+/** The strip of this week across the top. Violet means every habit landed. */
+function WeekStrip({ habits, doneSets, today }) {
+  const monday = startOfWeek(today);
+  const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+
+  return (
+    <ol className="strip" aria-label="This week">
+      {days.map((day, i) => {
+        const future = day > today;
+        const perfect = !future && isPerfectDay(habits, doneSets, day);
+        const dueCount = habits.filter((h) => isDue(h, day) && h.cadence !== 'per_week').length;
+        const doneCount = habits.filter((h) => doneSets.get(h.id)?.has(day)).length;
+        const some = !perfect && doneCount > 0;
+
+        const cls = [
+          'strip__day',
+          day === today && 'is-today',
+          future && 'is-future',
+          perfect && 'is-perfect',
+          some && 'is-some',
+        ]
+          .filter(Boolean)
+          .join(' ');
+
+        return (
+          <li key={day} className={cls}>
+            <span className="strip__initial" aria-hidden="true">
+              {WEEKDAY_INITIALS[i]}
+            </span>
+            <span className="strip__box">
+              <span
+                className="strip__ink"
+                style={{ '--fill': dueCount ? `${Math.round((doneCount / dueCount) * 100)}%` : '0%' }}
+              />
+            </span>
+            <span className="visually-hidden">
+              {day}: {doneCount} of {dueCount} done{perfect ? ', a perfect day' : ''}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** One habit, one day. The mark on the left is the whole interaction for most kinds. */
+function HabitRow({ habit, day, editing, setEditing }) {
+  const { logFor, doneSetFor, toggleDay, bumpDay, setValue, valueFor } = useData();
+
+  const log = logFor(habit.id, day);
+  const value = valueOf(habit, log);
+  const complete = isComplete(habit, log);
+  const doneSet = doneSetFor(habit.id);
+  const streak = currentStreak(habit, doneSet, day);
+  const isEditing = editing === habit.id;
+  const needsEntry = habit.kind === 'amount' || habit.kind === 'measure';
+
+  // Weight barely moves overnight, so the entry field opens on the last reading.
+  const lastReading = useMemo(() => {
+    if (habit.kind !== 'measure') return null;
+    for (let i = 1; i <= 30; i++) {
+      const v = valueFor(habit, addDays(day, -i));
+      if (v > 0) return v;
+    }
+    return null;
+  }, [habit, day, valueFor]);
+
+  const activate = () => {
+    if (needsEntry) setEditing(isEditing ? null : habit.id);
+    else if (habit.kind === 'count') bumpDay(habit, day);
+    else toggleDay(habit, day);
+  };
+
+  let status;
+  if (habit.kind === 'count') {
+    status = `${value} of ${targetOf(habit)}${habit.unit ? ` ${habit.unit}` : ''}`;
+  } else if (habit.kind === 'amount') {
+    status = value > 0 ? `${value} of ${targetOf(habit)} ${habit.unit}`.trim() : `Target ${targetOf(habit)} ${habit.unit}`.trim();
+  } else if (habit.kind === 'measure') {
+    status = value > 0 ? `${value} ${habit.unit}`.trim() : 'Not recorded yet';
+  } else {
+    const weekly =
+      habit.cadence === 'per_week'
+        ? `${countInWeek(doneSet, startOfWeek(day))} of ${habit.perWeek} this week`
+        : describeCadence(habit);
+    status = weekly;
+  }
+
+  return (
+    <li className={`row ${complete ? 'is-complete' : ''}`}>
+      <div className="row__main">
+        <HabitMark
+          habit={habit}
+          fraction={fractionOf(habit, log)}
+          complete={complete}
+          due
+          onActivate={activate}
+          label={
+            needsEntry
+              ? `Record ${habit.name}`
+              : complete
+                ? `Clear ${habit.name} for today`
+                : `Mark ${habit.name} done`
+          }
+        />
+
+        <button type="button" className="row__body" onClick={activate}>
+          <span className="row__name">
+            {habit.emoji && <span aria-hidden="true">{habit.emoji} </span>}
+            {habit.name}
+          </span>
+          <span className="row__status">{status}</span>
+        </button>
+
+        {streak > 0 && (
+          <span className="row__streak" title={`${streak} in a row`}>
+            <b>{streak}</b>
+            <span className="row__streak-unit">
+              {habit.cadence === 'per_week'
+                ? streak === 1
+                  ? 'wk'
+                  : 'wks'
+                : streak === 1
+                  ? 'day'
+                  : 'days'}
+            </span>
+          </span>
+        )}
+      </div>
+
+      {isEditing && (
+        <AmountEntry
+          habit={habit}
+          value={value}
+          suggestion={lastReading}
+          onSave={(n) => {
+            setValue(habit, day, n);
+            setEditing(null);
+          }}
+          onClear={() => {
+            setValue(habit, day, 0);
+            setEditing(null);
+          }}
+          onCancel={() => setEditing(null)}
+        />
+      )}
+    </li>
+  );
+}
+
+export function TodayView() {
+  const { activeHabits, doneSets } = useData();
+  const [editing, setEditing] = useState(null);
+  const today = todayISO();
+
+  const dueToday = activeHabits.filter((h) => isDue(h, today));
+  const restToday = activeHabits.filter((h) => !isDue(h, today));
+
+  const doneCount = dueToday.filter((h) => doneSets.get(h.id)?.has(today)).length;
+  const allDone = dueToday.length > 0 && doneCount === dueToday.length;
+
+  return (
+    <div className="view">
+      <header className="view__head">
+        <p className="eyebrow">{formatLong(today)}</p>
+        <h1 className="view__title">
+          {allDone ? (
+            <>
+              A <em>perfect</em> day
+            </>
+          ) : (
+            <>
+              {doneCount} of {dueToday.length} done
+            </>
+          )}
+        </h1>
+      </header>
+
+      <WeekStrip habits={activeHabits} doneSets={doneSets} today={today} />
+
+      {activeHabits.length === 0 ? (
+        <div className="empty">
+          <p className="empty__title">No habits yet.</p>
+          <p className="empty__body">Add one on the Habits tab and it shows up here every day it’s due.</p>
+        </div>
+      ) : (
+        <ul className="rows">
+          {dueToday.map((h) => (
+            <HabitRow key={h.id} habit={h} day={today} editing={editing} setEditing={setEditing} />
+          ))}
+        </ul>
+      )}
+
+      {restToday.length > 0 && (
+        <section className="rest">
+          <h2 className="eyebrow">Not scheduled today</h2>
+          <ul className="rows rows--muted">
+            {restToday.map((h) => (
+              <HabitRow key={h.id} habit={h} day={today} editing={editing} setEditing={setEditing} />
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
