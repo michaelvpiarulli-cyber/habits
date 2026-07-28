@@ -16,8 +16,8 @@ import {
   habitToRow,
   logFromRow,
   logToRow,
-  virtueFromRow,
-  virtueToRow,
+  statementFromRow,
+  statementToRow,
   noteFromRow,
   noteToRow,
   reviewFromRow,
@@ -45,7 +45,7 @@ const KEYS = {
   habits: 'tally-habits',
   logs: 'tally-logs',
   goals: 'tally-goals',
-  virtues: 'tally-virtues',
+  identity: 'tally-identity',
   dayNotes: 'tally-day-notes',
   reviews: 'tally-reviews',
   countdown: 'tally-countdown',
@@ -62,7 +62,7 @@ const DEFAULT_COUNTDOWN = { date: '2027-03-27', label: 'Baby due', kind: 'pregna
  * updatedAt for the same reason as the starter habits: two devices seeding
  * before they ever sync collapse to one row, and any later edit wins.
  */
-const STARTER_VIRTUES = [
+const STARTER_IDENTITY = [
   {
     id: '7a110000-0000-4000-9000-000000000001',
     name: 'Serve God most high',
@@ -113,7 +113,7 @@ const TABLES = {
   habits: { table: 'habits', from: habitFromRow, to: habitToRow },
   logs: { table: 'habit_logs', from: logFromRow, to: logToRow },
   goals: { table: 'goals', from: goalFromRow, to: goalToRow },
-  virtues: { table: 'virtues', from: virtueFromRow, to: virtueToRow },
+  identity: { table: 'identity', from: statementFromRow, to: statementToRow },
   dayNotes: { table: 'day_notes', from: noteFromRow, to: noteToRow },
   reviews: { table: 'reviews', from: reviewFromRow, to: reviewToRow },
 };
@@ -191,10 +191,18 @@ export function DataProvider({ children }) {
   const [goals, setGoals] = useState(() =>
     purgeStale(loadList(KEYS.goals)).map((g) => ({ ...g, habitId: fixId(g.habitId) }))
   );
-  const [virtues, setVirtues] = useState(() => {
-    const stored = purgeStale(loadList(KEYS.virtues));
-    if (stored.length > 0 || localStorage.getItem(KEYS.virtues)) return stored;
-    return STARTER_VIRTUES.map((v, i) => ({
+  const [identity, setIdentity] = useState(() => {
+    // These were called "virtues" before. Anything written under the old key is
+    // adopted once, so the rename does not quietly discard what was there.
+    const legacy = localStorage.getItem('tally-virtues');
+    if (legacy && !localStorage.getItem(KEYS.identity)) {
+      localStorage.setItem(KEYS.identity, legacy);
+      localStorage.removeItem('tally-virtues');
+    }
+
+    const stored = purgeStale(loadList(KEYS.identity));
+    if (stored.length > 0 || localStorage.getItem(KEYS.identity)) return stored;
+    return STARTER_IDENTITY.map((v, i) => ({
       ...v,
       sortOrder: i,
       deleted: false,
@@ -218,7 +226,7 @@ export function DataProvider({ children }) {
   useEffect(() => localStorage.setItem(KEYS.habits, JSON.stringify(habits)), [habits]);
   useEffect(() => localStorage.setItem(KEYS.logs, JSON.stringify(logs)), [logs]);
   useEffect(() => localStorage.setItem(KEYS.goals, JSON.stringify(goals)), [goals]);
-  useEffect(() => localStorage.setItem(KEYS.virtues, JSON.stringify(virtues)), [virtues]);
+  useEffect(() => localStorage.setItem(KEYS.identity, JSON.stringify(identity)), [identity]);
   useEffect(() => localStorage.setItem(KEYS.dayNotes, JSON.stringify(dayNotes)), [dayNotes]);
   useEffect(() => localStorage.setItem(KEYS.reviews, JSON.stringify(reviews)), [reviews]);
   useEffect(() => localStorage.setItem(KEYS.countdown, JSON.stringify(countdown)), [countdown]);
@@ -229,7 +237,7 @@ export function DataProvider({ children }) {
     habits: new Set(),
     logs: new Set(),
     goals: new Set(),
-    virtues: new Set(),
+    identity: new Set(),
     dayNotes: new Set(),
     reviews: new Set(),
   });
@@ -258,7 +266,7 @@ export function DataProvider({ children }) {
         supabase.from('habits').select('*').eq('user_id', user.id),
         supabase.from('habit_logs').select('*').eq('user_id', user.id),
         supabase.from('goals').select('*').eq('user_id', user.id),
-        supabase.from('virtues').select('*').eq('user_id', user.id),
+        supabase.from('identity').select('*').eq('user_id', user.id),
         supabase.from('day_notes').select('*').eq('user_id', user.id),
         supabase.from('reviews').select('*').eq('user_id', user.id),
       ]);
@@ -272,12 +280,12 @@ export function DataProvider({ children }) {
       const mergedHabits = mergeById((h.data || []).map(habitFromRow), habits);
       const mergedLogs = mergeById((l.data || []).map(logFromRow), logs);
       const mergedGoals = mergeById((g.data || []).map(goalFromRow), goals);
-      // virtues arrived after the first schema, so a project that has not run
+      // identity arrived after the first schema, so a project that has not run
       // the migration reads as "nothing remote" rather than as a failure.
-      const mergedVirtues =
+      const mergedIdentity =
         v.error && isMissingTable(v.error)
-          ? virtues
-          : mergeById((v.data || []).map(virtueFromRow), virtues);
+          ? identity
+          : mergeById((v.data || []).map(statementFromRow), identity);
       const mergedNotes =
         n.error && isMissingTable(n.error)
           ? dayNotes
@@ -290,7 +298,7 @@ export function DataProvider({ children }) {
       setHabits(mergedHabits);
       setLogs(mergedLogs);
       setGoals(mergedGoals);
-      setVirtues(mergedVirtues);
+      setIdentity(mergedIdentity);
       setDayNotes(mergedNotes);
       setReviews(mergedReviews);
 
@@ -300,7 +308,7 @@ export function DataProvider({ children }) {
       mergedHabits.forEach((r) => dirty.current.habits.add(r.id));
       mergedLogs.forEach((r) => dirty.current.logs.add(r.id));
       mergedGoals.forEach((r) => dirty.current.goals.add(r.id));
-      mergedVirtues.forEach((r) => dirty.current.virtues.add(r.id));
+      mergedIdentity.forEach((r) => dirty.current.identity.add(r.id));
       mergedNotes.forEach((r) => dirty.current.dayNotes.add(r.id));
       mergedReviews.forEach((r) => dirty.current.reviews.add(r.id));
 
@@ -320,7 +328,7 @@ export function DataProvider({ children }) {
   useEffect(() => {
     if (!available || !user || hydratedFor.current !== user.id) return;
 
-    const pending = { habits, logs, goals, virtues, dayNotes, reviews };
+    const pending = { habits, logs, goals, identity, dayNotes, reviews };
     const anyDirty = Object.values(dirty.current).some((s) => s.size > 0);
     if (!anyDirty) return;
 
@@ -353,7 +361,7 @@ export function DataProvider({ children }) {
     }, PUSH_DEBOUNCE_MS);
 
     return () => clearTimeout(pushTimer.current);
-  }, [habits, logs, goals, virtues, dayNotes, reviews, available, user]);
+  }, [habits, logs, goals, identity, dayNotes, reviews, available, user]);
 
   // --- derived --------------------------------------------------------------
 
@@ -577,46 +585,46 @@ export function DataProvider({ children }) {
 
   const deleteGoal = useCallback((id) => updateGoal(id, { deleted: true }), [updateGoal]);
 
-  const addVirtue = useCallback(
+  const addStatement = useCallback(
     (fields) => {
-      const virtue = {
+      const statement = {
         id: newId(),
         name: fields.name.trim(),
         note: (fields.note || '').trim(),
-        sortOrder: virtues.length,
+        sortOrder: identity.length,
         deleted: false,
         createdAt: nowISO(),
         updatedAt: nowISO(),
       };
-      setVirtues((prev) => [...prev, virtue]);
-      markDirty('virtues', virtue.id);
-      return virtue;
+      setIdentity((prev) => [...prev, statement]);
+      markDirty('identity', statement.id);
+      return statement;
     },
-    [virtues.length, markDirty]
+    [identity.length, markDirty]
   );
 
-  const updateVirtue = useCallback(
+  const updateStatement = useCallback(
     (id, patch) => {
-      setVirtues((prev) =>
+      setIdentity((prev) =>
         prev.map((v) => (v.id === id ? { ...v, ...patch, updatedAt: nowISO() } : v))
       );
-      markDirty('virtues', id);
+      markDirty('identity', id);
     },
     [markDirty]
   );
 
-  const deleteVirtue = useCallback((id) => updateVirtue(id, { deleted: true }), [updateVirtue]);
+  const deleteStatement = useCallback((id) => updateStatement(id, { deleted: true }), [updateStatement]);
 
-  const activeVirtues = useMemo(
+  const activeIdentity = useMemo(
     () =>
-      virtues
+      identity
         .filter((v) => !v.deleted)
         .sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt)),
-    [virtues]
+    [identity]
   );
 
   /**
-   * One virtue per day, cycling through the list by date. Deterministic rather
+   * One statement per day, cycling through the list by date. Deterministic rather
    * than random so it is the same all day and on every device — and so the
    * whole list comes round rather than the same two surfacing forever.
    */
@@ -712,7 +720,7 @@ export function DataProvider({ children }) {
       habits,
       logs,
       goals,
-      virtues,
+      identity,
       dayNotes,
       reviews,
       countdown,
@@ -724,24 +732,24 @@ export function DataProvider({ children }) {
     a.download = `tally-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [habits, logs, goals, virtues, dayNotes, reviews, countdown]);
+  }, [habits, logs, goals, identity, dayNotes, reviews, countdown]);
 
-  const virtueOfDay = useMemo(() => {
-    if (activeVirtues.length === 0) return null;
+  const statementOfDay = useMemo(() => {
+    if (activeIdentity.length === 0) return null;
     const epochDay = Math.floor(new Date(`${todayISO()}T12:00:00`).getTime() / 86400000);
-    return activeVirtues[epochDay % activeVirtues.length];
-  }, [activeVirtues]);
+    return activeIdentity[epochDay % activeIdentity.length];
+  }, [activeIdentity]);
 
   const value = {
     habits,
     activeHabits,
     archivedHabits,
     goals: activeGoals,
-    virtues: activeVirtues,
-    virtueOfDay,
-    addVirtue,
-    updateVirtue,
-    deleteVirtue,
+    identity: activeIdentity,
+    statementOfDay,
+    addStatement,
+    updateStatement,
+    deleteStatement,
     noteFor,
     setDayNote,
     notes: activeNotes,

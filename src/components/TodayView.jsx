@@ -159,7 +159,7 @@ function HabitRow({ habit, day, editing, setEditing }) {
 }
 
 export function TodayView() {
-  const { activeHabits, doneSets, virtueOfDay } = useData();
+  const { activeHabits, doneSets, statementOfDay } = useData();
   const [editing, setEditing] = useState(null);
   const today = todayISO();
 
@@ -195,11 +195,11 @@ export function TodayView() {
         <aside className="today__rail">
           <WeekStrip habits={activeHabits} doneSets={doneSets} today={today} />
           <Countdown />
-          {virtueOfDay && (
-            <div className="today-virtue">
+          {statementOfDay && (
+            <div className="today-statement">
               <p className="eyebrow">Today’s value</p>
-              <p className="today-virtue__name">{virtueOfDay.name}</p>
-              {virtueOfDay.note && <p className="today-virtue__note">{virtueOfDay.note}</p>}
+              <p className="today-statement__name">{statementOfDay.name}</p>
+              {statementOfDay.note && <p className="today-statement__note">{statementOfDay.note}</p>}
             </div>
           )}
         </aside>

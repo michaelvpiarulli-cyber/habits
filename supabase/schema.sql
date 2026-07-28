@@ -47,6 +47,23 @@ create table if not exists public.habits (
   target      numeric     check (target is null or target > 0),
   unit        text,                               -- 'walks', 'h', 'g', 'lb'
 
+  -- The floor: the smallest version that still counts as showing up. A streak
+  -- survives a floor day; the completion rate does not count it as a full one.
+  -- Without this a 7.5-hour night reads as failure, which is how a system that
+  -- should absorb a bad week instead gets abandoned after one.
+  floor       numeric     check (floor is null or floor > 0),
+
+  -- Which value this habit is a vote for. The identity a habit serves is the
+  -- reason it survives contact with a bad month. The foreign key is added
+  -- further down, once public.identity exists.
+  identity_id   uuid,
+
+  -- "I will [habit] at [time] in [place]" — an implementation intention.
+  cue         text,
+
+  -- Habit stacking: the habit this one follows.
+  after_id    uuid        references public.habits (id) on delete set null,
+
   archived    boolean     not null default false,
   sort_order  integer     not null default 0,
   deleted     boolean     not null default false,
@@ -58,6 +75,13 @@ create table if not exists public.habits (
   constraint habits_target_required
     check (kind not in ('count', 'amount') or target is not null)
 );
+
+-- Added after the first release; safe to re-run.
+alter table public.habits
+  add column if not exists floor     numeric,
+  add column if not exists identity_id uuid,
+  add column if not exists cue       text,
+  add column if not exists after_id  uuid references public.habits (id) on delete set null;
 
 create index if not exists habits_user_idx on public.habits (user_id);
 
@@ -109,12 +133,12 @@ create table if not exists public.goals (
 
 create index if not exists goals_user_idx on public.goals (user_id);
 
--- --------------------------------------------------------------- virtues ----
+-- --------------------------------------------------------------- identity ----
 -- What you are trying to be, as opposed to what you are trying to do. Kept
--- apart from habits on purpose: a virtue is not something you tick off, and
+-- apart from habits on purpose: a statement is not something you tick off, and
 -- giving it a streak would turn character into a scoreboard.
 
-create table if not exists public.virtues (
+create table if not exists public.identity (
   id         uuid primary key,
   user_id    uuid        not null references auth.users (id) on delete cascade,
   name       text        not null,
@@ -125,7 +149,19 @@ create table if not exists public.virtues (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists virtues_user_idx on public.virtues (user_id);
+create index if not exists identity_user_idx on public.identity (user_id);
+
+-- habits.identity_id points here. Declared now that both tables exist.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'habits_identity_id_fkey'
+  ) then
+    alter table public.habits
+      add constraint habits_identity_id_fkey
+      foreign key (identity_id) references public.identity (id) on delete set null;
+  end if;
+end $$;
 
 -- ------------------------------------------------------------- day_notes ----
 -- A line about the day itself, as opposed to habit_logs.note, which belongs to
@@ -146,7 +182,7 @@ create index if not exists day_notes_user_day_idx on public.day_notes (user_id, 
 
 -- ----------------------------------------------------------------- reviews --
 -- The weekly look back, keyed to the Monday of the week it covers. Scored
--- against virtues rather than habits: the habit grid already reports whether
+-- against identity rather than habits: the habit grid already reports whether
 -- the reps happened, and the question worth asking on a Sunday is a different
 -- one.
 
@@ -157,7 +193,7 @@ create table if not exists public.reviews (
   held        text        not null default '',  -- what held
   compromised text        not null default '',  -- where it slipped
   focus       text        not null default '',  -- one thing for next week
-  scores      jsonb       not null default '{}'::jsonb, -- virtueId -> 1..5
+  scores      jsonb       not null default '{}'::jsonb, -- identityId -> 1..5
   deleted     boolean     not null default false,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
@@ -174,14 +210,14 @@ create index if not exists reviews_user_week_idx on public.reviews (user_id, wee
 alter table public.habits     enable row level security;
 alter table public.habit_logs enable row level security;
 alter table public.goals      enable row level security;
-alter table public.virtues    enable row level security;
+alter table public.identity    enable row level security;
 alter table public.day_notes  enable row level security;
 alter table public.reviews    enable row level security;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['habits', 'habit_logs', 'goals', 'virtues', 'day_notes', 'reviews'] loop
+  foreach t in array array['habits', 'habit_logs', 'goals', 'identity', 'day_notes', 'reviews'] loop
     execute format('drop policy if exists "own rows read"   on public.%I', t);
     execute format('drop policy if exists "own rows insert" on public.%I', t);
     execute format('drop policy if exists "own rows update" on public.%I', t);

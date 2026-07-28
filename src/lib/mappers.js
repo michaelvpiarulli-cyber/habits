@@ -74,7 +74,7 @@ export const logToRow = (l, userId) => ({
   updated_at: l.updatedAt,
 });
 
-export const virtueFromRow = (r) => ({
+export const statementFromRow = (r) => ({
   id: r.id,
   name: r.name,
   note: r.note || '',
@@ -84,7 +84,7 @@ export const virtueFromRow = (r) => ({
   updatedAt: r.updated_at,
 });
 
-export const virtueToRow = (v, userId) => ({
+export const statementToRow = (v, userId) => ({
   id: v.id,
   user_id: userId,
   name: v.name,

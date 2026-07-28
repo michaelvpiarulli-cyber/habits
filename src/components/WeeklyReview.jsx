@@ -5,7 +5,7 @@ import { addDays, formatShort, startOfWeek, todayISO } from '../lib/dates';
 /**
  * The Sunday look back.
  *
- * Scored against virtues, not habits — the grid already reports whether the
+ * Scored against identity, not habits — the grid already reports whether the
  * reps happened, so asking again here would be noise. The question worth
  * putting to yourself weekly is the one no chart can answer.
  *
@@ -19,7 +19,7 @@ function weekLabel(weekStart) {
 }
 
 export function ReviewSheet({ weekStart, onClose }) {
-  const { reviewFor, saveReview, virtues } = useData();
+  const { reviewFor, saveReview, identity } = useData();
   const existing = reviewFor(weekStart);
 
   const [held, setHeld] = useState(existing?.held || '');
@@ -93,11 +93,11 @@ export function ReviewSheet({ weekStart, onClose }) {
             />
           </div>
 
-          {virtues.length > 0 && (
+          {identity.length > 0 && (
             <fieldset className="field">
               <legend className="field__label">How the week measured up</legend>
               <ul className="scores">
-                {virtues.map((v) => (
+                {identity.map((v) => (
                   <li className="score" key={v.id}>
                     <span className="score__name">{v.name}</span>
                     <span className="score__dots" role="group" aria-label={v.name}>

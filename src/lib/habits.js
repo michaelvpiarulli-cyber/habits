@@ -43,6 +43,31 @@ export function isComplete(habit, log) {
   return value >= targetOf(habit);
 }
 
+/**
+ * The floor: the smallest version that still counts as showing up.
+ *
+ * Two states rather than one, because "did I hit the target" and "did I show
+ * up at all" are different questions and only the second one should govern a
+ * streak. A night of 7.5 hours against a target of 8 is not a failure, and a
+ * system that calls it one is a system you quit after a bad week.
+ */
+export function floorOf(habit) {
+  return habit.floor ? Number(habit.floor) : null;
+}
+
+/** Did the day clear the floor — i.e. does the chain survive? */
+export function isKept(habit, log) {
+  if (isComplete(habit, log)) return true;
+  const floor = floorOf(habit);
+  if (!floor) return false;
+  return valueOf(habit, log) >= floor;
+}
+
+/** Cleared the floor but not the target — shown as a lighter mark. */
+export function isFloorOnly(habit, log) {
+  return isKept(habit, log) && !isComplete(habit, log);
+}
+
 /** 0–1, for how densely the day's mark gets inked. */
 export function fractionOf(habit, log) {
   if (habit.kind === 'measure') return valueOf(habit, log) > 0 ? 1 : 0;

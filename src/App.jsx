@@ -6,7 +6,7 @@ import { TodayView } from './components/TodayView';
 import { ProgressView } from './components/ProgressView';
 import { GoalsView } from './components/GoalsView';
 import { HabitsView } from './components/HabitsView';
-import { ValuesView } from './components/ValuesView';
+import { IdentityView } from './components/IdentityView';
 import { BottomNav } from './components/BottomNav';
 import { AccountMenu } from './components/AccountMenu';
 import './App.css';
@@ -16,7 +16,7 @@ const VIEWS = {
   record: ProgressView,
   goals: GoalsView,
   habits: HabitsView,
-  values: ValuesView,
+  identity: IdentityView,
 };
 
 export default function App() {

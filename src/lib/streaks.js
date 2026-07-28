@@ -15,6 +15,27 @@ import { addDays, dow, isoOf, startOfWeek, todayISO, daysBetween } from './dates
 // Far enough back to cover any real history, near enough to bound every loop.
 const MAX_LOOKBACK_DAYS = 3660;
 
+/**
+ * Missed yesterday, but not the day before — the moment "never miss twice"
+ * exists for. One miss is an accident; the rule is about the second one, so
+ * this only fires on the single day where the warning still means something.
+ */
+export function atRiskToday(habit, keptSet, today = todayISO()) {
+  if (habit.cadence === 'per_week' || hasNoDueDays(habit)) return false;
+  if (keptSet.has(today)) return false;
+
+  // Walk back to the most recent day this habit was actually expected.
+  let prev = addDays(today, -1);
+  for (let i = 0; i < 14 && !isDue(habit, prev); i++) prev = addDays(prev, -1);
+  if (!isDue(habit, prev) || keptSet.has(prev)) return false;
+
+  // And the one before that — if both were missed the streak is long gone and
+  // a warning is just nagging.
+  let before = addDays(prev, -1);
+  for (let i = 0; i < 14 && !isDue(habit, before); i++) before = addDays(before, -1);
+  return isDue(habit, before) ? keptSet.has(before) : false;
+}
+
 /** Is `habit` expected on `iso`? per_week habits accept any day. */
 export function isDue(habit, iso) {
   if (habit.cadence === 'weekdays') return (habit.weekdays || []).includes(dow(iso));

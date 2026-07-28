@@ -593,20 +593,20 @@
 
 /* On Today: quiet by design. It is there to be read, not acted on, so it must
    not compete with the habits directly beneath it. */
-.today-virtue {
+.today-statement {
   margin: 0 0 24px;
   padding-left: 13px;
   border-left: 2px solid var(--rule);
 }
 
-.today-virtue__name {
+.today-statement__name {
   margin-top: 3px;
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.3;
 }
 
-.today-virtue__note {
+.today-statement__note {
   margin-top: 3px;
   font-size: 0.813rem;
   line-height: 1.45;
@@ -614,28 +614,28 @@
   max-width: 52ch;
 }
 
-.virtues {
+.identity {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  counter-reset: virtue;
+  counter-reset: statement;
 }
 
 /* Numbered because the order is real: the first one governs the rest. */
-.virtue {
+.statement {
   position: relative;
-  counter-increment: virtue;
+  counter-increment: statement;
   padding: 15px 15px 15px 46px;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--card);
 }
 
-.virtue::before {
-  content: counter(virtue);
+.statement::before {
+  content: counter(statement);
   position: absolute;
   left: 15px;
   top: 15px;
@@ -646,24 +646,24 @@
   font-variant-numeric: tabular-nums;
 }
 
-.virtue.is-today {
+.statement.is-today {
   border-color: var(--blue);
 }
 
-.virtue__head {
+.statement__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
 }
 
-.virtue__name {
+.statement__name {
   font-size: 1.063rem;
   font-weight: 600;
   line-height: 1.25;
 }
 
-.virtue__flag {
+.statement__flag {
   flex: none;
   font-family: var(--mono);
   font-size: 0.563rem;
@@ -675,7 +675,7 @@
   border-radius: 2px;
 }
 
-.virtue__note {
+.statement__note {
   margin-top: 6px;
   font-size: 0.875rem;
   line-height: 1.5;
@@ -683,7 +683,7 @@
   max-width: 56ch;
 }
 
-.virtue__actions {
+.statement__actions {
   display: flex;
   gap: 6px;
   margin-top: 12px;
@@ -1834,7 +1834,7 @@ form.field {
 
   .today__rail .strip,
   .today__rail .countdown,
-  .today__rail .today-virtue {
+  .today__rail .today-statement {
     margin: 0;
   }
 
@@ -1846,7 +1846,7 @@ form.field {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .virtues,
+  .identity,
   .goals {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
