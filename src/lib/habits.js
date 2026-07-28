@@ -93,14 +93,14 @@ export const SEED_TIME = '2020-01-01T00:00:00.000Z';
 
 export const STARTER_HABITS = [
   {
-    id: 'ta110000-0000-4000-8000-000000000001',
+    id: '7a110000-0000-4000-8000-000000000001',
     name: 'Whole foods',
     emoji: '\u{1F966}',
     kind: 'check',
     cadence: 'daily',
   },
   {
-    id: 'ta110000-0000-4000-8000-000000000002',
+    id: '7a110000-0000-4000-8000-000000000002',
     name: 'Walk after meals',
     emoji: '\u{1F6B6}',
     kind: 'count',
@@ -109,7 +109,7 @@ export const STARTER_HABITS = [
     cadence: 'daily',
   },
   {
-    id: 'ta110000-0000-4000-8000-000000000003',
+    id: '7a110000-0000-4000-8000-000000000003',
     name: 'Lift',
     emoji: '\u{1F3CB}',
     kind: 'count',
@@ -118,7 +118,7 @@ export const STARTER_HABITS = [
     cadence: 'daily',
   },
   {
-    id: 'ta110000-0000-4000-8000-000000000004',
+    id: '7a110000-0000-4000-8000-000000000004',
     name: 'Sleep',
     emoji: '\u{1F634}',
     kind: 'amount',
@@ -127,7 +127,7 @@ export const STARTER_HABITS = [
     cadence: 'daily',
   },
   {
-    id: 'ta110000-0000-4000-8000-000000000005',
+    id: '7a110000-0000-4000-8000-000000000005',
     name: 'Protein',
     emoji: '\u{1F969}',
     kind: 'amount',
@@ -136,7 +136,7 @@ export const STARTER_HABITS = [
     cadence: 'daily',
   },
   {
-    id: 'ta110000-0000-4000-8000-000000000006',
+    id: '7a110000-0000-4000-8000-000000000006',
     name: 'Weigh in',
     emoji: '\u{2696}',
     kind: 'measure',

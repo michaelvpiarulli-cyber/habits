@@ -109,6 +109,24 @@ create table if not exists public.goals (
 
 create index if not exists goals_user_idx on public.goals (user_id);
 
+-- --------------------------------------------------------------- virtues ----
+-- What you are trying to be, as opposed to what you are trying to do. Kept
+-- apart from habits on purpose: a virtue is not something you tick off, and
+-- giving it a streak would turn character into a scoreboard.
+
+create table if not exists public.virtues (
+  id         uuid primary key,
+  user_id    uuid        not null references auth.users (id) on delete cascade,
+  name       text        not null,
+  note       text,
+  sort_order integer     not null default 0,
+  deleted    boolean     not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists virtues_user_idx on public.virtues (user_id);
+
 -- ------------------------------------------------------------------ RLS ----
 -- Identical shape on all three tables: you may only read or write rows whose
 -- user_id is your own. The `with check` on insert/update is what stops a client
@@ -117,11 +135,12 @@ create index if not exists goals_user_idx on public.goals (user_id);
 alter table public.habits     enable row level security;
 alter table public.habit_logs enable row level security;
 alter table public.goals      enable row level security;
+alter table public.virtues    enable row level security;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['habits', 'habit_logs', 'goals'] loop
+  foreach t in array array['habits', 'habit_logs', 'goals', 'virtues'] loop
     execute format('drop policy if exists "own rows read"   on public.%I', t);
     execute format('drop policy if exists "own rows insert" on public.%I', t);
     execute format('drop policy if exists "own rows update" on public.%I', t);

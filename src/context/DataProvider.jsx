@@ -16,6 +16,8 @@ import {
   habitToRow,
   logFromRow,
   logToRow,
+  virtueFromRow,
+  virtueToRow,
   newId,
   nowISO,
 } from '../lib/mappers';
@@ -39,6 +41,7 @@ const KEYS = {
   habits: 'tally-habits',
   logs: 'tally-logs',
   goals: 'tally-goals',
+  virtues: 'tally-virtues',
   countdown: 'tally-countdown',
 };
 
@@ -48,11 +51,73 @@ const KEYS = {
  */
 const DEFAULT_COUNTDOWN = { date: '2027-03-27', label: 'Baby due' };
 
+/**
+ * The starting values, in the user's own words. Fixed ids and a backdated
+ * updatedAt for the same reason as the starter habits: two devices seeding
+ * before they ever sync collapse to one row, and any later edit wins.
+ */
+const STARTER_VIRTUES = [
+  {
+    id: '7a110000-0000-4000-9000-000000000001',
+    name: 'Serve God most high',
+    note: 'Over everything and anything. Every other value here sits underneath this one.',
+  },
+  {
+    id: '7a110000-0000-4000-9000-000000000002',
+    name: 'Wife and family first',
+    note: 'My number one priority in life. Ahead of work, ahead of ambition, ahead of my own comfort.',
+  },
+  {
+    id: '7a110000-0000-4000-9000-000000000003',
+    name: 'Honest, always',
+    note: 'I am an honest man who doesn’t lie.',
+  },
+  {
+    id: '7a110000-0000-4000-9000-000000000004',
+    name: 'Discipline without compromise',
+    note: 'I am a man of extreme discipline. I do not compromise.',
+  },
+  {
+    id: '7a110000-0000-4000-9000-000000000005',
+    name: 'Chief servant in my home',
+    note: 'I lead by serving first. The house is not something I am owed — it is something I carry.',
+  },
+  {
+    id: '7a110000-0000-4000-9000-000000000006',
+    name: 'My body is a temple',
+    note: 'I treat my body as a temple of the Holy Spirit. The habits on this app are how that gets kept, not a vanity project.',
+  },
+];
+
+/**
+ * The first seeded ids were written with a "ta11" prefix, and `t` is not a hex
+ * digit — Postgres would reject every one of them as a malformed uuid on the
+ * first sync. They are rewritten to a valid prefix on load, along with the
+ * foreign keys that point at them, so anyone who used the app before signing in
+ * keeps their history instead of watching it fail to upload.
+ */
+const BAD_ID_PREFIX = 'ta11';
+const GOOD_ID_PREFIX = '7a11';
+const fixId = (id) =>
+  typeof id === 'string' && id.startsWith(BAD_ID_PREFIX)
+    ? GOOD_ID_PREFIX + id.slice(BAD_ID_PREFIX.length)
+    : id;
+
 const TABLES = {
   habits: { table: 'habits', from: habitFromRow, to: habitToRow },
   logs: { table: 'habit_logs', from: logFromRow, to: logToRow },
   goals: { table: 'goals', from: goalFromRow, to: goalToRow },
+  virtues: { table: 'virtues', from: virtueFromRow, to: virtueToRow },
 };
+
+/**
+ * PostgREST's codes for "that table isn't there". A table added in a later
+ * version of the schema may be missing from a project that has not run the
+ * migration yet; when that happens the feature stays local instead of the whole
+ * app reporting itself as broken.
+ */
+const MISSING_TABLE_CODES = new Set(['PGRST205', 'PGRST106', '42P01']);
+const isMissingTable = (error) => MISSING_TABLE_CODES.has(error?.code);
 
 const TOMBSTONE_TTL_DAYS = 90;
 const PUSH_DEBOUNCE_MS = 700;
@@ -92,7 +157,7 @@ export function DataProvider({ children }) {
   const { available, user } = useAuth();
 
   const [habits, setHabits] = useState(() => {
-    const stored = purgeStale(loadList(KEYS.habits));
+    const stored = purgeStale(loadList(KEYS.habits)).map((h) => ({ ...h, id: fixId(h.id) }));
     // A first run opens on the real routine instead of an empty list. Fixed ids
     // and a backdated SEED_TIME (see lib/habits) keep this safe to run on more
     // than one device: the copies merge into one, and any later edit wins.
@@ -112,8 +177,23 @@ export function DataProvider({ children }) {
       updatedAt: SEED_TIME,
     }));
   });
-  const [logs, setLogs] = useState(() => purgeStale(loadList(KEYS.logs)));
-  const [goals, setGoals] = useState(() => purgeStale(loadList(KEYS.goals)));
+  const [logs, setLogs] = useState(() =>
+    purgeStale(loadList(KEYS.logs)).map((l) => ({ ...l, habitId: fixId(l.habitId) }))
+  );
+  const [goals, setGoals] = useState(() =>
+    purgeStale(loadList(KEYS.goals)).map((g) => ({ ...g, habitId: fixId(g.habitId) }))
+  );
+  const [virtues, setVirtues] = useState(() => {
+    const stored = purgeStale(loadList(KEYS.virtues));
+    if (stored.length > 0 || localStorage.getItem(KEYS.virtues)) return stored;
+    return STARTER_VIRTUES.map((v, i) => ({
+      ...v,
+      sortOrder: i,
+      deleted: false,
+      createdAt: nowISO(),
+      updatedAt: SEED_TIME,
+    }));
+  });
   const [countdown, setCountdown] = useState(() => {
     try {
       const raw = localStorage.getItem(KEYS.countdown);
@@ -128,11 +208,17 @@ export function DataProvider({ children }) {
   useEffect(() => localStorage.setItem(KEYS.habits, JSON.stringify(habits)), [habits]);
   useEffect(() => localStorage.setItem(KEYS.logs, JSON.stringify(logs)), [logs]);
   useEffect(() => localStorage.setItem(KEYS.goals, JSON.stringify(goals)), [goals]);
+  useEffect(() => localStorage.setItem(KEYS.virtues, JSON.stringify(virtues)), [virtues]);
   useEffect(() => localStorage.setItem(KEYS.countdown, JSON.stringify(countdown)), [countdown]);
 
   // Ids touched since the last successful push. Only these get sent, so a
   // three-year backlog of logs is not re-uploaded every time a box is ticked.
-  const dirty = useRef({ habits: new Set(), logs: new Set(), goals: new Set() });
+  const dirty = useRef({
+    habits: new Set(),
+    logs: new Set(),
+    goals: new Set(),
+    virtues: new Set(),
+  });
   const markDirty = useCallback((kind, id) => dirty.current[kind].add(id), []);
 
   // The user id we have already pulled and merged for. Pushes stay parked until
@@ -154,10 +240,11 @@ export function DataProvider({ children }) {
     (async () => {
       setSyncState('syncing');
 
-      const [h, l, g] = await Promise.all([
+      const [h, l, g, v] = await Promise.all([
         supabase.from('habits').select('*').eq('user_id', user.id),
         supabase.from('habit_logs').select('*').eq('user_id', user.id),
         supabase.from('goals').select('*').eq('user_id', user.id),
+        supabase.from('virtues').select('*').eq('user_id', user.id),
       ]);
 
       if (cancelled) return;
@@ -169,10 +256,17 @@ export function DataProvider({ children }) {
       const mergedHabits = mergeById((h.data || []).map(habitFromRow), habits);
       const mergedLogs = mergeById((l.data || []).map(logFromRow), logs);
       const mergedGoals = mergeById((g.data || []).map(goalFromRow), goals);
+      // virtues arrived after the first schema, so a project that has not run
+      // the migration reads as "nothing remote" rather than as a failure.
+      const mergedVirtues =
+        v.error && isMissingTable(v.error)
+          ? virtues
+          : mergeById((v.data || []).map(virtueFromRow), virtues);
 
       setHabits(mergedHabits);
       setLogs(mergedLogs);
       setGoals(mergedGoals);
+      setVirtues(mergedVirtues);
 
       // Everything local that the server has not seen needs to go up. Marking
       // the whole merged set is the simple, correct version of that: upserts
@@ -180,6 +274,7 @@ export function DataProvider({ children }) {
       mergedHabits.forEach((r) => dirty.current.habits.add(r.id));
       mergedLogs.forEach((r) => dirty.current.logs.add(r.id));
       mergedGoals.forEach((r) => dirty.current.goals.add(r.id));
+      mergedVirtues.forEach((r) => dirty.current.virtues.add(r.id));
 
       hydratedFor.current = user.id;
       setSyncState('syncing'); // the push effect below takes it from here
@@ -197,7 +292,7 @@ export function DataProvider({ children }) {
   useEffect(() => {
     if (!available || !user || hydratedFor.current !== user.id) return;
 
-    const pending = { habits, logs, goals };
+    const pending = { habits, logs, goals, virtues };
     const anyDirty = Object.values(dirty.current).some((s) => s.size > 0);
     if (!anyDirty) return;
 
@@ -218,8 +313,11 @@ export function DataProvider({ children }) {
 
         const { error } = await supabase.from(table).upsert(rows);
         // Clear only on success — a failed batch stays dirty and retries on the
-        // next edit rather than being silently dropped.
-        if (error) failed = true;
+        // next edit rather than being silently dropped. A table that does not
+        // exist is the exception: retrying cannot help, and the feature is
+        // meant to keep working locally until the schema catches up.
+        if (error && isMissingTable(error)) ids.clear();
+        else if (error) failed = true;
         else ids.clear();
       }
 
@@ -227,7 +325,7 @@ export function DataProvider({ children }) {
     }, PUSH_DEBOUNCE_MS);
 
     return () => clearTimeout(pushTimer.current);
-  }, [habits, logs, goals, available, user]);
+  }, [habits, logs, goals, virtues, available, user]);
 
   // --- derived --------------------------------------------------------------
 
@@ -451,11 +549,65 @@ export function DataProvider({ children }) {
 
   const deleteGoal = useCallback((id) => updateGoal(id, { deleted: true }), [updateGoal]);
 
+  const addVirtue = useCallback(
+    (fields) => {
+      const virtue = {
+        id: newId(),
+        name: fields.name.trim(),
+        note: (fields.note || '').trim(),
+        sortOrder: virtues.length,
+        deleted: false,
+        createdAt: nowISO(),
+        updatedAt: nowISO(),
+      };
+      setVirtues((prev) => [...prev, virtue]);
+      markDirty('virtues', virtue.id);
+      return virtue;
+    },
+    [virtues.length, markDirty]
+  );
+
+  const updateVirtue = useCallback(
+    (id, patch) => {
+      setVirtues((prev) =>
+        prev.map((v) => (v.id === id ? { ...v, ...patch, updatedAt: nowISO() } : v))
+      );
+      markDirty('virtues', id);
+    },
+    [markDirty]
+  );
+
+  const deleteVirtue = useCallback((id) => updateVirtue(id, { deleted: true }), [updateVirtue]);
+
+  const activeVirtues = useMemo(
+    () =>
+      virtues
+        .filter((v) => !v.deleted)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt)),
+    [virtues]
+  );
+
+  /**
+   * One virtue per day, cycling through the list by date. Deterministic rather
+   * than random so it is the same all day and on every device — and so the
+   * whole list comes round rather than the same two surfacing forever.
+   */
+  const virtueOfDay = useMemo(() => {
+    if (activeVirtues.length === 0) return null;
+    const epochDay = Math.floor(new Date(`${todayISO()}T12:00:00`).getTime() / 86400000);
+    return activeVirtues[epochDay % activeVirtues.length];
+  }, [activeVirtues]);
+
   const value = {
     habits,
     activeHabits,
     archivedHabits,
     goals: activeGoals,
+    virtues: activeVirtues,
+    virtueOfDay,
+    addVirtue,
+    updateVirtue,
+    deleteVirtue,
     countdown,
     setCountdown,
     doneSets,

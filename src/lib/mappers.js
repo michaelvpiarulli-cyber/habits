@@ -74,6 +74,27 @@ export const logToRow = (l, userId) => ({
   updated_at: l.updatedAt,
 });
 
+export const virtueFromRow = (r) => ({
+  id: r.id,
+  name: r.name,
+  note: r.note || '',
+  sortOrder: r.sort_order ?? 0,
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const virtueToRow = (v, userId) => ({
+  id: v.id,
+  user_id: userId,
+  name: v.name,
+  note: v.note || null,
+  sort_order: v.sortOrder ?? 0,
+  deleted: !!v.deleted,
+  created_at: v.createdAt,
+  updated_at: v.updatedAt,
+});
+
 export const goalFromRow = (r) => ({
   id: r.id,
   title: r.title,

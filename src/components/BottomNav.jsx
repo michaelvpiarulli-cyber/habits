@@ -23,11 +23,17 @@ const TABS = [
     // Stacked rows: the list itself.
     path: 'M4 5h16v3H4zM4 10.5h16v3H4zM4 16h16v3H4z',
   },
+  {
+    id: 'values',
+    label: 'Values',
+    // A plumb line: the thing you measure true against.
+    path: 'M11 3h2v13h-2zM12 17l4 4H8z',
+  },
 ];
 
 export function BottomNav({ tab, onChange }) {
   return (
-    <nav className="nav" aria-label="Sections">
+    <nav className="nav" style={{ '--tabs': TABS.length }} aria-label="Sections">
       {TABS.map((t) => (
         <button
           key={t.id}
