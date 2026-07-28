@@ -16,7 +16,7 @@ const THEMES = [
 export function AccountMenu({ auth, theme, onClose }) {
   const { syncState, syncAvailable, countdown, setCountdown } = useData();
   const [mode, setMode] = useState('in'); // 'in' | 'up'
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
@@ -31,11 +31,15 @@ export function AccountMenu({ auth, theme, onClose }) {
     e.preventDefault();
     setBusy(true);
     setMessage(null);
-    const result = mode === 'in' ? await auth.signIn(email, password) : await auth.signUp(email, password);
+    const result =
+      mode === 'in' ? await auth.signIn(username, password) : await auth.signUp(username, password);
     setBusy(false);
     if (result.error) setMessage({ tone: 'bad', text: result.error });
     else if (result.needsConfirm)
-      setMessage({ tone: 'good', text: 'Check your email to confirm the account, then sign in.' });
+      setMessage({
+        tone: 'bad',
+        text: 'This project still requires email confirmation, which a username account can’t receive. Turn off “Confirm email” in Supabase → Authentication → Providers → Email, then sign in.',
+      });
     else onClose();
   };
 
@@ -71,7 +75,7 @@ export function AccountMenu({ auth, theme, onClose }) {
 
           {syncAvailable && auth.user && (
             <div className="field">
-              <p className="account__email">{auth.email}</p>
+              <p className="account__email">{auth.username}</p>
               <button type="button" className="btn" onClick={auth.signOut}>
                 Sign out
               </button>
@@ -91,17 +95,22 @@ export function AccountMenu({ auth, theme, onClose }) {
                 </label>
               </div>
 
-              <label className="field__label" htmlFor="account-email">
-                Email
+              <label className="field__label" htmlFor="account-username">
+                Username
               </label>
               <input
-                id="account-email"
+                id="account-username"
                 className="field__input"
-                type="email"
-                autoComplete="email"
+                type="text"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                minLength={2}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="michael"
               />
 
               <label className="field__label" htmlFor="account-password">
@@ -124,7 +133,8 @@ export function AccountMenu({ auth, theme, onClose }) {
                 {busy ? 'Working…' : mode === 'in' ? 'Sign in' : 'Create account'}
               </button>
               <p className="field__hint">
-                What’s already on this device merges into the account — nothing is replaced.
+                No email, no confirmation. What’s already on this device merges into the account —
+                nothing is replaced.
               </p>
             </form>
           )}
