@@ -185,41 +185,52 @@ export function TodayView() {
         </h1>
       </header>
 
-      <WeekStrip habits={activeHabits} doneSets={doneSets} today={today} />
-
-      <Countdown />
-
-      {virtueOfDay && (
-        <aside className="today-virtue">
-          <p className="eyebrow">Today’s value</p>
-          <p className="today-virtue__name">{virtueOfDay.name}</p>
-          {virtueOfDay.note && <p className="today-virtue__note">{virtueOfDay.note}</p>}
+      {/*
+        Two zones: what you act on, and what you read. On a phone they stack
+        in reading order; on a wide screen the context moves into a rail so the
+        habits stay a comfortable column instead of stretching to the window.
+      */}
+      <div className="today">
+        <aside className="today__rail">
+          <WeekStrip habits={activeHabits} doneSets={doneSets} today={today} />
+          <Countdown />
+          {virtueOfDay && (
+            <div className="today-virtue">
+              <p className="eyebrow">Today’s value</p>
+              <p className="today-virtue__name">{virtueOfDay.name}</p>
+              {virtueOfDay.note && <p className="today-virtue__note">{virtueOfDay.note}</p>}
+            </div>
+          )}
         </aside>
-      )}
 
-      {activeHabits.length === 0 ? (
-        <div className="empty">
-          <p className="empty__title">No habits yet.</p>
-          <p className="empty__body">Add one on the Habits tab and it shows up here every day it’s due.</p>
+        <div className="today__main">
+          {activeHabits.length === 0 ? (
+            <div className="empty">
+              <p className="empty__title">No habits yet.</p>
+              <p className="empty__body">
+                Add one on the Habits tab and it shows up here every day it’s due.
+              </p>
+            </div>
+          ) : (
+            <ul className="rows">
+              {dueToday.map((h) => (
+                <HabitRow key={h.id} habit={h} day={today} editing={editing} setEditing={setEditing} />
+              ))}
+            </ul>
+          )}
+
+          {restToday.length > 0 && (
+            <section className="rest">
+              <h2 className="eyebrow">Not scheduled today</h2>
+              <ul className="rows rows--muted">
+                {restToday.map((h) => (
+                  <HabitRow key={h.id} habit={h} day={today} editing={editing} setEditing={setEditing} />
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
-      ) : (
-        <ul className="rows">
-          {dueToday.map((h) => (
-            <HabitRow key={h.id} habit={h} day={today} editing={editing} setEditing={setEditing} />
-          ))}
-        </ul>
-      )}
-
-      {restToday.length > 0 && (
-        <section className="rest">
-          <h2 className="eyebrow">Not scheduled today</h2>
-          <ul className="rows rows--muted">
-            {restToday.map((h) => (
-              <HabitRow key={h.id} habit={h} day={today} editing={editing} setEditing={setEditing} />
-            ))}
-          </ul>
-        </section>
-      )}
+      </div>
     </div>
   );
 }

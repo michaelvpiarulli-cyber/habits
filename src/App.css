@@ -347,6 +347,23 @@
 }
 
 /* =========================================================================
+   Today layout
+
+   On a phone the rail dissolves (display: contents) and its children stack in
+   reading order exactly as before. The two-column split only exists on screens
+   wide enough to have somewhere to put it.
+   ========================================================================= */
+
+.today {
+  display: flex;
+  flex-direction: column;
+}
+
+.today__rail {
+  display: contents;
+}
+
+/* =========================================================================
    Values
    ========================================================================= */
 
@@ -1483,5 +1500,148 @@ form.field {
   .cards {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* =========================================================================
+   Desktop
+
+   The bottom bar becomes a left sidebar. A thumb-reachable bar along the
+   bottom edge is a phone affordance; on a machine with a cursor it is just a
+   long way from everything else, and it wastes the axis the screen has most of.
+   ========================================================================= */
+
+@media (min-width: 960px) {
+  :root {
+    --sidebar: 216px;
+  }
+
+  .app {
+    max-width: none;
+    padding-bottom: 0;
+    padding-left: var(--sidebar);
+  }
+
+  .topbar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: var(--sidebar);
+    height: 106px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 14px;
+    padding: 0 18px;
+    background: var(--card);
+    border-bottom: none;
+    border-right: 1px solid var(--rule);
+  }
+
+  .wordmark {
+    font-size: 1.5rem;
+  }
+
+  .nav {
+    position: fixed;
+    left: 0;
+    top: 106px;
+    bottom: 0;
+    right: auto;
+    width: var(--sidebar);
+    max-width: none;
+    height: auto;
+    margin: 0;
+    padding: 12px;
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 2px;
+    background: var(--card);
+    border-top: none;
+    border-right: 1px solid var(--rule);
+  }
+
+  .nav__tab {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    height: 42px;
+    padding: 0 12px;
+    border-radius: var(--radius);
+    font-size: 0.688rem;
+  }
+
+  .nav__tab:hover {
+    background: var(--sunk);
+  }
+
+  .nav__tab.is-on {
+    background: var(--sunk);
+  }
+
+  .main {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0 34px;
+  }
+
+  /* Habits on the left where the hands go; context on the right, pinned so it
+     stays put while a long list scrolls past it. */
+  .today {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 292px;
+    gap: 34px;
+    align-items: start;
+  }
+
+  .today__rail {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    order: 2;
+    position: sticky;
+    top: 24px;
+  }
+
+  .today__main {
+    order: 1;
+    min-width: 0;
+  }
+
+  .today__rail .strip,
+  .today__rail .countdown,
+  .today__rail .today-virtue {
+    margin: 0;
+  }
+
+  .grid {
+    --cell: 15px;
+  }
+
+  .cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .virtues,
+  .goals {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    align-items: start;
+  }
+
+  /* A sheet slid up from the bottom edge is a touch idiom. With a cursor, a
+     centred dialog is what the gesture-free equivalent looks like. */
+  .sheet {
+    align-items: center;
+  }
+
+  .sheet__panel {
+    max-width: 540px;
+    max-height: 84vh;
+    border-radius: var(--radius);
+  }
+
+  .sheet__foot {
+    padding-bottom: 14px;
   }
 }
