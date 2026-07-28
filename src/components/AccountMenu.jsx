@@ -14,7 +14,7 @@ const THEMES = [
  * account, and an account only adds the second device.
  */
 export function AccountMenu({ auth, theme, onClose }) {
-  const { syncState, syncAvailable, countdown, setCountdown } = useData();
+  const { syncState, syncAvailable, countdown, setCountdown, exportAll } = useData();
   const [mode, setMode] = useState('in'); // 'in' | 'up'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -164,9 +164,30 @@ export function AccountMenu({ auth, theme, onClose }) {
                 onChange={(e) => setCountdown({ ...countdown, date: e.target.value })}
               />
             </div>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={countdown.kind === 'pregnancy'}
+                onChange={(e) =>
+                  setCountdown({ ...countdown, kind: e.target.checked ? 'pregnancy' : 'date' })
+                }
+              />
+              <span>It’s a due date — show pregnancy weeks</span>
+            </label>
             <p className="field__hint">
               Shows on Today. Clear the date to hide it. Once the day passes it keeps counting up,
               so it turns into a day counter on its own.
+            </p>
+          </fieldset>
+
+          <fieldset className="field">
+            <legend className="field__label">Your data</legend>
+            <button type="button" className="btn" onClick={exportAll}>
+              Download a backup
+            </button>
+            <p className="field__hint">
+              Every habit, log, goal, value, note, and review as one JSON file. Worth doing now and
+              then regardless of sync — a file on your own disk is the copy nobody else can lose.
             </p>
           </fieldset>
 

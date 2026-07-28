@@ -95,6 +95,50 @@ export const virtueToRow = (v, userId) => ({
   updated_at: v.updatedAt,
 });
 
+export const noteFromRow = (r) => ({
+  id: r.id,
+  day: r.day,
+  text: r.text || '',
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const noteToRow = (n, userId) => ({
+  id: n.id,
+  user_id: userId,
+  day: n.day,
+  text: n.text || '',
+  deleted: !!n.deleted,
+  created_at: n.createdAt,
+  updated_at: n.updatedAt,
+});
+
+export const reviewFromRow = (r) => ({
+  id: r.id,
+  weekStart: r.week_start,
+  held: r.held || '',
+  compromised: r.compromised || '',
+  focus: r.focus || '',
+  scores: r.scores && typeof r.scores === 'object' ? r.scores : {},
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const reviewToRow = (v, userId) => ({
+  id: v.id,
+  user_id: userId,
+  week_start: v.weekStart,
+  held: v.held || '',
+  compromised: v.compromised || '',
+  focus: v.focus || '',
+  scores: v.scores || {},
+  deleted: !!v.deleted,
+  created_at: v.createdAt,
+  updated_at: v.updatedAt,
+});
+
 export const goalFromRow = (r) => ({
   id: r.id,
   title: r.title,

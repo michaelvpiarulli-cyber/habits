@@ -127,6 +127,45 @@ create table if not exists public.virtues (
 
 create index if not exists virtues_user_idx on public.virtues (user_id);
 
+-- ------------------------------------------------------------- day_notes ----
+-- A line about the day itself, as opposed to habit_logs.note, which belongs to
+-- one habit. One row per day, so the day is the key.
+
+create table if not exists public.day_notes (
+  id         uuid primary key,
+  user_id    uuid        not null references auth.users (id) on delete cascade,
+  day        date        not null,
+  text       text        not null default '',
+  deleted    boolean     not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, day)
+);
+
+create index if not exists day_notes_user_day_idx on public.day_notes (user_id, day);
+
+-- ----------------------------------------------------------------- reviews --
+-- The weekly look back, keyed to the Monday of the week it covers. Scored
+-- against virtues rather than habits: the habit grid already reports whether
+-- the reps happened, and the question worth asking on a Sunday is a different
+-- one.
+
+create table if not exists public.reviews (
+  id          uuid primary key,
+  user_id     uuid        not null references auth.users (id) on delete cascade,
+  week_start  date        not null,
+  held        text        not null default '',  -- what held
+  compromised text        not null default '',  -- where it slipped
+  focus       text        not null default '',  -- one thing for next week
+  scores      jsonb       not null default '{}'::jsonb, -- virtueId -> 1..5
+  deleted     boolean     not null default false,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  unique (user_id, week_start)
+);
+
+create index if not exists reviews_user_week_idx on public.reviews (user_id, week_start);
+
 -- ------------------------------------------------------------------ RLS ----
 -- Identical shape on all three tables: you may only read or write rows whose
 -- user_id is your own. The `with check` on insert/update is what stops a client
@@ -136,11 +175,13 @@ alter table public.habits     enable row level security;
 alter table public.habit_logs enable row level security;
 alter table public.goals      enable row level security;
 alter table public.virtues    enable row level security;
+alter table public.day_notes  enable row level security;
+alter table public.reviews    enable row level security;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['habits', 'habit_logs', 'goals', 'virtues'] loop
+  foreach t in array array['habits', 'habit_logs', 'goals', 'virtues', 'day_notes', 'reviews'] loop
     execute format('drop policy if exists "own rows read"   on public.%I', t);
     execute format('drop policy if exists "own rows insert" on public.%I', t);
     execute format('drop policy if exists "own rows update" on public.%I', t);

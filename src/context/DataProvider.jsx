@@ -18,6 +18,10 @@ import {
   logToRow,
   virtueFromRow,
   virtueToRow,
+  noteFromRow,
+  noteToRow,
+  reviewFromRow,
+  reviewToRow,
   newId,
   nowISO,
 } from '../lib/mappers';
@@ -42,6 +46,8 @@ const KEYS = {
   logs: 'tally-logs',
   goals: 'tally-goals',
   virtues: 'tally-virtues',
+  dayNotes: 'tally-day-notes',
+  reviews: 'tally-reviews',
   countdown: 'tally-countdown',
 };
 
@@ -49,7 +55,7 @@ const KEYS = {
  * The date the daily work is pointed at. One date and one label, so it stays a
  * device setting rather than earning a table of its own.
  */
-const DEFAULT_COUNTDOWN = { date: '2027-03-27', label: 'Baby due' };
+const DEFAULT_COUNTDOWN = { date: '2027-03-27', label: 'Baby due', kind: 'pregnancy' };
 
 /**
  * The starting values, in the user's own words. Fixed ids and a backdated
@@ -108,6 +114,8 @@ const TABLES = {
   logs: { table: 'habit_logs', from: logFromRow, to: logToRow },
   goals: { table: 'goals', from: goalFromRow, to: goalToRow },
   virtues: { table: 'virtues', from: virtueFromRow, to: virtueToRow },
+  dayNotes: { table: 'day_notes', from: noteFromRow, to: noteToRow },
+  reviews: { table: 'reviews', from: reviewFromRow, to: reviewToRow },
 };
 
 /**
@@ -194,6 +202,8 @@ export function DataProvider({ children }) {
       updatedAt: SEED_TIME,
     }));
   });
+  const [dayNotes, setDayNotes] = useState(() => purgeStale(loadList(KEYS.dayNotes)));
+  const [reviews, setReviews] = useState(() => purgeStale(loadList(KEYS.reviews)));
   const [countdown, setCountdown] = useState(() => {
     try {
       const raw = localStorage.getItem(KEYS.countdown);
@@ -209,6 +219,8 @@ export function DataProvider({ children }) {
   useEffect(() => localStorage.setItem(KEYS.logs, JSON.stringify(logs)), [logs]);
   useEffect(() => localStorage.setItem(KEYS.goals, JSON.stringify(goals)), [goals]);
   useEffect(() => localStorage.setItem(KEYS.virtues, JSON.stringify(virtues)), [virtues]);
+  useEffect(() => localStorage.setItem(KEYS.dayNotes, JSON.stringify(dayNotes)), [dayNotes]);
+  useEffect(() => localStorage.setItem(KEYS.reviews, JSON.stringify(reviews)), [reviews]);
   useEffect(() => localStorage.setItem(KEYS.countdown, JSON.stringify(countdown)), [countdown]);
 
   // Ids touched since the last successful push. Only these get sent, so a
@@ -218,6 +230,8 @@ export function DataProvider({ children }) {
     logs: new Set(),
     goals: new Set(),
     virtues: new Set(),
+    dayNotes: new Set(),
+    reviews: new Set(),
   });
   const markDirty = useCallback((kind, id) => dirty.current[kind].add(id), []);
 
@@ -240,11 +254,13 @@ export function DataProvider({ children }) {
     (async () => {
       setSyncState('syncing');
 
-      const [h, l, g, v] = await Promise.all([
+      const [h, l, g, v, n, rv] = await Promise.all([
         supabase.from('habits').select('*').eq('user_id', user.id),
         supabase.from('habit_logs').select('*').eq('user_id', user.id),
         supabase.from('goals').select('*').eq('user_id', user.id),
         supabase.from('virtues').select('*').eq('user_id', user.id),
+        supabase.from('day_notes').select('*').eq('user_id', user.id),
+        supabase.from('reviews').select('*').eq('user_id', user.id),
       ]);
 
       if (cancelled) return;
@@ -262,11 +278,21 @@ export function DataProvider({ children }) {
         v.error && isMissingTable(v.error)
           ? virtues
           : mergeById((v.data || []).map(virtueFromRow), virtues);
+      const mergedNotes =
+        n.error && isMissingTable(n.error)
+          ? dayNotes
+          : mergeById((n.data || []).map(noteFromRow), dayNotes);
+      const mergedReviews =
+        rv.error && isMissingTable(rv.error)
+          ? reviews
+          : mergeById((rv.data || []).map(reviewFromRow), reviews);
 
       setHabits(mergedHabits);
       setLogs(mergedLogs);
       setGoals(mergedGoals);
       setVirtues(mergedVirtues);
+      setDayNotes(mergedNotes);
+      setReviews(mergedReviews);
 
       // Everything local that the server has not seen needs to go up. Marking
       // the whole merged set is the simple, correct version of that: upserts
@@ -275,6 +301,8 @@ export function DataProvider({ children }) {
       mergedLogs.forEach((r) => dirty.current.logs.add(r.id));
       mergedGoals.forEach((r) => dirty.current.goals.add(r.id));
       mergedVirtues.forEach((r) => dirty.current.virtues.add(r.id));
+      mergedNotes.forEach((r) => dirty.current.dayNotes.add(r.id));
+      mergedReviews.forEach((r) => dirty.current.reviews.add(r.id));
 
       hydratedFor.current = user.id;
       setSyncState('syncing'); // the push effect below takes it from here
@@ -292,7 +320,7 @@ export function DataProvider({ children }) {
   useEffect(() => {
     if (!available || !user || hydratedFor.current !== user.id) return;
 
-    const pending = { habits, logs, goals, virtues };
+    const pending = { habits, logs, goals, virtues, dayNotes, reviews };
     const anyDirty = Object.values(dirty.current).some((s) => s.size > 0);
     if (!anyDirty) return;
 
@@ -325,7 +353,7 @@ export function DataProvider({ children }) {
     }, PUSH_DEBOUNCE_MS);
 
     return () => clearTimeout(pushTimer.current);
-  }, [habits, logs, goals, virtues, available, user]);
+  }, [habits, logs, goals, virtues, dayNotes, reviews, available, user]);
 
   // --- derived --------------------------------------------------------------
 
@@ -592,6 +620,112 @@ export function DataProvider({ children }) {
    * than random so it is the same all day and on every device — and so the
    * whole list comes round rather than the same two surfacing forever.
    */
+  /** The day's note, or '' — one row per day, keyed by the date. */
+  const noteFor = useCallback(
+    (day) => dayNotes.find((n) => !n.deleted && n.day === day)?.text || '',
+    [dayNotes]
+  );
+
+  const setDayNote = useCallback(
+    (day, text) => {
+      const trimmed = text.trim();
+      setDayNotes((prev) => {
+        const existing = prev.find((n) => n.day === day);
+        if (existing) {
+          markDirty('dayNotes', existing.id);
+          return prev.map((n) =>
+            n.id === existing.id
+              ? { ...n, text: trimmed, deleted: trimmed === '', updatedAt: nowISO() }
+              : n
+          );
+        }
+        if (!trimmed) return prev;
+        const note = {
+          id: newId(),
+          day,
+          text: trimmed,
+          deleted: false,
+          createdAt: nowISO(),
+          updatedAt: nowISO(),
+        };
+        markDirty('dayNotes', note.id);
+        return [...prev, note];
+      });
+    },
+    [markDirty]
+  );
+
+  const activeNotes = useMemo(
+    () => dayNotes.filter((n) => !n.deleted && n.text).sort((a, b) => (a.day < b.day ? 1 : -1)),
+    [dayNotes]
+  );
+
+  const reviewFor = useCallback(
+    (weekStart) => reviews.find((r) => !r.deleted && r.weekStart === weekStart) || null,
+    [reviews]
+  );
+
+  const saveReview = useCallback(
+    (weekStart, fields) => {
+      setReviews((prev) => {
+        const existing = prev.find((r) => r.weekStart === weekStart);
+        if (existing) {
+          markDirty('reviews', existing.id);
+          return prev.map((r) =>
+            r.id === existing.id ? { ...r, ...fields, deleted: false, updatedAt: nowISO() } : r
+          );
+        }
+        const review = {
+          id: newId(),
+          weekStart,
+          held: '',
+          compromised: '',
+          focus: '',
+          scores: {},
+          ...fields,
+          deleted: false,
+          createdAt: nowISO(),
+          updatedAt: nowISO(),
+        };
+        markDirty('reviews', review.id);
+        return [...prev, review];
+      });
+    },
+    [markDirty]
+  );
+
+  const activeReviews = useMemo(
+    () => reviews.filter((r) => !r.deleted).sort((a, b) => (a.weekStart < b.weekStart ? 1 : -1)),
+    [reviews]
+  );
+
+  /**
+   * Everything, as one JSON file. Deliberately the raw records rather than a
+   * prettied report: the point is that a copy exists off the device and can be
+   * read back, not that it looks nice.
+   */
+  const exportAll = useCallback(() => {
+    const payload = {
+      app: 'tally',
+      version: 1,
+      exportedAt: nowISO(),
+      habits,
+      logs,
+      goals,
+      virtues,
+      dayNotes,
+      reviews,
+      countdown,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tally-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [habits, logs, goals, virtues, dayNotes, reviews, countdown]);
+
   const virtueOfDay = useMemo(() => {
     if (activeVirtues.length === 0) return null;
     const epochDay = Math.floor(new Date(`${todayISO()}T12:00:00`).getTime() / 86400000);
@@ -608,6 +742,13 @@ export function DataProvider({ children }) {
     addVirtue,
     updateVirtue,
     deleteVirtue,
+    noteFor,
+    setDayNote,
+    notes: activeNotes,
+    reviewFor,
+    saveReview,
+    reviews: activeReviews,
+    exportAll,
     countdown,
     setCountdown,
     doneSets,

@@ -6,6 +6,7 @@ import { countInWeek, currentStreak, isDue, isPerfectDay } from '../lib/streaks'
 import { HabitMark } from './HabitMark';
 import { AmountEntry } from './AmountEntry';
 import { Countdown } from './Countdown';
+import { DayNote } from './DayNote';
 
 /** The strip of this week across the top. Violet means every habit landed. */
 function WeekStrip({ habits, doneSets, today }) {
@@ -229,6 +230,8 @@ export function TodayView() {
               </ul>
             </section>
           )}
+
+          <DayNote day={today} />
         </div>
       </div>
     </div>

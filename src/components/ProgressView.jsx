@@ -4,6 +4,7 @@ import { addDays, monthLabel, parseISO, rangeOfDays, todayISO } from '../lib/dat
 import { describeCadence, describeTarget, fractionOf, isTrend } from '../lib/habits';
 import { bestStreak, completionRate, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { TrendChart } from './TrendChart';
+import { ReviewList } from './WeeklyReview';
 
 const HISTORY_DAYS = 84; // twelve weeks — enough to see a pattern, few enough to scan
 
@@ -172,6 +173,8 @@ export function ProgressView() {
           </section>
         );
       })}
+
+      <ReviewList />
 
       <section className="section">
         <h2 className="eyebrow">Streaks</h2>
