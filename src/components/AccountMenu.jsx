@@ -14,7 +14,7 @@ const THEMES = [
  * account, and an account only adds the second device.
  */
 export function AccountMenu({ auth, theme, onClose }) {
-  const { syncState, syncAvailable } = useData();
+  const { syncState, syncAvailable, countdown, setCountdown } = useData();
   const [mode, setMode] = useState('in'); // 'in' | 'up'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -128,6 +128,37 @@ export function AccountMenu({ auth, theme, onClose }) {
               </p>
             </form>
           )}
+
+          <fieldset className="field">
+            <legend className="field__label">Counting down to</legend>
+            <div className="field--split">
+              <label className="field__label" htmlFor="cd-label">
+                Name
+              </label>
+              <input
+                id="cd-label"
+                className="field__input"
+                value={countdown.label}
+                onChange={(e) => setCountdown({ ...countdown, label: e.target.value })}
+                placeholder="Baby due"
+                maxLength={40}
+              />
+              <label className="field__label" htmlFor="cd-date">
+                Date
+              </label>
+              <input
+                id="cd-date"
+                className="field__input"
+                type="date"
+                value={countdown.date}
+                onChange={(e) => setCountdown({ ...countdown, date: e.target.value })}
+              />
+            </div>
+            <p className="field__hint">
+              Shows on Today. Clear the date to hide it. Once the day passes it keeps counting up,
+              so it turns into a day counter on its own.
+            </p>
+          </fieldset>
 
           <fieldset className="field">
             <legend className="field__label">Theme</legend>

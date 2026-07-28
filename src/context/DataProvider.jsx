@@ -39,7 +39,14 @@ const KEYS = {
   habits: 'tally-habits',
   logs: 'tally-logs',
   goals: 'tally-goals',
+  countdown: 'tally-countdown',
 };
+
+/**
+ * The date the daily work is pointed at. One date and one label, so it stays a
+ * device setting rather than earning a table of its own.
+ */
+const DEFAULT_COUNTDOWN = { date: '2027-03-27', label: 'Baby due' };
 
 const TABLES = {
   habits: { table: 'habits', from: habitFromRow, to: habitToRow },
@@ -107,12 +114,21 @@ export function DataProvider({ children }) {
   });
   const [logs, setLogs] = useState(() => purgeStale(loadList(KEYS.logs)));
   const [goals, setGoals] = useState(() => purgeStale(loadList(KEYS.goals)));
+  const [countdown, setCountdown] = useState(() => {
+    try {
+      const raw = localStorage.getItem(KEYS.countdown);
+      return raw ? { ...DEFAULT_COUNTDOWN, ...JSON.parse(raw) } : DEFAULT_COUNTDOWN;
+    } catch {
+      return DEFAULT_COUNTDOWN;
+    }
+  });
   const [syncState, setSyncState] = useState('idle'); // idle | syncing | synced | error
 
   // Persist locally on every change — the instant, offline layer.
   useEffect(() => localStorage.setItem(KEYS.habits, JSON.stringify(habits)), [habits]);
   useEffect(() => localStorage.setItem(KEYS.logs, JSON.stringify(logs)), [logs]);
   useEffect(() => localStorage.setItem(KEYS.goals, JSON.stringify(goals)), [goals]);
+  useEffect(() => localStorage.setItem(KEYS.countdown, JSON.stringify(countdown)), [countdown]);
 
   // Ids touched since the last successful push. Only these get sent, so a
   // three-year backlog of logs is not re-uploaded every time a box is ticked.
@@ -440,6 +456,8 @@ export function DataProvider({ children }) {
     activeHabits,
     archivedHabits,
     goals: activeGoals,
+    countdown,
+    setCountdown,
     doneSets,
     doneSetFor,
     logFor,
