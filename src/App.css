@@ -415,6 +415,23 @@
   color: var(--ink-soft);
 }
 
+/* Pink, because unlike the development note this is not something to read —
+   it is something to go and do. Same job the colour does everywhere else. */
+.serve {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-left: 2px solid var(--pink);
+  background: var(--pink-wash);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.serve__tip {
+  margin-top: 3px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
 .daynote__open {
   display: block;
   width: 100%;

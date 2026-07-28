@@ -60,6 +60,13 @@ export function Countdown() {
           </p>
           <p className="preg__size">About the size of {info.size}.</p>
           <p className="preg__note">{info.note}</p>
+
+          {info.serve && (
+            <div className="serve">
+              <p className="eyebrow">Serve her this week</p>
+              <p className="serve__tip">{info.serve}</p>
+            </div>
+          )}
         </div>
       )}
     </div>
