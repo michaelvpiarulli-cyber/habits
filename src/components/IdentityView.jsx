@@ -86,7 +86,15 @@ function StatementForm({ statement, onSave, onClose }) {
 }
 
 export function IdentityView() {
-  const { identity, addStatement, updateStatement, deleteStatement, statementOfDay } = useData();
+  const {
+    identity,
+    addStatement,
+    updateStatement,
+    deleteStatement,
+    statementOfDay,
+    votesFor,
+    habitsForStatement,
+  } = useData();
   const [editing, setEditing] = useState(null);
 
   const save = (fields) => {
@@ -124,6 +132,23 @@ export function IdentityView() {
                 {statementOfDay?.id === v.id && <span className="statement__flag">Today</span>}
               </div>
               {v.note && <p className="statement__note">{v.note}</p>}
+
+              {(() => {
+                const votes = votesFor(v.id);
+                const casters = habitsForStatement(v.id);
+                if (casters.length === 0) return null;
+                return (
+                  <p className="votes">
+                    <b className="votes__n">{votes}</b>
+                    <span className="votes__label">
+                      {votes === 1 ? 'vote' : 'votes'} for being this
+                    </span>
+                    <span className="votes__from">
+                      from {casters.map((h) => h.name).join(', ')}
+                    </span>
+                  </p>
+                );
+              })()}
               <div className="statement__actions">
                 <button type="button" className="chip" onClick={() => setEditing(v)}>
                   Edit

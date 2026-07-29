@@ -26,7 +26,7 @@ import {
   nowISO,
 } from '../lib/mappers';
 import { todayISO } from '../lib/dates';
-import { isComplete, targetOf, valueOf, SEED_TIME, STARTER_HABITS } from '../lib/habits';
+import { isComplete, isKept, targetOf, valueOf, SEED_TIME, STARTER_HABITS } from '../lib/habits';
 
 /**
  * Single owner of habits, logs, and goals.
@@ -407,7 +407,44 @@ export function DataProvider({ children }) {
     return map;
   }, [logIndex, habitById]);
 
+  /**
+   * Days that cleared the FLOOR — the chain, as opposed to the scoreboard.
+   * Streaks read this so that showing up in a reduced way still counts, while
+   * completion rate keeps reading doneSets and stays honest about targets.
+   */
+  const keptSets = useMemo(() => {
+    const map = new Map();
+    for (const [habitId, byDay] of logIndex) {
+      const habit = habitById.get(habitId);
+      if (!habit) continue;
+      const set = new Set();
+      for (const [day, log] of byDay) if (isKept(habit, log)) set.add(day);
+      map.set(habitId, set);
+    }
+    return map;
+  }, [logIndex, habitById]);
+
   const doneSetFor = useCallback((habitId) => doneSets.get(habitId) || new Set(), [doneSets]);
+  const keptSetFor = useCallback((habitId) => keptSets.get(habitId) || new Set(), [keptSets]);
+
+  /**
+   * Every completed day of every habit pointed at a statement is one vote for
+   * being that person. This is the whole argument for writing the identity down
+   * — it turns the list from something you read into something you accumulate.
+   */
+  const votesFor = useCallback(
+    (statementId) =>
+      habits
+        .filter((h) => !h.deleted && h.identityId === statementId)
+        .reduce((sum, h) => sum + (doneSets.get(h.id)?.size ?? 0), 0),
+    [habits, doneSets]
+  );
+
+  /** Habits casting votes for a statement, for the "from …" line. */
+  const habitsForStatement = useCallback(
+    (statementId) => habits.filter((h) => !h.deleted && !h.archived && h.identityId === statementId),
+    [habits]
+  );
 
   /** Live log for a habit on a day, if there is one. */
   const logFor = useCallback(
@@ -449,6 +486,10 @@ export function DataProvider({ children }) {
         kind: fields.kind || 'check',
         target: fields.target ?? null,
         unit: fields.unit || '',
+        floor: fields.floor ?? null,
+        identityId: fields.identityId || null,
+        cue: fields.cue || '',
+        afterId: fields.afterId || null,
         archived: false,
         sortOrder: habits.length,
         deleted: false,
@@ -761,6 +802,10 @@ export function DataProvider({ children }) {
     setCountdown,
     doneSets,
     doneSetFor,
+    keptSets,
+    keptSetFor,
+    votesFor,
+    habitsForStatement,
     logFor,
     valueFor,
     goalProgress,

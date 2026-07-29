@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KINDS } from '../lib/habits';
 import { WEEKDAY_INITIALS, WEEKDAY_LABELS } from '../lib/dates';
+import { useData } from '../context/DataProvider';
 
 const blank = {
   name: '',
@@ -8,19 +9,28 @@ const blank = {
   kind: 'check',
   target: '',
   unit: '',
+  floor: '',
   cadence: 'daily',
   weekdays: [0, 2, 4],
   perWeek: 3,
+  identityId: '',
+  cue: '',
+  afterId: '',
 };
 
 /** Create or edit a habit. One sheet for both — the fields are identical. */
 export function HabitEditor({ habit, onSave, onDelete, onClose }) {
+  const { identity, activeHabits } = useData();
   const [form, setForm] = useState(() =>
     habit
       ? {
           ...blank,
           ...habit,
           target: habit.target ?? '',
+          floor: habit.floor ?? '',
+          identityId: habit.identityId || '',
+          afterId: habit.afterId || '',
+          cue: habit.cue || '',
           weekdays: habit.weekdays?.length ? habit.weekdays : blank.weekdays,
         }
       : blank
@@ -47,9 +57,13 @@ export function HabitEditor({ habit, onSave, onDelete, onClose }) {
       kind: form.kind,
       target: showsNumbers && form.target !== '' ? Number(form.target) : null,
       unit: form.unit.trim(),
+      floor: showsNumbers && form.floor !== '' ? Number(form.floor) : null,
       cadence: form.cadence,
       weekdays: form.cadence === 'weekdays' ? form.weekdays : [],
       perWeek: Number(form.perWeek) || 3,
+      identityId: form.identityId || null,
+      cue: form.cue.trim(),
+      afterId: form.afterId || null,
     });
   };
 
@@ -144,6 +158,96 @@ export function HabitEditor({ habit, onSave, onDelete, onClose }) {
                 placeholder={form.kind === 'count' ? 'walks' : 'g'}
                 maxLength={12}
               />
+            </div>
+          )}
+
+          {showsNumbers && (
+            <div className="field">
+              <label className="field__label" htmlFor="habit-floor">
+                Floor (optional)
+              </label>
+              <input
+                id="habit-floor"
+                className="field__input field__input--num"
+                type="number"
+                inputMode="decimal"
+                step="any"
+                min="0"
+                value={form.floor}
+                onChange={(e) => set({ floor: e.target.value })}
+                placeholder={form.kind === 'count' ? '1' : '140'}
+              />
+              <p className="field__hint">
+                The smallest version that still counts as showing up. Hit the floor on a bad day and
+                the streak survives — it just doesn’t count as a full one.
+              </p>
+            </div>
+          )}
+
+          <div className="field">
+            <label className="field__label" htmlFor="habit-identity">
+              A vote for
+            </label>
+            <select
+              id="habit-identity"
+              className="field__input"
+              value={form.identityId}
+              onChange={(e) => set({ identityId: e.target.value })}
+            >
+              <option value="">Nothing in particular</option>
+              {identity.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <p className="field__hint">
+              Every day you complete this is one vote for being that person. The tally shows on your
+              Identity screen.
+            </p>
+          </div>
+
+          <div className="field">
+            <label className="field__label" htmlFor="habit-cue">
+              When and where (optional)
+            </label>
+            <input
+              id="habit-cue"
+              className="field__input"
+              value={form.cue}
+              onChange={(e) => set({ cue: e.target.value })}
+              placeholder="6am, in the garage"
+              maxLength={80}
+            />
+            <p className="field__hint">
+              Naming a time and a place roughly doubles follow-through. It shows under the habit on
+              Today.
+            </p>
+          </div>
+
+          {activeHabits.filter((h) => h.id !== habit?.id).length > 0 && (
+            <div className="field">
+              <label className="field__label" htmlFor="habit-after">
+                Straight after (optional)
+              </label>
+              <select
+                id="habit-after"
+                className="field__input"
+                value={form.afterId}
+                onChange={(e) => set({ afterId: e.target.value })}
+              >
+                <option value="">Nothing — it stands alone</option>
+                {activeHabits
+                  .filter((h) => h.id !== habit?.id)
+                  .map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.name}
+                    </option>
+                  ))}
+              </select>
+              <p className="field__hint">
+                Habit stacking: anchor a new habit to one you already do without thinking.
+              </p>
             </div>
           )}
 

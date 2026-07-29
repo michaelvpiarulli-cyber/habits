@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { addDays, formatLong, startOfWeek, todayISO, WEEKDAY_INITIALS } from '../lib/dates';
 import { describeCadence, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
-import { countInWeek, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
+import { atRiskToday, countInWeek, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
 import { AmountEntry } from './AmountEntry';
 import { Countdown } from './Countdown';
@@ -55,13 +55,16 @@ function WeekStrip({ habits, doneSets, today }) {
 
 /** One habit, one day. The mark on the left is the whole interaction for most kinds. */
 function HabitRow({ habit, day, editing, setEditing }) {
-  const { logFor, doneSetFor, toggleDay, bumpDay, setValue, valueFor } = useData();
+  const { logFor, doneSetFor, keptSetFor, toggleDay, bumpDay, setValue, valueFor } = useData();
 
   const log = logFor(habit.id, day);
   const value = valueOf(habit, log);
   const complete = isComplete(habit, log);
   const doneSet = doneSetFor(habit.id);
-  const streak = currentStreak(habit, doneSet, day);
+  // The chain is measured on floor days, not only full ones.
+  const keptSet = keptSetFor(habit.id);
+  const streak = currentStreak(habit, keptSet, day);
+  const atRisk = atRiskToday(habit, keptSet, day);
   const isEditing = editing === habit.id;
   const needsEntry = habit.kind === 'amount' || habit.kind === 'measure';
 
@@ -97,7 +100,8 @@ function HabitRow({ habit, day, editing, setEditing }) {
   }
 
   return (
-    <li className={`row ${complete ? 'is-complete' : ''}`}>
+    <li className={`row ${complete ? 'is-complete' : ''} ${atRisk ? 'is-at-risk' : ''}`}>
+      {atRisk && <p className="row__warn">Don’t miss twice</p>}
       <div className="row__main">
         <HabitMark
           habit={habit}
@@ -119,7 +123,10 @@ function HabitRow({ habit, day, editing, setEditing }) {
             {habit.emoji && <span aria-hidden="true">{habit.emoji} </span>}
             {habit.name}
           </span>
-          <span className="row__status">{status}</span>
+          <span className="row__status">
+            {status}
+            {habit.cue && <span className="row__cue"> · {habit.cue}</span>}
+          </span>
         </button>
 
         {streak > 0 && (
@@ -159,11 +166,19 @@ function HabitRow({ habit, day, editing, setEditing }) {
 }
 
 export function TodayView() {
-  const { activeHabits, doneSets, statementOfDay } = useData();
+  const { activeHabits, doneSets, statementOfDay, keptSetFor } = useData();
   const [editing, setEditing] = useState(null);
   const today = todayISO();
 
-  const dueToday = activeHabits.filter((h) => isDue(h, today));
+  // A habit one miss from breaking its chain goes to the top — the whole point
+  // of the rule is that the second miss is the one that matters, so it has to
+  // be the thing you see first.
+  const dueToday = activeHabits
+    .filter((h) => isDue(h, today))
+    .sort((a, b) => {
+      const risk = (h) => (atRiskToday(h, keptSetFor(h.id), today) ? 0 : 1);
+      return risk(a) - risk(b);
+    });
   const restToday = activeHabits.filter((h) => !isDue(h, today));
 
   const doneCount = dueToday.filter((h) => doneSets.get(h.id)?.has(today)).length;

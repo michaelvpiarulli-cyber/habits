@@ -432,6 +432,58 @@
   color: var(--ink);
 }
 
+/* Votes: the running total of days spent being this person. */
+.votes {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.votes__n {
+  font-family: var(--display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.votes__label {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.votes__from {
+  flex-basis: 100%;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+/* One miss from breaking the chain. Pink, and loud, because this is the single
+   moment the rule exists for — the second miss is the one that matters. */
+.row.is-at-risk {
+  border-color: var(--pink);
+}
+
+.row__warn {
+  padding: 6px 12px 0;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pink);
+}
+
+.row__cue {
+  color: var(--ink-soft);
+}
+
 .daynote__open {
   display: block;
   width: 100%;
