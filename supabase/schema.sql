@@ -143,6 +143,10 @@ create table if not exists public.identity (
   user_id    uuid        not null references auth.users (id) on delete cascade,
   name       text        not null,
   note       text,
+  -- Scripture paired with the statement: a reference and the words themselves,
+  -- stored rather than fetched so it reads offline like everything else here.
+  verse_ref  text,
+  verse_text text,
   sort_order integer     not null default 0,
   deleted    boolean     not null default false,
   created_at timestamptz not null default now(),
@@ -150,6 +154,10 @@ create table if not exists public.identity (
 );
 
 create index if not exists identity_user_idx on public.identity (user_id);
+
+alter table public.identity
+  add column if not exists verse_ref  text,
+  add column if not exists verse_text text;
 
 -- habits.identity_id points here. Declared now that both tables exist.
 do $$

@@ -14,6 +14,8 @@ import { useData } from '../context/DataProvider';
 function StatementForm({ statement, onSave, onClose }) {
   const [name, setName] = useState(statement?.name || '');
   const [note, setNote] = useState(statement?.note || '');
+  const [verseRef, setVerseRef] = useState(statement?.verseRef || '');
+  const [verseText, setVerseText] = useState(statement?.verseText || '');
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -30,7 +32,13 @@ function StatementForm({ statement, onSave, onClose }) {
         className="sheet__panel"
         onSubmit={(e) => {
           e.preventDefault();
-          if (canSave) onSave({ name: name.trim(), note: note.trim() });
+          if (canSave)
+            onSave({
+              name: name.trim(),
+              note: note.trim(),
+              verseRef: verseRef.trim(),
+              verseText: verseText.trim(),
+            });
         }}
       >
         <header className="sheet__head">
@@ -71,6 +79,33 @@ function StatementForm({ statement, onSave, onClose }) {
             <p className="field__hint">
               The specific version is the one that changes a decision. “Be a good dad” is a wish;
               “phone in the drawer from dinner until bedtime” is something you can actually keep.
+            </p>
+          </div>
+
+          <div className="field">
+            <label className="field__label" htmlFor="statement-verse-ref">
+              Scripture (optional)
+            </label>
+            <input
+              id="statement-verse-ref"
+              className="field__input"
+              value={verseRef}
+              onChange={(e) => setVerseRef(e.target.value)}
+              placeholder="Joshua 24:15"
+              maxLength={40}
+            />
+            <textarea
+              id="statement-verse-text"
+              className="field__input field__input--area"
+              value={verseText}
+              onChange={(e) => setVerseText(e.target.value)}
+              rows={3}
+              placeholder="The words themselves."
+              aria-label="Verse text"
+            />
+            <p className="field__hint">
+              Stored rather than fetched, so it reads offline like everything else here — and so
+              the translation stays the one you chose.
             </p>
           </div>
         </div>
@@ -132,6 +167,13 @@ export function IdentityView() {
                 {statementOfDay?.id === v.id && <span className="statement__flag">Today</span>}
               </div>
               {v.note && <p className="statement__note">{v.note}</p>}
+
+              {v.verseText && (
+                <blockquote className="verse">
+                  <p className="verse__text">{v.verseText}</p>
+                  {v.verseRef && <cite className="verse__ref">{v.verseRef}</cite>}
+                </blockquote>
+              )}
 
               {(() => {
                 const votes = votesFor(v.id);

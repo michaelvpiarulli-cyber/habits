@@ -215,6 +215,12 @@ export function TodayView() {
               <p className="eyebrow">Today’s value</p>
               <p className="today-statement__name">{statementOfDay.name}</p>
               {statementOfDay.note && <p className="today-statement__note">{statementOfDay.note}</p>}
+          {statementOfDay.verseText && (
+            <blockquote className="verse verse--today">
+              <p className="verse__text">{statementOfDay.verseText}</p>
+              {statementOfDay.verseRef && <cite className="verse__ref">{statementOfDay.verseRef}</cite>}
+            </blockquote>
+          )}
             </div>
           )}
         </aside>

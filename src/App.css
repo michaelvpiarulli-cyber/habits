@@ -432,6 +432,35 @@
   color: var(--ink);
 }
 
+/* Scripture set apart from the statement it belongs to — indented and italic,
+   the way a quotation has been set on a page for four hundred years. */
+.verse {
+  margin: 10px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--violet);
+}
+
+.verse__text {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  font-style: italic;
+  color: var(--ink);
+}
+
+.verse__ref {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  font-style: normal;
+  letter-spacing: 0.06em;
+  color: var(--violet);
+}
+
+.verse--today .verse__text {
+  color: var(--ink-soft);
+}
+
 /* Votes: the running total of days spent being this person. */
 .votes {
   display: flex;
