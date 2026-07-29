@@ -1,6 +1,6 @@
 import { useData } from '../context/DataProvider';
 import { daysBetween, parseISO, todayISO, WEEKDAY_LABELS, dow, formatShort } from '../lib/dates';
-import { gestation, trimesterOf, weekInfo } from '../lib/pregnancy';
+import { gestation, serveToday, trimesterOf, weekInfo } from '../lib/pregnancy';
 
 /**
  * The date the habits are pointed at.
@@ -31,6 +31,7 @@ export function Countdown() {
   const showWeeks = g && !g.overdue && g.weeks >= 3;
   const info = showWeeks ? weekInfo(g.weeks) : null;
   const trimester = showWeeks ? trimesterOf(g.weeks) : null;
+  const serve = showWeeks ? serveToday(g.weeks, g.extraDays, today) : { tip: null };
 
   return (
     <div className={`countdown ${isToday ? 'is-today' : ''} ${past ? 'is-past' : ''}`}>
@@ -61,10 +62,10 @@ export function Countdown() {
           <p className="preg__size">About the size of {info.size}.</p>
           <p className="preg__note">{info.note}</p>
 
-          {info.serve && (
+          {serve.tip && (
             <div className="serve">
-              <p className="eyebrow">Serve her this week</p>
-              <p className="serve__tip">{info.serve}</p>
+              <p className="eyebrow">{serve.weekly ? 'Serve her — new week' : 'Serve her today'}</p>
+              <p className="serve__tip">{serve.tip}</p>
             </div>
           )}
         </div>

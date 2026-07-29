@@ -136,3 +136,103 @@ export function weekInfo(weeks) {
   const [size, note, serve] = WEEKS[clamped] || WEEKS[40];
   return { size, note, serve, known: weeks >= 4 && weeks <= 42 };
 }
+
+/**
+ * One thing to do for her today.
+ *
+ * A weekly tip is too slow to function as a prompt — by Wednesday it is
+ * furniture. These rotate daily and are grouped by trimester, because what
+ * actually helps at week 7 (nausea, exhaustion, smells) and week 35 (sleep,
+ * swelling, fear) are different jobs.
+ *
+ * All of them are things you can finish today. None of them are "be present".
+ */
+const DAILY = {
+  1: [
+    'Take the bins out before they start to smell. Her nose is doing overtime.',
+    'Cook something bland tonight, and don’t make her decide what.',
+    'Refill her water without being asked. Then do it again.',
+    'Do the dishes so the sink isn’t hers to stand over.',
+    'Let her nap without any remark about the time.',
+    'Text her mid-morning just to ask how she’s doing.',
+    'Take one recurring chore off her permanently. Tell her which.',
+    'Don’t cook fish tonight.',
+    'Overstock the ginger, crackers, and fizzy water.',
+    'Say thank you, out loud, for what her body is doing.',
+    'Go to bed when she does, even if you’re not tired.',
+    'Ask which smell is bothering her right now, then go remove it.',
+    'Keep the news exactly as quiet as she wants it kept.',
+    'Put the phone face down when she talks about how she feels.',
+    'Own the whole grocery run — list, shop, unpack.',
+    'Bring her something to eat before she has to stand up.',
+    'Don’t agree to host anything this week.',
+    'Make the phone call she’s been putting off.',
+    'Rub her shoulders for ten minutes with no agenda.',
+    'Let her change her mind about dinner without a sigh.',
+    'Clean the bathroom properly — especially if she’s been sick in it.',
+    'Tell her she’s doing the hardest part right now. She is.',
+  ],
+  2: [
+    'Tell her she looks beautiful before she has to fish for it.',
+    'Take her somewhere good while going out is still easy.',
+    'Do every bit of the heavy lifting without being asked.',
+    'Rub her lower back tonight.',
+    'Go with her for bigger clothes, cheerfully, no remarks about sizes.',
+    'Put your hand on the bump and just leave it there a while.',
+    'Talk to the baby out loud. She can hear you doing it.',
+    'Own the appointment logistics start to finish.',
+    'Ask what she’s excited about, not only what worries her.',
+    'Plan a date with nothing to do with the baby.',
+    'Take the carrying and the stairs jobs. Permanently.',
+    'Let her sleep in without waking her to ask something.',
+    'Cook something with real iron in it tonight.',
+    'Handle one baby purchase entirely on your own.',
+    'Ask about her day before you talk about yours.',
+    'Take a photo of her. She’ll want it later even if she waves you off.',
+    'Rub her feet before she asks.',
+    'Say nothing about what or how much she eats. Ever.',
+    'Do the thing you said you’d do last week and haven’t.',
+    'Clear a Saturday and let her decide what it’s for.',
+    'Change the bedding. It’s a whole job now.',
+    'Say out loud that you’re glad it’s her.',
+  ],
+  3: [
+    'Take the night shift on everything. She needs the sleep more than you do.',
+    'Rub her feet. They hurt more than she’s letting on.',
+    'Put her shoes on for her if bending has got hard.',
+    'Take every errand that involves parking and walking.',
+    'Ask what frightens her about labour, then just listen.',
+    'Cook and freeze one meal for after.',
+    'Check the hospital bag is still where you both agreed.',
+    'Fill the tank. Keep it full from here on.',
+    'Field the “any news?” messages so she doesn’t have to.',
+    'Rearrange the pillows exactly how she wants. Again.',
+    'Say nothing about how she’s walking.',
+    'Take one job off the nesting list and actually finish it today.',
+    'Tell her plainly that you’re not going anywhere.',
+    'Let her cry without trying to fix it.',
+    'Do the supermarket run on your own this week.',
+    'Bring her food before she has to get up for it.',
+    'Deal with the laundry mountain without mentioning the laundry mountain.',
+    'Keep your phone loud and charged tonight.',
+    'Sit with her and do nothing productive for an hour.',
+    'Tell her what you’re looking forward to about her as a mother.',
+    'Take over bath and bedtime for whatever already needs it.',
+    'Ask what she needs, then do that instead of what you had planned.',
+  ],
+};
+
+/**
+ * The day's tip. On the first day of each gestational week the week-specific
+ * one takes over, so the advice tied to what is physically happening still
+ * lands — just once, rather than sitting there for seven days.
+ */
+export function serveToday(weeks, extraDays, today) {
+  if (extraDays === 0) {
+    const { serve } = weekInfo(weeks);
+    if (serve) return { tip: serve, weekly: true };
+  }
+  const pool = DAILY[trimesterOf(weeks).n] || DAILY[1];
+  const epochDay = Math.floor(new Date(`${today}T12:00:00`).getTime() / 86400000);
+  return { tip: pool[epochDay % pool.length], weekly: false };
+}
