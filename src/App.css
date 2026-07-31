@@ -1950,3 +1950,128 @@ form.field {
     padding-bottom: 14px;
   }
 }
+
+/* =========================================================================
+   Today's training session
+   ========================================================================= */
+
+.workout {
+  margin: 0 0 12px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--blue);
+  border-radius: var(--radius);
+  background: var(--card);
+  overflow: hidden;
+}
+
+/* Easy days read differently from lifting days at a glance. */
+.workout--walk,
+.workout--run {
+  border-left-color: var(--ink-soft);
+}
+
+.workout__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.workout__name {
+  display: block;
+  margin-top: 2px;
+  font-size: 1.063rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.workout__focus {
+  display: block;
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+}
+
+.workout__toggle {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.workout__lifts {
+  list-style: none;
+  margin: 0;
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lift__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  text-align: left;
+}
+
+.lift__tick {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.lift.is-done .lift__tick {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--on-ink);
+}
+
+.lift.is-done .lift__move {
+  color: var(--ink-soft);
+  text-decoration: line-through;
+}
+
+.lift__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lift__move {
+  font-size: 0.938rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.lift__sets {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--blue);
+}
+
+.lift__hint {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
