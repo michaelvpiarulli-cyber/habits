@@ -1,3 +1,5 @@
+import { addDays, dow, WEEKDAY_LABELS } from './dates.js';
+
 /**
  * The training week: push, pull, legs, a fourth lift, one run, two brisk walks.
  *
@@ -315,6 +317,38 @@ export const LIFT_DAYS = [0, 1, 2, 4];
 
 export function sessionFor(dayOfWeek) {
   return WEEK[dayOfWeek] || SESSIONS.walk;
+}
+
+/**
+ * Sessions after `fromIso` through the end of that Mon–Sun week.
+ * On Sunday (nothing left this week) returns the following Mon–Sun as
+ * "Next week" so the look-ahead is never empty.
+ *
+ * Each entry: { day, weekday, session } — same session objects as WEEK.
+ */
+export function weekAhead(fromIso) {
+  const todayDow = dow(fromIso);
+  const daysLeft = 6 - todayDow;
+
+  if (daysLeft <= 0) {
+    return {
+      label: 'Next week',
+      days: Array.from({ length: 7 }, (_, i) => {
+        const day = addDays(fromIso, i + 1);
+        const d = dow(day);
+        return { day, weekday: WEEKDAY_LABELS[d], session: sessionFor(d) };
+      }),
+    };
+  }
+
+  return {
+    label: 'Coming up',
+    days: Array.from({ length: daysLeft }, (_, i) => {
+      const day = addDays(fromIso, i + 1);
+      const d = dow(day);
+      return { day, weekday: WEEKDAY_LABELS[d], session: sessionFor(d) };
+    }),
+  };
 }
 
 /** Disclaimer shown under the expanded session list. */

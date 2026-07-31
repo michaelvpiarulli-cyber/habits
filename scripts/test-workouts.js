@@ -14,6 +14,7 @@ import {
   SESSIONS,
   WEEK,
   sessionFor,
+  weekAhead,
 } from '../src/lib/workouts.js';
 
 let failed = 0;
@@ -157,6 +158,42 @@ test('hip thrusts use supported spine framing (not a hinge substitute dump)', ()
 test('program disclaimer is present for the UI', () => {
   assert.match(PROGRAM_DISCLAIMER, /not physio/i);
   assert.match(PROGRAM_DISCLAIMER, /professional/i);
+});
+
+test('weekAhead lists remaining days of the week after today', () => {
+  // A known Monday (2026-07-27) → Tue–Sun
+  const ahead = weekAhead('2026-07-27');
+  assert.equal(ahead.label, 'Coming up');
+  assert.equal(ahead.days.length, 6);
+  assert.deepEqual(
+    ahead.days.map((d) => [d.weekday, d.session.name]),
+    [
+      ['Tue', 'Pull'],
+      ['Wed', 'Legs'],
+      ['Thu', 'Brisk walk'],
+      ['Fri', 'Upper'],
+      ['Sat', 'Easy run'],
+      ['Sun', 'Brisk walk'],
+    ]
+  );
+  assert.equal(ahead.days[0].day, '2026-07-28');
+});
+
+test('weekAhead on Friday is Sat run then Sun walk', () => {
+  const ahead = weekAhead('2026-07-31'); // Friday
+  assert.equal(ahead.label, 'Coming up');
+  assert.equal(ahead.days.length, 2);
+  assert.equal(ahead.days[0].session.kind, 'run');
+  assert.equal(ahead.days[1].session.kind, 'walk');
+});
+
+test('weekAhead on Sunday rolls to next Mon–Sun', () => {
+  const ahead = weekAhead('2026-08-02'); // Sunday
+  assert.equal(ahead.label, 'Next week');
+  assert.equal(ahead.days.length, 7);
+  assert.equal(ahead.days[0].day, '2026-08-03');
+  assert.equal(ahead.days[0].session.name, 'Push');
+  assert.equal(ahead.days[6].session.kind, 'walk');
 });
 
 if (failed) {

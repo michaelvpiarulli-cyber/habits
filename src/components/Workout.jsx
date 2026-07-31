@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { dow } from '../lib/dates';
-import { PROGRAM_DISCLAIMER, sessionFor } from '../lib/workouts';
+import { PROGRAM_DISCLAIMER, sessionFor, weekAhead } from '../lib/workouts';
 
 /**
  * Today's session on the daily tab.
@@ -13,10 +13,15 @@ import { PROGRAM_DISCLAIMER, sessionFor } from '../lib/workouts';
  *
  * Collapsed to the session name until tapped, because on a Monday you mostly
  * need to know it is push day, not to read twelve sets on the way past.
+ *
+ * Below the collapsible today block, a compact look-ahead lists the rest of
+ * the week (or next week on Sunday) from the same weekday program — readable
+ * without changing the date or opening today's lifts.
  */
 export function Workout({ day }) {
   const { activeHabits, logFor, setValue } = useData();
   const session = sessionFor(dow(day));
+  const ahead = weekAhead(day);
 
   // The count habit this session drives, if there is one.
   const lift = activeHabits.find((h) => h.kind === 'count' && /lift/i.test(h.name));
@@ -77,6 +82,21 @@ export function Workout({ day }) {
           <p className="workout__disclaimer">{PROGRAM_DISCLAIMER}</p>
         </>
       )}
+
+      <div className="workout__ahead">
+        <p className="eyebrow">{ahead.label}</p>
+        <ol className="workout__ahead-list" aria-label={ahead.label}>
+          {ahead.days.map(({ day: d, weekday, session: s }) => (
+            <li key={d} className={`workout__ahead-day workout__ahead-day--${s.kind}`}>
+              <span className="workout__ahead-when">{weekday}</span>
+              <span className="workout__ahead-what">
+                <span className="workout__ahead-name">{s.name}</span>
+                <span className="workout__ahead-focus">{s.focus}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }
