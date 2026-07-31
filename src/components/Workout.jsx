@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { dow } from '../lib/dates';
-import { sessionFor } from '../lib/workouts';
+import { PROGRAM_DISCLAIMER, sessionFor } from '../lib/workouts';
 
 /**
  * Today's session on the daily tab.
@@ -45,34 +45,37 @@ export function Workout({ day }) {
       </button>
 
       {open && (
-        <ol className="workout__lifts">
-          {session.lifts.map((l, i) => {
-            const isDone = i < done;
-            return (
-              <li key={l.move} className={`lift ${isDone ? 'is-done' : ''}`}>
-                <button
-                  type="button"
-                  className="lift__body"
-                  onClick={() => mark(i)}
-                  disabled={!lift}
-                  aria-pressed={isDone}
-                >
-                  <span className="lift__tick" aria-hidden="true">
-                    {isDone ? '✓' : i + 1}
-                  </span>
-                  <span className="lift__detail">
-                    <span className="lift__move">{l.move}</span>
-                    <span className="lift__sets">
-                      {l.sets}
-                      {l.load ? ` · ${l.load}` : ''}
+        <>
+          <ol className="workout__lifts">
+            {session.lifts.map((l, i) => {
+              const isDone = i < done;
+              return (
+                <li key={l.move} className={`lift ${isDone ? 'is-done' : ''}`}>
+                  <button
+                    type="button"
+                    className="lift__body"
+                    onClick={() => mark(i)}
+                    disabled={!lift}
+                    aria-pressed={isDone}
+                  >
+                    <span className="lift__tick" aria-hidden="true">
+                      {isDone ? '✓' : i + 1}
                     </span>
-                    {l.hint && <span className="lift__hint">{l.hint}</span>}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+                    <span className="lift__detail">
+                      <span className="lift__move">{l.move}</span>
+                      <span className="lift__sets">
+                        {l.sets}
+                        {l.load ? ` · ${l.load}` : ''}
+                      </span>
+                      {l.note && <span className="lift__hint">{l.note}</span>}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+          <p className="workout__disclaimer">{PROGRAM_DISCLAIMER}</p>
+        </>
       )}
     </section>
   );

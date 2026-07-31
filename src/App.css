@@ -2075,3 +2075,11 @@ form.field {
   line-height: 1.4;
   color: var(--ink-soft);
 }
+
+.workout__disclaimer {
+  margin: 0;
+  padding: 0 14px 12px;
+  font-size: 0.688rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}

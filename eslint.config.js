@@ -30,4 +30,10 @@ export default [
       ],
     },
   },
+  {
+    files: ['scripts/**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ]

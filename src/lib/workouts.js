@@ -6,15 +6,22 @@
  * survives a missed day without drifting.
  *
  * Legs get their own day. Nothing lower-body appears on push or pull: squats,
- * lunges and hip thrusts all live on Wednesday, where they can be the session
- * rather than the thing tacked on after bench.
+ * lunges, hip thrusts and calf work all live on Wednesday, where they can be
+ * the session rather than the thing tacked on after bench.
+ *
+ * ---------------------------------------------------------------------------
+ * ATHLETE
+ *
+ * Male, 240 lb, home gym. Known working set: bench 135 × 8 × 4. Squat/leg
+ * strength unknown — prescribed conservatively with that noted on the lifts.
  *
  * ---------------------------------------------------------------------------
  * EQUIPMENT — AND THE CEILING IT SETS
  *
- * A bar, a squat rack, a bench, a lat pulldown, a row machine, dumbbells up to
- * 15 lb, and TWO 45 lb plates. That last one governs everything: 45 + 45 + 45
- * is 135 lb, and that is the most the barbell can ever hold.
+ * A bar, a squat rack, a flat/incline bench, a lat pulldown, a seated row
+ * machine, dumbbells of 5 / 10 / 15 lb ONLY, and TWO 45 lb plates. That last
+ * one governs everything: 45 + 45 + 45 is 135 lb, and that is the most the
+ * barbell can ever hold. Never prescribe a barbell load above 135.
  *
  * Bench at 135 for 8 is therefore already at the ceiling. There is no adding
  * five pounds. So barbell lifts progress the only ways left when load is fixed
@@ -24,93 +31,283 @@
  *
  * At 240 lb bodyweight, single-leg and bodyweight work is not filler. A
  * Bulgarian split squat is carrying most of 240 on one leg, which is heavier
- * than anything the bar can be loaded to.
+ * than anything the bar can be loaded to. Bench dips are hard sets.
  *
- * Two more 45s, or a set of 25s, is the single purchase that unlocks the most.
- *
+ * ---------------------------------------------------------------------------
  * BACK
  *
  * Written around a bad back, so there are no loaded hinges: no deadlift, no
- * Romanian deadlift, no bent-over row. Glutes and hamstrings come from hip
- * thrusts — spine supported on the bench — and rowing is seated.
+ * Romanian deadlift, no bent-over row. Glutes and hamstrings come from barbell
+ * hip thrusts — shoulders on the bench, spine supported — and rowing is seated.
  *
- * This is programming, not physio. A back that rules out deadlifting is worth
- * a professional look, and squats still load the spine even with hinges gone.
+ * This is general programming, not physio. A back that rules out deadlifting
+ * warrants a professional opinion, and squats still load the spine even with
+ * hinges gone.
+ *
+ * ---------------------------------------------------------------------------
+ * FRIDAY — UPPER (push–pull hybrid)
+ *
+ * The fourth lifting day is a light full-upper / push–pull hybrid, not a
+ * second heavy push and not a legs dump onto Mon/Tue. Monday already presses
+ * at the 135 ceiling; stacking another pure push on Friday overloads press
+ * volume without balancing pull. Upper hybrid keeps legs on Wednesday only,
+ * adds rear-delt and row volume, and stays inside the equipment + back rules.
  * ---------------------------------------------------------------------------
  */
 
+/** Hard equipment ceilings — enforced by tests. */
+export const BARBELL_MAX_LB = 135;
+export const DUMBBELL_MAX_LB = 15;
+
+/**
+ * Movements that are loaded hinges or otherwise forbidden for this back.
+ * Matched case-insensitively against movement names.
+ */
+export const FORBIDDEN_MOVE_PATTERNS = [
+  /\bdeadlift\b/i,
+  /\bromanian\b/i,
+  /\brdl\b/i,
+  /\bbent[- ]?over\s+row\b/i,
+  /\bgood\s+morning\b/i,
+  /\bkettlebell\s+swing\b/i,
+];
+
+/**
+ * Lower-body work that must not appear on push or pull days.
+ * Legs stay on Wednesday.
+ */
+export const LOWER_BODY_PATTERNS = [
+  /\bsquat\b/i,
+  /\blunge\b/i,
+  /\bhip\s+thrust\b/i,
+  /\bcalf\b/i,
+  /\bleg\s+press\b/i,
+  /\bleg\s+curl\b/i,
+  /\bleg\s+extension\b/i,
+  /\brdl\b/i,
+  /\bdeadlift\b/i,
+];
+
+/**
+ * Each lift carries:
+ *   move      — name
+ *   sets      — sets × reps (or duration for cardio)
+ *   load      — display string for the prescribed load
+ *   loadKind  — barbell | dumbbell | machine | bodyweight | cardio
+ *   loadLb    — numeric lb (barbell = bar total; dumbbell = per hand;
+ *               machine = stack setting; null for bodyweight/cardio)
+ *   note      — one-line reasoning so a wrong number can be corrected
+ */
 export const SESSIONS = {
   push: {
     kind: 'lift',
     name: 'Push',
-    focus: 'Chest, shoulders, triceps',
+    focus: 'chest, shoulders, triceps',
     lifts: [
-      { move: 'Bench press', sets: '4 × 10', load: '135 lb', hint: 'Your bar maxed out. No weight left to add, so add reps — once 12 is clean, switch to a 3-second lowering instead' },
-      { move: 'Overhead press', sets: '4 × 8', load: '75 lb', hint: '15 a side, out of the rack' },
-      { move: 'Close-grip bench press', sets: '3 × 10', load: '95 lb', hint: 'Hands shoulder-width. Triceps take over' },
-      { move: 'Bench dips', sets: '3 × 15', load: 'bodyweight', hint: 'At 240 this is a real set, not a finisher' },
+      {
+        move: 'Bench press',
+        sets: '4 × 8–10',
+        load: '135 lb',
+        loadKind: 'barbell',
+        loadLb: 135,
+        note: 'Your known working set, already at the 135 bar ceiling — progress via reps, then a 3-second eccentric once 10 is clean',
+      },
+      {
+        move: 'Overhead press',
+        sets: '4 × 8',
+        load: '80 lb',
+        loadKind: 'barbell',
+        loadLb: 80,
+        note: '~60% of bench 135 (standard OHP:bench ratio); out of the rack',
+      },
+      {
+        move: 'Close-grip bench press',
+        sets: '3 × 10',
+        load: '95 lb',
+        loadKind: 'barbell',
+        loadLb: 95,
+        note: '~70% of bench — hands shoulder-width so triceps take over',
+      },
+      {
+        move: 'Bench dips',
+        sets: '3 × 12–15',
+        load: 'bodyweight',
+        loadKind: 'bodyweight',
+        loadLb: null,
+        note: 'At 240 lb this is a hard set, not a finisher — no dip station, hands on the bench edge',
+      },
     ],
   },
   pull: {
     kind: 'lift',
     name: 'Pull',
-    focus: 'Back, biceps, rear delts',
+    focus: 'back, biceps, rear delts',
     lifts: [
-      { move: 'Wide-grip lat pulldown', sets: '4 × 8', load: '145 lb', hint: 'Machine stack — one of only two places you can still add real weight' },
-      { move: 'Seated row', sets: '4 × 10', load: '120 lb', hint: 'The other one. Squeeze at the back, no leaning' },
-      { move: 'Close-grip pulldown', sets: '3 × 12', load: '120 lb', hint: 'Narrow grip shifts it to the lower lats and biceps' },
-      { move: 'Barbell curl', sets: '3 × 12', load: '55 lb', hint: 'Bar plus 5 a side. Hammer curls with the 15s if the bar is tied up' },
+      {
+        move: 'Wide-grip lat pulldown',
+        sets: '4 × 8',
+        load: '145 lb',
+        loadKind: 'machine',
+        loadLb: 145,
+        note: 'Own stack — past the bar ceiling on purpose; one of two places you can still add real weight',
+      },
+      {
+        move: 'Seated row',
+        sets: '4 × 10',
+        load: '120 lb',
+        loadKind: 'machine',
+        loadLb: 120,
+        note: 'Seated replaces any bent-over row; squeeze at the end, torso quiet for the back',
+      },
+      {
+        move: 'Close-grip pulldown',
+        sets: '3 × 12',
+        load: '120 lb',
+        loadKind: 'machine',
+        loadLb: 120,
+        note: 'Narrow grip shifts to lower lats and biceps; stack again, not the bar',
+      },
+      {
+        move: 'Barbell curl',
+        sets: '3 × 12',
+        load: '55 lb',
+        loadKind: 'barbell',
+        loadLb: 55,
+        note: '~40% of bench as a curl starting point — bar + 5 a side; 15 lb DB hammers if the bar is tied up',
+      },
     ],
   },
   legs: {
     kind: 'lift',
     name: 'Legs',
-    focus: 'Quads, glutes, hamstrings, calves',
+    focus: 'quads, glutes, hamstrings, calves',
     lifts: [
-      { move: 'Back squat', sets: '4 × 12', load: '135 lb', hint: 'The ceiling, so reps do the work. If your back objects, goblet squat with a plate held at the chest' },
-      { move: 'Barbell hip thrust', sets: '4 × 12', load: '135 lb', hint: 'Shoulders on the bench. This is what replaces the deadlift — spine neutral and supported throughout' },
-      { move: 'Bulgarian split squat', sets: '3 × 10 each', load: '15 lb each', hint: 'Rear foot on the bench. At 240 this is the hardest thing in the week — the dumbbells are almost incidental' },
-      { move: 'Calf raise', sets: '3 × 20', load: 'bodyweight', hint: 'Off a step or a plate. Pause at the top' },
+      {
+        move: 'Back squat',
+        sets: '4 × 8',
+        load: '95 lb',
+        loadKind: 'barbell',
+        loadLb: 95,
+        note: 'Squat strength unknown — start conservative under the 135 ceiling; build toward 135 via reps before adding load',
+      },
+      {
+        move: 'Barbell hip thrust',
+        sets: '4 × 10',
+        load: '135 lb',
+        loadKind: 'barbell',
+        loadLb: 135,
+        note: 'Shoulders on the bench, spine supported — posterior chain without a loaded hinge; at the bar ceiling so progress via reps',
+      },
+      {
+        move: 'Bulgarian split squat',
+        sets: '3 × 8 each',
+        load: '15 lb each',
+        loadKind: 'dumbbell',
+        loadLb: 15,
+        note: 'Rear foot on the bench; at 240 most of the load is you — the 15s are almost incidental',
+      },
+      {
+        move: 'Standing calf raise',
+        sets: '3 × 15–20',
+        load: 'bodyweight',
+        loadKind: 'bodyweight',
+        loadLb: null,
+        note: 'Off a step or plate; pause at the top — no leg-press machine available',
+      },
     ],
   },
-  pushB: {
+  /**
+   * Friday fourth day: light full-upper / push–pull hybrid.
+   * See file header for why this is not "Push II" or a legs day.
+   */
+  upper: {
     kind: 'lift',
-    name: 'Push II',
-    focus: 'Lighter, higher reps',
+    name: 'Upper',
+    focus: 'chest, back, shoulders, arms',
     lifts: [
-      { move: 'Incline bench press', sets: '4 × 10', load: '115 lb', hint: 'Bench on an incline in the rack. Upper chest, which flat pressing under-serves' },
-      { move: 'Dumbbell floor fly', sets: '3 × 15', load: '15 lb each', hint: 'Your heaviest dumbbell. The stretch is the point, not the load' },
-      { move: 'Lateral raise', sets: '3 × 20', load: '10 lb each', hint: 'High reps because the weight is light. Swinging means too heavy' },
-      { move: 'Overhead triceps extension', sets: '3 × 15', load: '15 lb', hint: 'Both hands on one dumbbell, seated' },
+      {
+        move: 'Incline bench press',
+        sets: '4 × 10',
+        load: '115 lb',
+        loadKind: 'barbell',
+        loadLb: 115,
+        note: '~85% of flat bench — upper chest volume without repeating Monday’s 135 ceiling work',
+      },
+      {
+        move: 'Seated row',
+        sets: '4 × 12',
+        load: '100 lb',
+        loadKind: 'machine',
+        loadLb: 100,
+        note: 'Lighter than Tuesday’s row day — balances Friday’s press volume; still no bent-over hinge',
+      },
+      {
+        move: 'Lateral raise',
+        sets: '3 × 15–20',
+        load: '10 lb each',
+        loadKind: 'dumbbell',
+        loadLb: 10,
+        note: 'Only 5/10/15 DBs available — high reps because 10 is light; swinging means too heavy',
+      },
+      {
+        move: 'Dumbbell floor fly',
+        sets: '3 × 12–15',
+        load: '15 lb each',
+        loadKind: 'dumbbell',
+        loadLb: 15,
+        note: 'Heaviest DB you own; stretch is the point — no cable crossover in this gym',
+      },
+      {
+        move: 'Overhead triceps extension',
+        sets: '3 × 12–15',
+        load: '15 lb',
+        loadKind: 'dumbbell',
+        loadLb: 15,
+        note: 'Both hands on one 15 lb DB, seated — matches the DB ceiling',
+      },
     ],
   },
   run: {
     kind: 'run',
-    name: 'Run',
-    focus: 'One a week',
+    name: 'Easy run',
+    focus: '30 min, conversational pace',
     lifts: [
-      { move: 'Easy run', sets: '30 min', load: 'conversational', hint: 'If you cannot speak a full sentence, slow down. At 240 the joints prefer easy over fast' },
+      {
+        move: 'Easy run',
+        sets: '30 min',
+        load: 'conversational',
+        loadKind: 'cardio',
+        loadLb: null,
+        note: 'If you cannot speak a full sentence, slow down — at 240 the joints prefer easy over fast',
+      },
     ],
   },
   walk: {
     kind: 'walk',
     name: 'Brisk walk',
-    focus: 'Easy day',
+    focus: '30–40 min',
     lifts: [
-      { move: 'Brisk walk', sets: '30–40 min', load: 'brisk', hint: 'Breathing harder, not puffing. Recovery, not training' },
+      {
+        move: 'Brisk walk',
+        sets: '30–40 min',
+        load: 'brisk',
+        loadKind: 'cardio',
+        loadLb: null,
+        note: 'Breathing harder, not puffing — recovery between lift days, not another hard session',
+      },
     ],
   },
 };
 
 /** Monday-first, matching dow() in lib/dates. */
 export const WEEK = [
-  SESSIONS.push, // Mon
-  SESSIONS.pull, // Tue
-  SESSIONS.legs, // Wed
-  SESSIONS.walk, // Thu
-  SESSIONS.pushB, // Fri
-  SESSIONS.run, // Sat
-  SESSIONS.walk, // Sun
+  SESSIONS.push, // Mon — Push
+  SESSIONS.pull, // Tue — Pull
+  SESSIONS.legs, // Wed — Legs
+  SESSIONS.walk, // Thu — Brisk walk
+  SESSIONS.upper, // Fri — Upper (push–pull hybrid); see header
+  SESSIONS.run, // Sat — Easy run
+  SESSIONS.walk, // Sun — Brisk walk
 ];
 
 /** The weekdays the lifting sessions land on — 0=Mon. */
@@ -119,3 +316,7 @@ export const LIFT_DAYS = [0, 1, 2, 4];
 export function sessionFor(dayOfWeek) {
   return WEEK[dayOfWeek] || SESSIONS.walk;
 }
+
+/** Disclaimer shown under the expanded session list. */
+export const PROGRAM_DISCLAIMER =
+  'General programming, not physio. A back that rules out deadlifts warrants a professional opinion.';
