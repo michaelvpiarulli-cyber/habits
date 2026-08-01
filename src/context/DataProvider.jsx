@@ -125,10 +125,10 @@ const fixId = (id) =>
     : id;
 
 const TABLES = {
+  identity: { table: 'identity', from: statementFromRow, to: statementToRow },
   habits: { table: 'habits', from: habitFromRow, to: habitToRow },
   logs: { table: 'habit_logs', from: logFromRow, to: logToRow },
   goals: { table: 'goals', from: goalFromRow, to: goalToRow },
-  identity: { table: 'identity', from: statementFromRow, to: statementToRow },
   dayNotes: { table: 'day_notes', from: noteFromRow, to: noteToRow },
   reviews: { table: 'reviews', from: reviewFromRow, to: reviewToRow },
   nutrition: { table: 'nutrition_logs', from: nutritionFromRow, to: nutritionToRow },
@@ -145,6 +145,11 @@ const isMissingTable = (error) => MISSING_TABLE_CODES.has(error?.code);
 
 const TOMBSTONE_TTL_DAYS = 90;
 const PUSH_DEBOUNCE_MS = 700;
+const ACCOUNT_KINDS = ['habits', 'logs', 'goals', 'identity', 'dayNotes', 'reviews', 'nutrition'];
+const ANONYMOUS_SCOPE = 'anonymous';
+const LEGACY_CLAIM_KEY = 'tally-legacy-account';
+const migratedKey = (userId) => `tally-account-migrated:${userId}`;
+const scopedKey = (kind, scope) => `${KEYS[kind]}:${scope}`;
 
 function loadList(key) {
   try {
@@ -160,6 +165,136 @@ function loadList(key) {
 function purgeStale(list) {
   const cutoff = Date.now() - TOMBSTONE_TTL_DAYS * 86400000;
   return list.filter((r) => !r.deleted || new Date(r.updatedAt).getTime() > cutoff);
+}
+
+const emptyDirty = () =>
+  Object.fromEntries(ACCOUNT_KINDS.map((kind) => [kind, new Map()]));
+
+function starterHabits({ uniqueIds = false } = {}) {
+  return STARTER_HABITS.map((h, i) => ({
+    emoji: '',
+    cadence: 'daily',
+    weekdays: [],
+    perWeek: 3,
+    target: null,
+    unit: '',
+    ...h,
+    id: uniqueIds ? newId() : h.id,
+    archived: false,
+    sortOrder: i,
+    deleted: false,
+    createdAt: nowISO(),
+    updatedAt: SEED_TIME,
+  }));
+}
+
+function starterIdentity({ uniqueIds = false } = {}) {
+  return STARTER_IDENTITY.map((statement, i) => ({
+    ...statement,
+    id: uniqueIds ? newId() : statement.id,
+    sortOrder: i,
+    deleted: false,
+    createdAt: nowISO(),
+    updatedAt: SEED_TIME,
+  }));
+}
+
+function loadScopedRecords(scope) {
+  return Object.fromEntries(
+    ACCOUNT_KINDS.map((kind) => [
+      kind,
+      purgeStale(loadList(scopedKey(kind, scope))).map((record) => {
+        if (kind === 'habits') return { ...record, id: fixId(record.id) };
+        if (kind === 'logs') return { ...record, habitId: fixId(record.habitId) };
+        if (kind === 'goals') return { ...record, habitId: fixId(record.habitId) };
+        return record;
+      }),
+    ])
+  );
+}
+
+/**
+ * Old releases used one browser-wide cache. The first account seen after this
+ * migration may claim that cache once. Existing ids stay intact so they merge
+ * with copies that account may already have uploaded under the old release.
+ */
+function claimLegacyRecords(userId) {
+  if (localStorage.getItem(migratedKey(userId))) return null;
+  const claimant = localStorage.getItem(LEGACY_CLAIM_KEY);
+  if (claimant && claimant !== userId) {
+    localStorage.setItem(migratedKey(userId), 'skipped');
+    return null;
+  }
+
+  const legacy = Object.fromEntries(
+    ACCOUNT_KINDS.map((kind) => [kind, purgeStale(loadList(KEYS[kind]))])
+  );
+  const hasLegacy = ACCOUNT_KINDS.some((kind) => legacy[kind].length > 0);
+  localStorage.setItem(LEGACY_CLAIM_KEY, userId);
+  localStorage.setItem(migratedKey(userId), hasLegacy ? 'claimed' : 'empty');
+  if (!hasLegacy) return null;
+
+  return {
+    habits: legacy.habits.map((habit) => ({
+      ...habit,
+      id: fixId(habit.id),
+      afterId: fixId(habit.afterId),
+    })),
+    logs: legacy.logs.map((log) => ({
+      ...log,
+      habitId: fixId(log.habitId),
+    })),
+    goals: legacy.goals.map((goal) => ({
+      ...goal,
+      habitId: fixId(goal.habitId),
+    })),
+    identity: legacy.identity,
+    dayNotes: legacy.dayNotes,
+    reviews: legacy.reviews,
+    nutrition: legacy.nutrition,
+  };
+}
+
+function withAccountSafeSeedIds(records, remoteHabitIds, remoteIdentityIds) {
+  const habitIds = new Map(
+    STARTER_HABITS.filter(
+      (starter) =>
+        records.habits.some((habit) => habit.id === starter.id) && !remoteHabitIds.has(starter.id)
+    ).map((starter) => [starter.id, newId()])
+  );
+  const identityIds = new Map(
+    STARTER_IDENTITY.filter(
+      (starter) =>
+        records.identity.some((statement) => statement.id === starter.id) &&
+        !remoteIdentityIds.has(starter.id)
+    ).map((starter) => [starter.id, newId()])
+  );
+  const habitId = (id) => (id ? habitIds.get(id) || id : id);
+  const identityId = (id) => (id ? identityIds.get(id) || id : id);
+
+  return {
+    habits: records.habits.map((habit) => ({
+      ...habit,
+      id: habitId(habit.id),
+      identityId: identityId(habit.identityId),
+      afterId: habitId(habit.afterId),
+    })),
+    logs: records.logs.map((log) => ({
+      ...log,
+      habitId: habitId(log.habitId),
+    })),
+    goals: records.goals.map((goal) => ({
+      ...goal,
+      habitId: habitId(goal.habitId),
+    })),
+    identity: records.identity.map((statement) => ({
+      ...statement,
+      id: identityId(statement.id),
+    })),
+    dayNotes: records.dayNotes,
+    reviews: records.reviews,
+    nutrition: records.nutrition,
+  };
 }
 
 /** Union two lists by id; the more recently touched copy of a record wins. */
@@ -178,57 +313,15 @@ function mergeById(remote, local) {
 const DataContext = createContext(null);
 
 export function DataProvider({ children }) {
-  const { available, user } = useAuth();
-
-  const [habits, setHabits] = useState(() => {
-    const stored = purgeStale(loadList(KEYS.habits)).map((h) => ({ ...h, id: fixId(h.id) }));
-    // A first run opens on the real routine instead of an empty list. Fixed ids
-    // and a backdated SEED_TIME (see lib/habits) keep this safe to run on more
-    // than one device: the copies merge into one, and any later edit wins.
-    if (stored.length > 0) return stored;
-    return STARTER_HABITS.map((h, i) => ({
-      emoji: '',
-      cadence: 'daily',
-      weekdays: [],
-      perWeek: 3,
-      target: null,
-      unit: '',
-      ...h,
-      archived: false,
-      sortOrder: i,
-      deleted: false,
-      createdAt: nowISO(),
-      updatedAt: SEED_TIME,
-    }));
-  });
-  const [logs, setLogs] = useState(() =>
-    purgeStale(loadList(KEYS.logs)).map((l) => ({ ...l, habitId: fixId(l.habitId) }))
-  );
-  const [goals, setGoals] = useState(() =>
-    purgeStale(loadList(KEYS.goals)).map((g) => ({ ...g, habitId: fixId(g.habitId) }))
-  );
-  const [identity, setIdentity] = useState(() => {
-    // These were called "virtues" before. Anything written under the old key is
-    // adopted once, so the rename does not quietly discard what was there.
-    const legacy = localStorage.getItem('tally-virtues');
-    if (legacy && !localStorage.getItem(KEYS.identity)) {
-      localStorage.setItem(KEYS.identity, legacy);
-      localStorage.removeItem('tally-virtues');
-    }
-
-    const stored = purgeStale(loadList(KEYS.identity));
-    if (stored.length > 0 || localStorage.getItem(KEYS.identity)) return stored;
-    return STARTER_IDENTITY.map((v, i) => ({
-      ...v,
-      sortOrder: i,
-      deleted: false,
-      createdAt: nowISO(),
-      updatedAt: SEED_TIME,
-    }));
-  });
-  const [dayNotes, setDayNotes] = useState(() => purgeStale(loadList(KEYS.dayNotes)));
-  const [reviews, setReviews] = useState(() => purgeStale(loadList(KEYS.reviews)));
-  const [nutrition, setNutrition] = useState(() => purgeStale(loadList(KEYS.nutrition)));
+  const { available, loading: authLoading, user } = useAuth();
+  const [habits, setHabits] = useState([]);
+  const [logs, setLogs] = useState([]);
+  const [goals, setGoals] = useState([]);
+  const [identity, setIdentity] = useState([]);
+  const [dayNotes, setDayNotes] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [nutrition, setNutrition] = useState([]);
+  const [storageScope, setStorageScope] = useState(null);
   const [countdown, setCountdown] = useState(() => {
     try {
       const raw = localStorage.getItem(KEYS.countdown);
@@ -239,45 +332,111 @@ export function DataProvider({ children }) {
   });
   const [syncState, setSyncState] = useState('idle'); // idle | syncing | synced | error
 
-  // Persist locally on every change — the instant, offline layer.
-  useEffect(() => localStorage.setItem(KEYS.habits, JSON.stringify(habits)), [habits]);
-  useEffect(() => localStorage.setItem(KEYS.logs, JSON.stringify(logs)), [logs]);
-  useEffect(() => localStorage.setItem(KEYS.goals, JSON.stringify(goals)), [goals]);
-  useEffect(() => localStorage.setItem(KEYS.identity, JSON.stringify(identity)), [identity]);
-  useEffect(() => localStorage.setItem(KEYS.dayNotes, JSON.stringify(dayNotes)), [dayNotes]);
-  useEffect(() => localStorage.setItem(KEYS.reviews, JSON.stringify(reviews)), [reviews]);
-  useEffect(() => localStorage.setItem(KEYS.nutrition, JSON.stringify(nutrition)), [nutrition]);
-  useEffect(() => localStorage.setItem(KEYS.countdown, JSON.stringify(countdown)), [countdown]);
-
-  // Ids touched since the last successful push. Only these get sent, so a
-  // three-year backlog of logs is not re-uploaded every time a box is ticked.
-  const dirty = useRef({
-    habits: new Set(),
-    logs: new Set(),
-    goals: new Set(),
-    identity: new Set(),
-    dayNotes: new Set(),
-    reviews: new Set(),
-    nutrition: new Set(),
-  });
-  const markDirty = useCallback((kind, id) => dirty.current[kind].add(id), []);
-
   // The user id we have already pulled and merged for. Pushes stay parked until
   // that merge lands, so a fresh device cannot overwrite the server with the
   // empty state it started up with.
   const hydratedFor = useRef(null);
   const pushTimer = useRef(null);
-  const pulling = useRef(false);
+  const pulling = useRef(null);
+  const syncGeneration = useRef(0);
+  const dirty = useRef(emptyDirty());
+  const markDirty = useCallback((kind, id) => {
+    const revisions = dirty.current[kind];
+    revisions.set(id, (revisions.get(id) || 0) + 1);
+  }, []);
   const [retryTick, setRetryTick] = useState(0);
   const latest = useRef({ habits, logs, goals, identity, dayNotes, reviews, nutrition });
   latest.current = { habits, logs, goals, identity, dayNotes, reviews, nutrition };
   const currentUserId = useRef(user?.id);
   currentUserId.current = user?.id;
+  const desiredScope = authLoading ? null : user?.id || ANONYMOUS_SCOPE;
+
+  // Switch the entire local cache when auth changes. A render never writes the
+  // previous account's records into the next account's namespace.
+  useEffect(() => {
+    if (storageScope === desiredScope) return;
+    syncGeneration.current += 1;
+    clearTimeout(pushTimer.current);
+    pulling.current = null;
+    hydratedFor.current = null;
+    dirty.current = emptyDirty();
+
+    if (!desiredScope) {
+      setStorageScope(null);
+      setSyncState('idle');
+      return;
+    }
+
+    // Adopt the pre-identity rename before the one-time account migration.
+    const virtues = localStorage.getItem('tally-virtues');
+    if (virtues && !localStorage.getItem(KEYS.identity)) {
+      localStorage.setItem(KEYS.identity, virtues);
+      localStorage.removeItem('tally-virtues');
+    }
+
+    let records = loadScopedRecords(desiredScope);
+    if (user) {
+      const claimed = claimLegacyRecords(user.id);
+      if (claimed) {
+        records = Object.fromEntries(
+          ACCOUNT_KINDS.map((kind) => [kind, mergeById(records[kind], claimed[kind])])
+        );
+      }
+    } else {
+      const hasScopedData = ACCOUNT_KINDS.some((kind) => records[kind].length > 0);
+      const claimant = localStorage.getItem(LEGACY_CLAIM_KEY);
+      if (!hasScopedData && !claimant) {
+        records = Object.fromEntries(
+          ACCOUNT_KINDS.map((kind) => [kind, purgeStale(loadList(KEYS[kind]))])
+        );
+      }
+      if (records.habits.length === 0) records.habits = starterHabits();
+      if (records.identity.length === 0) records.identity = starterIdentity();
+    }
+
+    setHabits(records.habits);
+    setLogs(records.logs);
+    setGoals(records.goals);
+    setIdentity(records.identity);
+    setDayNotes(records.dayNotes);
+    setReviews(records.reviews);
+    setNutrition(records.nutrition);
+    setStorageScope(desiredScope);
+    setSyncState(user ? 'syncing' : 'idle');
+  }, [desiredScope, storageScope, user]);
+
+  // Persist the active account only. Countdown remains a device preference.
+  useEffect(() => {
+    if (storageScope) localStorage.setItem(scopedKey('habits', storageScope), JSON.stringify(habits));
+  }, [habits, storageScope]);
+  useEffect(() => {
+    if (storageScope) localStorage.setItem(scopedKey('logs', storageScope), JSON.stringify(logs));
+  }, [logs, storageScope]);
+  useEffect(() => {
+    if (storageScope) localStorage.setItem(scopedKey('goals', storageScope), JSON.stringify(goals));
+  }, [goals, storageScope]);
+  useEffect(() => {
+    if (storageScope) localStorage.setItem(scopedKey('identity', storageScope), JSON.stringify(identity));
+  }, [identity, storageScope]);
+  useEffect(() => {
+    if (storageScope)
+      localStorage.setItem(scopedKey('dayNotes', storageScope), JSON.stringify(dayNotes));
+  }, [dayNotes, storageScope]);
+  useEffect(() => {
+    if (storageScope) localStorage.setItem(scopedKey('reviews', storageScope), JSON.stringify(reviews));
+  }, [reviews, storageScope]);
+  useEffect(() => {
+    if (storageScope)
+      localStorage.setItem(scopedKey('nutrition', storageScope), JSON.stringify(nutrition));
+  }, [nutrition, storageScope]);
+  useEffect(() => localStorage.setItem(KEYS.countdown, JSON.stringify(countdown)), [countdown]);
 
   const pullRemote = useCallback(
     async ({ initial = false } = {}) => {
-      if (!available || !user || pulling.current) return;
-      pulling.current = true;
+      if (!available || !user || storageScope !== user.id) return;
+      const generation = syncGeneration.current;
+      if (pulling.current === generation) return;
+      pulling.current = generation;
       setSyncState('syncing');
 
       let results;
@@ -292,15 +451,19 @@ export function DataProvider({ children }) {
           supabase.from('nutrition_logs').select('*').eq('user_id', user.id),
         ]);
       } catch {
-        pulling.current = false;
-        setSyncState('error');
+        if (pulling.current === generation) pulling.current = null;
+        if (syncGeneration.current === generation) setSyncState('error');
         return;
       }
 
       // Ignore a response from an account that signed out while requests were
       // in flight. Its rows must never be merged into the next account.
-      if (currentUserId.current !== user.id) {
-        pulling.current = false;
+      if (
+        syncGeneration.current !== generation ||
+        currentUserId.current !== user.id ||
+        storageScope !== user.id
+      ) {
+        if (pulling.current === generation) pulling.current = null;
         return;
       }
       const [h, l, g, v, n, rv, food] = results;
@@ -309,18 +472,25 @@ export function DataProvider({ children }) {
         (result) => result.error && !isMissingTable(result.error)
       );
       if (h.error || l.error || g.error || optionalError) {
-        pulling.current = false;
+        if (pulling.current === generation) pulling.current = null;
         setSyncState('error');
         return;
       }
 
-      const local = latest.current;
-      const mergedHabits = mergeById((h.data || []).map(habitFromRow), local.habits);
+      let local = latest.current;
+      if (initial) {
+        local = withAccountSafeSeedIds(
+          local,
+          new Set((h.data || []).map((record) => record.id)),
+          new Set((v.data || []).map((record) => record.id))
+        );
+      }
+      let mergedHabits = mergeById((h.data || []).map(habitFromRow), local.habits);
       const mergedLogs = mergeById((l.data || []).map(logFromRow), local.logs);
       const mergedGoals = mergeById((g.data || []).map(goalFromRow), local.goals);
       // identity arrived after the first schema, so a project that has not run
       // the migration reads as "nothing remote" rather than as a failure.
-      const mergedIdentity =
+      let mergedIdentity =
         v.error && isMissingTable(v.error)
           ? local.identity
           : mergeById((v.data || []).map(statementFromRow), local.identity);
@@ -337,6 +507,13 @@ export function DataProvider({ children }) {
           ? local.nutrition
           : mergeById((food.data || []).map(nutritionFromRow), local.nutrition);
 
+      // Seeds are created only after an account proves empty, and use random
+      // ids so two users can never compete for the same primary key.
+      if (initial && mergedHabits.length === 0) mergedHabits = starterHabits({ uniqueIds: true });
+      if (initial && mergedIdentity.length === 0) {
+        mergedIdentity = starterIdentity({ uniqueIds: true });
+      }
+
       setHabits(mergedHabits);
       setLogs(mergedLogs);
       setGoals(mergedGoals);
@@ -348,21 +525,21 @@ export function DataProvider({ children }) {
       if (initial) {
         // On first sign-in, send local-only records up. Later pulls only adopt
         // newer remote records; already-dirty local edits remain queued.
-        mergedHabits.forEach((r) => dirty.current.habits.add(r.id));
-        mergedLogs.forEach((r) => dirty.current.logs.add(r.id));
-        mergedGoals.forEach((r) => dirty.current.goals.add(r.id));
-        mergedIdentity.forEach((r) => dirty.current.identity.add(r.id));
-        mergedNotes.forEach((r) => dirty.current.dayNotes.add(r.id));
-        mergedReviews.forEach((r) => dirty.current.reviews.add(r.id));
-        mergedNutrition.forEach((r) => dirty.current.nutrition.add(r.id));
+        mergedHabits.forEach((r) => markDirty('habits', r.id));
+        mergedLogs.forEach((r) => markDirty('logs', r.id));
+        mergedGoals.forEach((r) => markDirty('goals', r.id));
+        mergedIdentity.forEach((r) => markDirty('identity', r.id));
+        mergedNotes.forEach((r) => markDirty('dayNotes', r.id));
+        mergedReviews.forEach((r) => markDirty('reviews', r.id));
+        mergedNutrition.forEach((r) => markDirty('nutrition', r.id));
       }
 
       hydratedFor.current = user.id;
-      pulling.current = false;
+      if (pulling.current === generation) pulling.current = null;
       const anyDirty = Object.values(dirty.current).some((ids) => ids.size > 0);
       setSyncState(anyDirty ? 'syncing' : 'synced');
     },
-    [available, user]
+    [available, user, storageScope, markDirty]
   );
 
   // --- pull + merge on sign-in ----------------------------------------------
@@ -372,14 +549,15 @@ export function DataProvider({ children }) {
       setSyncState('idle');
       return;
     }
+    if (storageScope !== user.id) return;
     if (hydratedFor.current !== user.id) pullRemote({ initial: true });
-  }, [available, user, pullRemote]);
+  }, [available, user, storageScope, pullRemote]);
 
   // A second device can change while this one stays signed in. Refresh when the
   // app returns to the foreground, when connectivity returns, and once a minute
   // while it remains open.
   useEffect(() => {
-    if (!available || !user) return undefined;
+    if (!available || !user || storageScope !== user.id) return undefined;
     const refresh = () => {
       if (hydratedFor.current !== user.id) return;
       pullRemote();
@@ -396,11 +574,16 @@ export function DataProvider({ children }) {
       document.removeEventListener('visibilitychange', onVisible);
       window.clearInterval(interval);
     };
-  }, [available, user, pullRemote]);
+  }, [available, user, storageScope, pullRemote]);
 
   // --- debounced push of dirty records --------------------------------------
   useEffect(() => {
-    if (!available || !user || hydratedFor.current !== user.id) return;
+    if (
+      !available ||
+      !user ||
+      storageScope !== user.id ||
+      hydratedFor.current !== user.id
+    ) return;
 
     const pending = { habits, logs, goals, identity, dayNotes, reviews, nutrition };
     const anyDirty = Object.values(dirty.current).some((s) => s.size > 0);
@@ -409,33 +592,67 @@ export function DataProvider({ children }) {
     setSyncState('syncing');
     clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(async () => {
+      const generation = syncGeneration.current;
       let failed = false;
 
       for (const [kind, { table, to }] of Object.entries(TABLES)) {
-        const ids = dirty.current[kind];
-        if (ids.size === 0) continue;
+        if (
+          syncGeneration.current !== generation ||
+          currentUserId.current !== user.id
+        ) return;
+        const revisions = new Map(dirty.current[kind]);
+        if (revisions.size === 0) continue;
 
-        const rows = pending[kind].filter((r) => ids.has(r.id)).map((r) => to(r, user.id));
+        const rows = pending[kind]
+          .filter((r) => revisions.has(r.id))
+          .map((r) => to(r, user.id));
         if (rows.length === 0) {
-          ids.clear();
+          for (const [id, revision] of revisions) {
+            if (dirty.current[kind].get(id) === revision) dirty.current[kind].delete(id);
+          }
           continue;
         }
 
-        const { error } = await supabase.from(table).upsert(rows);
-        // Clear only on success — a failed batch stays dirty and retries on the
-        // next edit rather than being silently dropped. A table that does not
-        // exist is the exception: retrying cannot help, and the feature is
-        // meant to keep working locally until the schema catches up.
-        if (error && isMissingTable(error)) ids.clear();
-        else if (error) failed = true;
-        else ids.clear();
+        let error;
+        try {
+          ({ error } = await supabase.from(table).upsert(rows));
+        } catch {
+          error = true;
+        }
+        if (
+          syncGeneration.current !== generation ||
+          currentUserId.current !== user.id
+        ) return;
+        if (error) {
+          failed = true;
+          continue;
+        }
+
+        // An edit made while this request was in flight has a newer revision
+        // and stays queued for the next pass.
+        for (const [id, revision] of revisions) {
+          if (dirty.current[kind].get(id) === revision) dirty.current[kind].delete(id);
+        }
       }
 
-      setSyncState(failed ? 'error' : 'synced');
+      const stillDirty = Object.values(dirty.current).some((records) => records.size > 0);
+      setSyncState(failed ? 'error' : stillDirty ? 'syncing' : 'synced');
     }, PUSH_DEBOUNCE_MS);
 
     return () => clearTimeout(pushTimer.current);
-  }, [habits, logs, goals, identity, dayNotes, reviews, nutrition, available, user, retryTick]);
+  }, [
+    habits,
+    logs,
+    goals,
+    identity,
+    dayNotes,
+    reviews,
+    nutrition,
+    available,
+    user,
+    storageScope,
+    retryTick,
+  ]);
 
   // --- derived --------------------------------------------------------------
 
@@ -946,6 +1163,7 @@ export function DataProvider({ children }) {
     deleteGoal,
     syncState,
     syncAvailable: isSupabaseConfigured,
+    dataReady: Boolean(desiredScope && storageScope === desiredScope),
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

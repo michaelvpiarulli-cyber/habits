@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 /**
@@ -7,9 +15,9 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
  *
  * Sign-in takes a USERNAME, not an email. Supabase auth is email-keyed, so a
  * bare username is mapped onto an internal address the user never types or
- * sees. This is a single-person app; asking for an email only to prove you own
- * it is ceremony that buys nothing, and account-recovery-by-email is not worth
- * the friction when the data also lives on the device.
+ * sees. Account recovery by email is intentionally not part of this small,
+ * username-first app; each authenticated user still receives an isolated data
+ * store through Supabase Auth and row-level security.
  *
  * Anything containing "@" is passed straight through, so a real email still
  * works — including an account created for another app on the same project.
@@ -20,7 +28,10 @@ export function toEmail(identifier) {
   const id = identifier.trim();
   return id.includes('@') ? id.toLowerCase() : `${id.toLowerCase()}@${INTERNAL_DOMAIN}`;
 }
-export function useAuth() {
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
 
@@ -34,6 +45,7 @@ export function useAuth() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
+      setLoading(false);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -79,16 +91,27 @@ export function useAuth() {
     if (isSupabaseConfigured) await supabase.auth.signOut();
   }, []);
 
-  return {
-    available: isSupabaseConfigured,
-    loading,
-    session,
-    user: session?.user ?? null,
-    email: session?.user?.email ?? null,
-    // What to show the user: the username they typed, not the internal address.
-    username: session?.user?.email?.replace(`@${INTERNAL_DOMAIN}`, '') ?? null,
-    signIn,
-    signUp,
-    signOut,
-  };
+  const value = useMemo(
+    () => ({
+      available: isSupabaseConfigured,
+      loading,
+      session,
+      user: session?.user ?? null,
+      email: session?.user?.email ?? null,
+      // What to show the user: the username they typed, not the internal address.
+      username: session?.user?.email?.replace(`@${INTERNAL_DOMAIN}`, '') ?? null,
+      signIn,
+      signUp,
+      signOut,
+    }),
+    [loading, session, signIn, signUp, signOut]
+  );
+
+  return createElement(AuthContext.Provider, { value }, children);
+}
+
+export function useAuth() {
+  const value = useContext(AuthContext);
+  if (!value) throw new Error('useAuth must be used inside AuthProvider');
+  return value;
 }

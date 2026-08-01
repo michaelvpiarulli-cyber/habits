@@ -22,11 +22,23 @@ const VIEWS = {
 export default function App() {
   const auth = useAuth();
   const theme = useTheme();
-  const { syncState, syncAvailable } = useData();
+  const { syncState, syncAvailable, dataReady } = useData();
   const [tab, setTab] = useState('today');
   const [accountOpen, setAccountOpen] = useState(false);
 
   const View = VIEWS[tab];
+
+  if (auth.loading || !dataReady) {
+    return (
+      <div className="app">
+        <main className="main">
+          <div className="empty">
+            <p className="empty__title">Loading your account…</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="app">

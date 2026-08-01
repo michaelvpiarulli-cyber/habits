@@ -9,11 +9,14 @@ import '@fontsource/ibm-plex-mono/500.css'
 import './index.css'
 import App from './App.jsx'
 import { DataProvider } from './context/DataProvider.jsx'
+import { AuthProvider } from './hooks/useAuth.js'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <DataProvider>
-      <App />
-    </DataProvider>
+    <AuthProvider>
+      <DataProvider>
+        <App />
+      </DataProvider>
+    </AuthProvider>
   </StrictMode>,
 )
