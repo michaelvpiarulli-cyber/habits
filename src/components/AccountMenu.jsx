@@ -74,6 +74,26 @@ export function AccountMenu({ auth, theme, onClose }) {
         <div className="sheet__body">
           <p className={`status status--${syncState}`}>{status}</p>
 
+          <fieldset className="field">
+            <legend className="field__label">Theme</legend>
+            <div className="segmented">
+              {THEMES.map(([id, label]) => (
+                <label key={id} className={`segmented__item ${theme.pref === id ? 'is-on' : ''}`}>
+                  <input
+                    type="radio"
+                    name="theme"
+                    checked={theme.pref === id}
+                    onChange={() => theme.setPref(id)}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <p className="field__hint">
+              System follows your device. You can also cycle themes from the button in the top bar.
+            </p>
+          </fieldset>
+
           {!syncAvailable && (
             <p className="field__hint">
               Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to turn on
@@ -204,22 +224,6 @@ export function AccountMenu({ auth, theme, onClose }) {
             </p>
           </fieldset>
 
-          <fieldset className="field">
-            <legend className="field__label">Theme</legend>
-            <div className="segmented">
-              {THEMES.map(([id, label]) => (
-                <label key={id} className={`segmented__item ${theme.pref === id ? 'is-on' : ''}`}>
-                  <input
-                    type="radio"
-                    name="theme"
-                    checked={theme.pref === id}
-                    onChange={() => theme.setPref(id)}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </fieldset>
         </div>
       </div>
     </div>
