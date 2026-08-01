@@ -47,7 +47,7 @@ export function AccountMenu({ auth, theme, onClose }) {
     ? 'On this device only'
     : !auth.user
       ? 'Not signed in — this device only'
-      : { syncing: 'Syncing…', synced: 'Synced', error: 'Sync failed. It will retry on your next change.' }[
+      : { syncing: 'Syncing…', synced: 'Synced', error: 'Sync failed. It will retry automatically.' }[
           syncState
         ] || 'Signed in';
 
@@ -186,8 +186,9 @@ export function AccountMenu({ auth, theme, onClose }) {
               Download a backup
             </button>
             <p className="field__hint">
-              Every habit, log, goal, value, note, and review as one JSON file. Worth doing now and
-              then regardless of sync — a file on your own disk is the copy nobody else can lose.
+              Every habit, log, goal, value, note, macro tally, and review as one JSON file. Worth
+              doing now and then regardless of sync — a file on your own disk is the copy nobody
+              else can lose.
             </p>
           </fieldset>
 

@@ -2,7 +2,7 @@
 -- Run this once in the Supabase dashboard: SQL Editor → New query → paste → Run.
 -- Safe to re-run: every statement is guarded.
 --
--- Three tables, all keyed to auth.users and all protected by row-level
+-- Every table is keyed to auth.users and protected by row-level
 -- security, so a signed-in user can only ever touch their own rows.
 --
 -- Ids are uuids generated on the CLIENT (crypto.randomUUID). That is what makes
@@ -210,8 +210,29 @@ create table if not exists public.reviews (
 
 create index if not exists reviews_user_week_idx on public.reviews (user_id, week_start);
 
+-- ---------------------------------------------------------- nutrition_logs --
+-- One macro total per day. This stays separate from habits because calories,
+-- carbs, and fat are observations, not four more daily pass/fail obligations.
+
+create table if not exists public.nutrition_logs (
+  id         uuid primary key,
+  user_id    uuid        not null references auth.users (id) on delete cascade,
+  day        date        not null,
+  calories   numeric     not null default 0 check (calories >= 0),
+  protein    numeric     not null default 0 check (protein >= 0),
+  carbs      numeric     not null default 0 check (carbs >= 0),
+  fat        numeric     not null default 0 check (fat >= 0),
+  deleted    boolean     not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, day)
+);
+
+create index if not exists nutrition_logs_user_day_idx
+  on public.nutrition_logs (user_id, day);
+
 -- ------------------------------------------------------------------ RLS ----
--- Identical shape on all three tables: you may only read or write rows whose
+-- Identical shape on every table: you may only read or write rows whose
 -- user_id is your own. The `with check` on insert/update is what stops a client
 -- from writing a row that claims to belong to someone else.
 
@@ -221,11 +242,14 @@ alter table public.goals      enable row level security;
 alter table public.identity    enable row level security;
 alter table public.day_notes  enable row level security;
 alter table public.reviews    enable row level security;
+alter table public.nutrition_logs enable row level security;
 
 do $$
 declare t text;
 begin
-  foreach t in array array['habits', 'habit_logs', 'goals', 'identity', 'day_notes', 'reviews'] loop
+  foreach t in array array[
+    'habits', 'habit_logs', 'goals', 'identity', 'day_notes', 'reviews', 'nutrition_logs'
+  ] loop
     execute format('drop policy if exists "own rows read"   on public.%I', t);
     execute format('drop policy if exists "own rows insert" on public.%I', t);
     execute format('drop policy if exists "own rows update" on public.%I', t);
@@ -254,6 +278,7 @@ security invoker
 set search_path = public
 as $$
   delete from public.habit_logs where deleted and updated_at < now() - older_than;
+  delete from public.nutrition_logs where deleted and updated_at < now() - older_than;
   delete from public.goals      where deleted and updated_at < now() - older_than;
   delete from public.habits     where deleted and updated_at < now() - older_than;
 $$;

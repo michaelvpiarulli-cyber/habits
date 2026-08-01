@@ -1,7 +1,7 @@
 import { addDays, dow, WEEKDAY_LABELS } from './dates.js';
 
 /**
- * The training week: push, pull, legs, a fourth lift, one run, two brisk walks.
+ * The training week: two Push days, one Pull, one Legs, one run, one brisk walk.
  *
  * Fixed to weekdays rather than rotating, because a schedule you can recite —
  * Monday is push, Wednesday is legs, Saturday is the run — needs no lookup and
@@ -47,13 +47,12 @@ import { addDays, dow, WEEKDAY_LABELS } from './dates.js';
  * hinges gone.
  *
  * ---------------------------------------------------------------------------
- * FRIDAY — UPPER (push–pull hybrid)
+ * THURSDAY — PUSH (second push; replaces a walk)
  *
- * The fourth lifting day is a light full-upper / push–pull hybrid, not a
- * second heavy push and not a legs dump onto Mon/Tue. Monday already presses
- * at the 135 ceiling; stacking another pure push on Friday overloads press
- * volume without balancing pull. Upper hybrid keeps legs on Wednesday only,
- * adds rear-delt and row volume, and stays inside the equipment + back rules.
+ * No hybrid "upper" days. One of the two walks becomes a second Push so the
+ * week has two Push days and one run. Monday hits the 135 bench ceiling;
+ * Thursday is a lighter incline-focused Push so press volume stays on Push
+ * days only. Friday stays Pull. Sunday keeps the remaining brisk walk.
  * ---------------------------------------------------------------------------
  */
 
@@ -219,13 +218,13 @@ export const SESSIONS = {
     ],
   },
   /**
-   * Friday fourth day: light full-upper / push–pull hybrid.
-   * See file header for why this is not "Push II" or a legs day.
+   * Thursday: second Push (replaces a walk). Lighter / incline-focused so it
+   * is not Monday’s 135 ceiling session again.
    */
-  upper: {
+  push2: {
     kind: 'lift',
-    name: 'Upper',
-    focus: 'chest, back, shoulders, arms',
+    name: 'Push',
+    focus: 'chest, shoulders, triceps',
     lifts: [
       {
         move: 'Incline bench press',
@@ -236,20 +235,12 @@ export const SESSIONS = {
         note: '~85% of flat bench — upper chest volume without repeating Monday’s 135 ceiling work',
       },
       {
-        move: 'Seated row',
-        sets: '4 × 12',
-        load: '100 lb',
-        loadKind: 'machine',
-        loadLb: 100,
-        note: 'Lighter than Tuesday’s row day — balances Friday’s press volume; still no bent-over hinge',
-      },
-      {
-        move: 'Lateral raise',
-        sets: '3 × 15–20',
-        load: '10 lb each',
-        loadKind: 'dumbbell',
-        loadLb: 10,
-        note: 'Only 5/10/15 DBs available — high reps because 10 is light; swinging means too heavy',
+        move: 'Overhead press',
+        sets: '3 × 10',
+        load: '75 lb',
+        loadKind: 'barbell',
+        loadLb: 75,
+        note: 'Slightly under Monday’s OHP — more reps, leave a couple in the tank mid-week',
       },
       {
         move: 'Dumbbell floor fly',
@@ -266,6 +257,49 @@ export const SESSIONS = {
         loadKind: 'dumbbell',
         loadLb: 15,
         note: 'Both hands on one 15 lb DB, seated — matches the DB ceiling',
+      },
+    ],
+  },
+  /**
+   * Friday: second Pull. Different angles than Tuesday so it is not the same
+   * session twice.
+   */
+  pull2: {
+    kind: 'lift',
+    name: 'Pull',
+    focus: 'back, biceps, rear delts',
+    lifts: [
+      {
+        move: 'Seated row',
+        sets: '4 × 8',
+        load: '130 lb',
+        loadKind: 'machine',
+        loadLb: 130,
+        note: 'Heavier than Tuesday’s row — primary pull today; torso quiet, no hinge',
+      },
+      {
+        move: 'Wide-grip lat pulldown',
+        sets: '4 × 10',
+        load: '130 lb',
+        loadKind: 'machine',
+        loadLb: 130,
+        note: 'Slightly lighter than Tuesday’s heavy pulldown; more reps for lat width',
+      },
+      {
+        move: 'Incline rear-delt raise',
+        sets: '3 × 15–20',
+        load: '10 lb each',
+        loadKind: 'dumbbell',
+        loadLb: 10,
+        note: 'Chest on the incline bench — rear delts without loading the low back; high reps at a light DB',
+      },
+      {
+        move: 'Dumbbell hammer curl',
+        sets: '3 × 12',
+        load: '15 lb each',
+        loadKind: 'dumbbell',
+        loadLb: 15,
+        note: 'Heaviest DBs you own; neutral grip is easier on the elbows than bar curls',
       },
     ],
   },
@@ -303,17 +337,17 @@ export const SESSIONS = {
 
 /** Monday-first, matching dow() in lib/dates. */
 export const WEEK = [
-  SESSIONS.push, // Mon — Push
+  SESSIONS.push, // Mon — Push (heavy)
   SESSIONS.pull, // Tue — Pull
   SESSIONS.legs, // Wed — Legs
-  SESSIONS.walk, // Thu — Brisk walk
-  SESSIONS.upper, // Fri — Upper (push–pull hybrid); see header
-  SESSIONS.run, // Sat — Easy run
-  SESSIONS.walk, // Sun — Brisk walk
+  SESSIONS.push2, // Thu — second Push (was a walk)
+  SESSIONS.pull2, // Fri — second Pull
+  SESSIONS.run, // Sat — Easy run (only run)
+  SESSIONS.walk, // Sun — Brisk walk (only walk)
 ];
 
 /** The weekdays the lifting sessions land on — 0=Mon. */
-export const LIFT_DAYS = [0, 1, 2, 4];
+export const LIFT_DAYS = [0, 1, 2, 3, 4];
 
 export function sessionFor(dayOfWeek) {
   return WEEK[dayOfWeek] || SESSIONS.walk;

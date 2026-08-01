@@ -32,34 +32,50 @@ function test(name, fn) {
 
 console.log('workouts');
 
-test('weekday schedule: Mon push, Tue pull, Wed legs, Thu walk, Fri upper, Sat run, Sun walk', () => {
+test('weekday schedule: Mon push, Tue pull, Wed legs, Thu push, Fri pull, Sat run, Sun walk', () => {
   assert.equal(WEEK.length, 7);
   assert.equal(WEEK[0], SESSIONS.push);
   assert.equal(WEEK[1], SESSIONS.pull);
   assert.equal(WEEK[2], SESSIONS.legs);
-  assert.equal(WEEK[3], SESSIONS.walk);
-  assert.equal(WEEK[4], SESSIONS.upper);
+  assert.equal(WEEK[3], SESSIONS.push2);
+  assert.equal(WEEK[4], SESSIONS.pull2);
   assert.equal(WEEK[5], SESSIONS.run);
   assert.equal(WEEK[6], SESSIONS.walk);
 
   assert.equal(sessionFor(0).name, 'Push');
   assert.equal(sessionFor(1).name, 'Pull');
   assert.equal(sessionFor(2).name, 'Legs');
-  assert.equal(sessionFor(3).kind, 'walk');
-  assert.equal(sessionFor(4).name, 'Upper');
+  assert.equal(sessionFor(3).name, 'Push');
+  assert.equal(sessionFor(4).name, 'Pull');
   assert.equal(sessionFor(5).kind, 'run');
   assert.equal(sessionFor(6).kind, 'walk');
+
+  const kinds = WEEK.map((s) => s.kind);
+  assert.equal(kinds.filter((k) => k === 'run').length, 1);
+  assert.equal(kinds.filter((k) => k === 'walk').length, 1);
+  assert.equal(WEEK.filter((s) => s.name === 'Push').length, 2);
 });
 
-test('lift days are Mon, Tue, Wed, Fri (0, 1, 2, 4)', () => {
-  assert.deepEqual(LIFT_DAYS, [0, 1, 2, 4]);
+test('no hybrid upper day — lift days are only Push, Pull, or Legs', () => {
+  for (const d of LIFT_DAYS) {
+    const name = sessionFor(d).name;
+    assert.ok(
+      ['Push', 'Pull', 'Legs'].includes(name),
+      `day ${d} is "${name}", expected Push/Pull/Legs`
+    );
+  }
+  assert.equal(SESSIONS.upper, undefined);
+});
+
+test('lift days are Mon–Fri (0, 1, 2, 3, 4)', () => {
+  assert.deepEqual(LIFT_DAYS, [0, 1, 2, 3, 4]);
   for (const d of LIFT_DAYS) {
     assert.equal(sessionFor(d).kind, 'lift');
   }
 });
 
 test('no squats, lunges, hip thrusts, or calf work on push or pull days', () => {
-  for (const day of [SESSIONS.push, SESSIONS.pull]) {
+  for (const day of [SESSIONS.push, SESSIONS.push2, SESSIONS.pull, SESSIONS.pull2]) {
     for (const lift of day.lifts) {
       for (const pat of LOWER_BODY_PATTERNS) {
         assert.equal(
@@ -68,6 +84,19 @@ test('no squats, lunges, hip thrusts, or calf work on push or pull days', () => 
           `"${lift.move}" on ${day.name} matches lower-body pattern ${pat}`
         );
       }
+    }
+  }
+});
+
+test('pull days have no chest / press / fly / dip work', () => {
+  const chesty = /\b(bench|chest|fly|dip|press)\b/i;
+  for (const day of [SESSIONS.pull, SESSIONS.pull2]) {
+    for (const lift of day.lifts) {
+      assert.equal(
+        chesty.test(lift.move),
+        false,
+        `"${lift.move}" looks like push/chest work on ${day.name}`
+      );
     }
   }
 });
@@ -170,8 +199,8 @@ test('weekAhead lists remaining days of the week after today', () => {
     [
       ['Tue', 'Pull'],
       ['Wed', 'Legs'],
-      ['Thu', 'Brisk walk'],
-      ['Fri', 'Upper'],
+      ['Thu', 'Push'],
+      ['Fri', 'Pull'],
       ['Sat', 'Easy run'],
       ['Sun', 'Brisk walk'],
     ]
@@ -185,6 +214,11 @@ test('weekAhead on Friday is Sat run then Sun walk', () => {
   assert.equal(ahead.days.length, 2);
   assert.equal(ahead.days[0].session.kind, 'run');
   assert.equal(ahead.days[1].session.kind, 'walk');
+});
+
+test('week has exactly one run and one walk', () => {
+  assert.equal(WEEK.filter((s) => s.kind === 'run').length, 1);
+  assert.equal(WEEK.filter((s) => s.kind === 'walk').length, 1);
 });
 
 test('weekAhead on Sunday rolls to next Mon–Sun', () => {

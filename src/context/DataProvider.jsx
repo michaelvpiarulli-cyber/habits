@@ -22,6 +22,8 @@ import {
   noteToRow,
   reviewFromRow,
   reviewToRow,
+  nutritionFromRow,
+  nutritionToRow,
   newId,
   nowISO,
 } from '../lib/mappers';
@@ -48,6 +50,7 @@ const KEYS = {
   identity: 'tally-identity',
   dayNotes: 'tally-day-notes',
   reviews: 'tally-reviews',
+  nutrition: 'tally-nutrition',
   countdown: 'tally-countdown',
 };
 
@@ -128,6 +131,7 @@ const TABLES = {
   identity: { table: 'identity', from: statementFromRow, to: statementToRow },
   dayNotes: { table: 'day_notes', from: noteFromRow, to: noteToRow },
   reviews: { table: 'reviews', from: reviewFromRow, to: reviewToRow },
+  nutrition: { table: 'nutrition_logs', from: nutritionFromRow, to: nutritionToRow },
 };
 
 /**
@@ -224,6 +228,7 @@ export function DataProvider({ children }) {
   });
   const [dayNotes, setDayNotes] = useState(() => purgeStale(loadList(KEYS.dayNotes)));
   const [reviews, setReviews] = useState(() => purgeStale(loadList(KEYS.reviews)));
+  const [nutrition, setNutrition] = useState(() => purgeStale(loadList(KEYS.nutrition)));
   const [countdown, setCountdown] = useState(() => {
     try {
       const raw = localStorage.getItem(KEYS.countdown);
@@ -241,6 +246,7 @@ export function DataProvider({ children }) {
   useEffect(() => localStorage.setItem(KEYS.identity, JSON.stringify(identity)), [identity]);
   useEffect(() => localStorage.setItem(KEYS.dayNotes, JSON.stringify(dayNotes)), [dayNotes]);
   useEffect(() => localStorage.setItem(KEYS.reviews, JSON.stringify(reviews)), [reviews]);
+  useEffect(() => localStorage.setItem(KEYS.nutrition, JSON.stringify(nutrition)), [nutrition]);
   useEffect(() => localStorage.setItem(KEYS.countdown, JSON.stringify(countdown)), [countdown]);
 
   // Ids touched since the last successful push. Only these get sent, so a
@@ -252,6 +258,7 @@ export function DataProvider({ children }) {
     identity: new Set(),
     dayNotes: new Set(),
     reviews: new Set(),
+    nutrition: new Set(),
   });
   const markDirty = useCallback((kind, id) => dirty.current[kind].add(id), []);
 
@@ -260,6 +267,103 @@ export function DataProvider({ children }) {
   // empty state it started up with.
   const hydratedFor = useRef(null);
   const pushTimer = useRef(null);
+  const pulling = useRef(false);
+  const [retryTick, setRetryTick] = useState(0);
+  const latest = useRef({ habits, logs, goals, identity, dayNotes, reviews, nutrition });
+  latest.current = { habits, logs, goals, identity, dayNotes, reviews, nutrition };
+  const currentUserId = useRef(user?.id);
+  currentUserId.current = user?.id;
+
+  const pullRemote = useCallback(
+    async ({ initial = false } = {}) => {
+      if (!available || !user || pulling.current) return;
+      pulling.current = true;
+      setSyncState('syncing');
+
+      let results;
+      try {
+        results = await Promise.all([
+          supabase.from('habits').select('*').eq('user_id', user.id),
+          supabase.from('habit_logs').select('*').eq('user_id', user.id),
+          supabase.from('goals').select('*').eq('user_id', user.id),
+          supabase.from('identity').select('*').eq('user_id', user.id),
+          supabase.from('day_notes').select('*').eq('user_id', user.id),
+          supabase.from('reviews').select('*').eq('user_id', user.id),
+          supabase.from('nutrition_logs').select('*').eq('user_id', user.id),
+        ]);
+      } catch {
+        pulling.current = false;
+        setSyncState('error');
+        return;
+      }
+
+      // Ignore a response from an account that signed out while requests were
+      // in flight. Its rows must never be merged into the next account.
+      if (currentUserId.current !== user.id) {
+        pulling.current = false;
+        return;
+      }
+      const [h, l, g, v, n, rv, food] = results;
+
+      const optionalError = [v, n, rv, food].some(
+        (result) => result.error && !isMissingTable(result.error)
+      );
+      if (h.error || l.error || g.error || optionalError) {
+        pulling.current = false;
+        setSyncState('error');
+        return;
+      }
+
+      const local = latest.current;
+      const mergedHabits = mergeById((h.data || []).map(habitFromRow), local.habits);
+      const mergedLogs = mergeById((l.data || []).map(logFromRow), local.logs);
+      const mergedGoals = mergeById((g.data || []).map(goalFromRow), local.goals);
+      // identity arrived after the first schema, so a project that has not run
+      // the migration reads as "nothing remote" rather than as a failure.
+      const mergedIdentity =
+        v.error && isMissingTable(v.error)
+          ? local.identity
+          : mergeById((v.data || []).map(statementFromRow), local.identity);
+      const mergedNotes =
+        n.error && isMissingTable(n.error)
+          ? local.dayNotes
+          : mergeById((n.data || []).map(noteFromRow), local.dayNotes);
+      const mergedReviews =
+        rv.error && isMissingTable(rv.error)
+          ? local.reviews
+          : mergeById((rv.data || []).map(reviewFromRow), local.reviews);
+      const mergedNutrition =
+        food.error && isMissingTable(food.error)
+          ? local.nutrition
+          : mergeById((food.data || []).map(nutritionFromRow), local.nutrition);
+
+      setHabits(mergedHabits);
+      setLogs(mergedLogs);
+      setGoals(mergedGoals);
+      setIdentity(mergedIdentity);
+      setDayNotes(mergedNotes);
+      setReviews(mergedReviews);
+      setNutrition(mergedNutrition);
+
+      if (initial) {
+        // On first sign-in, send local-only records up. Later pulls only adopt
+        // newer remote records; already-dirty local edits remain queued.
+        mergedHabits.forEach((r) => dirty.current.habits.add(r.id));
+        mergedLogs.forEach((r) => dirty.current.logs.add(r.id));
+        mergedGoals.forEach((r) => dirty.current.goals.add(r.id));
+        mergedIdentity.forEach((r) => dirty.current.identity.add(r.id));
+        mergedNotes.forEach((r) => dirty.current.dayNotes.add(r.id));
+        mergedReviews.forEach((r) => dirty.current.reviews.add(r.id));
+        mergedNutrition.forEach((r) => dirty.current.nutrition.add(r.id));
+      }
+
+      hydratedFor.current = user.id;
+      pulling.current = false;
+      const anyDirty = Object.values(dirty.current).some((ids) => ids.size > 0);
+      setSyncState(anyDirty ? 'syncing' : 'synced');
+    },
+    [available, user]
+  );
 
   // --- pull + merge on sign-in ----------------------------------------------
   useEffect(() => {
@@ -268,79 +372,37 @@ export function DataProvider({ children }) {
       setSyncState('idle');
       return;
     }
-    if (hydratedFor.current === user.id) return;
+    if (hydratedFor.current !== user.id) pullRemote({ initial: true });
+  }, [available, user, pullRemote]);
 
-    let cancelled = false;
-    (async () => {
-      setSyncState('syncing');
-
-      const [h, l, g, v, n, rv] = await Promise.all([
-        supabase.from('habits').select('*').eq('user_id', user.id),
-        supabase.from('habit_logs').select('*').eq('user_id', user.id),
-        supabase.from('goals').select('*').eq('user_id', user.id),
-        supabase.from('identity').select('*').eq('user_id', user.id),
-        supabase.from('day_notes').select('*').eq('user_id', user.id),
-        supabase.from('reviews').select('*').eq('user_id', user.id),
-      ]);
-
-      if (cancelled) return;
-      if (h.error || l.error || g.error) {
-        setSyncState('error');
-        return;
-      }
-
-      const mergedHabits = mergeById((h.data || []).map(habitFromRow), habits);
-      const mergedLogs = mergeById((l.data || []).map(logFromRow), logs);
-      const mergedGoals = mergeById((g.data || []).map(goalFromRow), goals);
-      // identity arrived after the first schema, so a project that has not run
-      // the migration reads as "nothing remote" rather than as a failure.
-      const mergedIdentity =
-        v.error && isMissingTable(v.error)
-          ? identity
-          : mergeById((v.data || []).map(statementFromRow), identity);
-      const mergedNotes =
-        n.error && isMissingTable(n.error)
-          ? dayNotes
-          : mergeById((n.data || []).map(noteFromRow), dayNotes);
-      const mergedReviews =
-        rv.error && isMissingTable(rv.error)
-          ? reviews
-          : mergeById((rv.data || []).map(reviewFromRow), reviews);
-
-      setHabits(mergedHabits);
-      setLogs(mergedLogs);
-      setGoals(mergedGoals);
-      setIdentity(mergedIdentity);
-      setDayNotes(mergedNotes);
-      setReviews(mergedReviews);
-
-      // Everything local that the server has not seen needs to go up. Marking
-      // the whole merged set is the simple, correct version of that: upserts
-      // are idempotent, and this only runs once per sign-in.
-      mergedHabits.forEach((r) => dirty.current.habits.add(r.id));
-      mergedLogs.forEach((r) => dirty.current.logs.add(r.id));
-      mergedGoals.forEach((r) => dirty.current.goals.add(r.id));
-      mergedIdentity.forEach((r) => dirty.current.identity.add(r.id));
-      mergedNotes.forEach((r) => dirty.current.dayNotes.add(r.id));
-      mergedReviews.forEach((r) => dirty.current.reviews.add(r.id));
-
-      hydratedFor.current = user.id;
-      setSyncState('syncing'); // the push effect below takes it from here
-    })();
-
-    return () => {
-      cancelled = true;
+  // A second device can change while this one stays signed in. Refresh when the
+  // app returns to the foreground, when connectivity returns, and once a minute
+  // while it remains open.
+  useEffect(() => {
+    if (!available || !user) return undefined;
+    const refresh = () => {
+      if (hydratedFor.current !== user.id) return;
+      pullRemote();
+      setRetryTick((tick) => tick + 1);
     };
-    // Keyed on identity alone: the local state is merged once per sign-in, not
-    // re-merged on every subsequent edit.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [available, user]);
+    const onVisible = () => document.visibilityState === 'visible' && refresh();
+    window.addEventListener('focus', refresh);
+    window.addEventListener('online', refresh);
+    document.addEventListener('visibilitychange', onVisible);
+    const interval = window.setInterval(refresh, 60000);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('online', refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.clearInterval(interval);
+    };
+  }, [available, user, pullRemote]);
 
   // --- debounced push of dirty records --------------------------------------
   useEffect(() => {
     if (!available || !user || hydratedFor.current !== user.id) return;
 
-    const pending = { habits, logs, goals, identity, dayNotes, reviews };
+    const pending = { habits, logs, goals, identity, dayNotes, reviews, nutrition };
     const anyDirty = Object.values(dirty.current).some((s) => s.size > 0);
     if (!anyDirty) return;
 
@@ -373,7 +435,7 @@ export function DataProvider({ children }) {
     }, PUSH_DEBOUNCE_MS);
 
     return () => clearTimeout(pushTimer.current);
-  }, [habits, logs, goals, identity, dayNotes, reviews, available, user]);
+  }, [habits, logs, goals, identity, dayNotes, reviews, nutrition, available, user, retryTick]);
 
   // --- derived --------------------------------------------------------------
 
@@ -762,6 +824,53 @@ export function DataProvider({ children }) {
     [reviews]
   );
 
+  const nutritionFor = useCallback(
+    (day) =>
+      nutrition.find((entry) => !entry.deleted && entry.day === day) || {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+      },
+    [nutrition]
+  );
+
+  const saveNutrition = useCallback(
+    (day, fields) => {
+      const values = {
+        calories: Math.max(0, Number(fields.calories) || 0),
+        protein: Math.max(0, Number(fields.protein) || 0),
+        carbs: Math.max(0, Number(fields.carbs) || 0),
+        fat: Math.max(0, Number(fields.fat) || 0),
+      };
+      const empty = Object.values(values).every((value) => value === 0);
+
+      setNutrition((prev) => {
+        const existing = prev.find((entry) => entry.day === day);
+        if (existing) {
+          markDirty('nutrition', existing.id);
+          return prev.map((entry) =>
+            entry.id === existing.id
+              ? { ...entry, ...values, deleted: empty, updatedAt: nowISO() }
+              : entry
+          );
+        }
+        if (empty) return prev;
+        const entry = {
+          id: newId(),
+          day,
+          ...values,
+          deleted: false,
+          createdAt: nowISO(),
+          updatedAt: nowISO(),
+        };
+        markDirty('nutrition', entry.id);
+        return [...prev, entry];
+      });
+    },
+    [markDirty]
+  );
+
   /**
    * Everything, as one JSON file. Deliberately the raw records rather than a
    * prettied report: the point is that a copy exists off the device and can be
@@ -778,6 +887,7 @@ export function DataProvider({ children }) {
       identity,
       dayNotes,
       reviews,
+      nutrition,
       countdown,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -787,7 +897,7 @@ export function DataProvider({ children }) {
     a.download = `tally-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [habits, logs, goals, identity, dayNotes, reviews, countdown]);
+  }, [habits, logs, goals, identity, dayNotes, reviews, nutrition, countdown]);
 
   const statementOfDay = useMemo(() => {
     if (activeIdentity.length === 0) return null;
@@ -811,6 +921,8 @@ export function DataProvider({ children }) {
     reviewFor,
     saveReview,
     reviews: activeReviews,
+    nutritionFor,
+    saveNutrition,
     exportAll,
     countdown,
     setCountdown,

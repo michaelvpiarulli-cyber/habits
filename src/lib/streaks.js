@@ -172,3 +172,28 @@ export function isPerfectDay(habits, doneSetsById, iso) {
   if (live.length === 0) return false;
   return live.every((h) => doneSetsById.get(h.id)?.has(iso));
 }
+
+/**
+ * How many perfect days in a row ending on `iso` (inclusive).
+ * Skips days with nothing due — those are not failures, just blank paper.
+ */
+export function perfectDayStreak(habits, doneSetsById, iso = todayISO()) {
+  let streak = 0;
+  let cursor = iso;
+  for (let i = 0; i < MAX_LOOKBACK_DAYS; i++) {
+    const live = habits.filter(
+      (h) =>
+        isoOf(new Date(h.createdAt)) <= cursor &&
+        isDue(h, cursor) &&
+        h.cadence !== 'per_week'
+    );
+    if (live.length === 0) {
+      cursor = addDays(cursor, -1);
+      continue;
+    }
+    if (!isPerfectDay(habits, doneSetsById, cursor)) break;
+    streak++;
+    cursor = addDays(cursor, -1);
+  }
+  return streak;
+}

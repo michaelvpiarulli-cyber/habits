@@ -8,6 +8,13 @@ import { AmountEntry } from './AmountEntry';
 import { Countdown } from './Countdown';
 import { DayNote } from './DayNote';
 import { Workout } from './Workout';
+import { NutritionTracker } from './NutritionTracker';
+import {
+  PerfectDayOverlay,
+  PerfectDaySeal,
+  usePerfectCelebration,
+  usePerfectStreak,
+} from './PerfectDay';
 
 /** The strip of this week across the top. Violet means every habit landed. */
 function WeekStrip({ habits, doneSets, today }) {
@@ -184,9 +191,11 @@ export function TodayView() {
 
   const doneCount = dueToday.filter((h) => doneSets.get(h.id)?.has(today)).length;
   const allDone = dueToday.length > 0 && doneCount === dueToday.length;
+  const perfectStreak = usePerfectStreak(activeHabits, doneSets, today);
+  const [celebrate, dismissCelebrate] = usePerfectCelebration(allDone);
 
   return (
-    <div className="view">
+    <div className={`view ${allDone ? 'view--perfect' : ''}`}>
       <header className="view__head">
         <p className="eyebrow">{formatLong(today)}</p>
         <h1 className="view__title">
@@ -200,6 +209,7 @@ export function TodayView() {
             </>
           )}
         </h1>
+        {allDone && <PerfectDaySeal streak={perfectStreak} />}
       </header>
 
       {/*
@@ -228,6 +238,7 @@ export function TodayView() {
 
         <div className="today__main">
           <Workout day={today} />
+          <NutritionTracker day={today} />
 
           {activeHabits.length === 0 ? (
             <div className="empty">
@@ -258,6 +269,8 @@ export function TodayView() {
           <DayNote day={today} />
         </div>
       </div>
+
+      {celebrate && <PerfectDayOverlay streak={perfectStreak} onDone={dismissCelebrate} />}
     </div>
   );
 }

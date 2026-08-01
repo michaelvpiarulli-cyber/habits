@@ -151,6 +151,31 @@ export const reviewToRow = (v, userId) => ({
   updated_at: v.updatedAt,
 });
 
+export const nutritionFromRow = (r) => ({
+  id: r.id,
+  day: r.day,
+  calories: Number(r.calories) || 0,
+  protein: Number(r.protein) || 0,
+  carbs: Number(r.carbs) || 0,
+  fat: Number(r.fat) || 0,
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const nutritionToRow = (n, userId) => ({
+  id: n.id,
+  user_id: userId,
+  day: n.day,
+  calories: n.calories || 0,
+  protein: n.protein || 0,
+  carbs: n.carbs || 0,
+  fat: n.fat || 0,
+  deleted: !!n.deleted,
+  created_at: n.createdAt,
+  updated_at: n.updatedAt,
+});
+
 export const goalFromRow = (r) => ({
   id: r.id,
   title: r.title,
