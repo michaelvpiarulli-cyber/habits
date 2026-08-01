@@ -14,7 +14,15 @@ const THEMES = [
  * account, and an account only adds the second device.
  */
 export function AccountMenu({ auth, theme, onClose }) {
-  const { syncState, syncAvailable, countdown, setCountdown, exportAll } = useData();
+  const {
+    syncState,
+    syncError,
+    syncNow,
+    syncAvailable,
+    countdown,
+    setCountdown,
+    exportAll,
+  } = useData();
   const [mode, setMode] = useState('in'); // 'in' | 'up'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -76,6 +84,10 @@ export function AccountMenu({ auth, theme, onClose }) {
           {syncAvailable && auth.user && (
             <div className="field">
               <p className="account__email">{auth.username}</p>
+              {syncError && <p className="note note--bad">{syncError}</p>}
+              <button type="button" className="btn" onClick={syncNow}>
+                Sync now
+              </button>
               <button type="button" className="btn" onClick={auth.signOut}>
                 Sign out
               </button>

@@ -255,19 +255,61 @@ function claimLegacyRecords(userId) {
   };
 }
 
-function withAccountSafeSeedIds(records, remoteHabitIds, remoteIdentityIds) {
+const habitMigrationKey = (habit) =>
+  JSON.stringify({
+    name: habit.name,
+    emoji: habit.emoji || '',
+    cadence: habit.cadence,
+    weekdays: habit.weekdays || [],
+    perWeek: habit.perWeek ?? 3,
+    kind: habit.kind || 'check',
+    target: habit.target ?? null,
+    unit: habit.unit || '',
+    floor: habit.floor ?? null,
+    cue: habit.cue || '',
+    archived: !!habit.archived,
+    sortOrder: habit.sortOrder ?? 0,
+    updatedAt: habit.updatedAt,
+  });
+
+const identityMigrationKey = (statement) =>
+  JSON.stringify({
+    name: statement.name,
+    note: statement.note || '',
+    verseRef: statement.verseRef || '',
+    verseText: statement.verseText || '',
+    sortOrder: statement.sortOrder ?? 0,
+    updatedAt: statement.updatedAt,
+  });
+
+function withAccountSafeSeedIds(records, remoteHabits, remoteIdentity) {
+  const remoteHabitIds = new Set(remoteHabits.map((habit) => habit.id));
+  const remoteIdentityIds = new Set(remoteIdentity.map((statement) => statement.id));
   const habitIds = new Map(
     STARTER_HABITS.filter(
       (starter) =>
         records.habits.some((habit) => habit.id === starter.id) && !remoteHabitIds.has(starter.id)
-    ).map((starter) => [starter.id, newId()])
+    ).map((starter) => {
+      const local = records.habits.find((habit) => habit.id === starter.id);
+      const existing = remoteHabits.find(
+        (habit) => !habit.deleted && habitMigrationKey(habit) === habitMigrationKey(local)
+      );
+      return [starter.id, existing?.id || newId()];
+    })
   );
   const identityIds = new Map(
     STARTER_IDENTITY.filter(
       (starter) =>
         records.identity.some((statement) => statement.id === starter.id) &&
         !remoteIdentityIds.has(starter.id)
-    ).map((starter) => [starter.id, newId()])
+    ).map((starter) => {
+      const local = records.identity.find((statement) => statement.id === starter.id);
+      const existing = remoteIdentity.find(
+        (statement) =>
+          !statement.deleted && identityMigrationKey(statement) === identityMigrationKey(local)
+      );
+      return [starter.id, existing?.id || newId()];
+    })
   );
   const habitId = (id) => (id ? habitIds.get(id) || id : id);
   const identityId = (id) => (id ? identityIds.get(id) || id : id);
@@ -294,6 +336,64 @@ function withAccountSafeSeedIds(records, remoteHabitIds, remoteIdentityIds) {
     dayNotes: records.dayNotes,
     reviews: records.reviews,
     nutrition: records.nutrition,
+  };
+}
+
+function collapseMigratedDuplicates(habits, logs, goals, identity) {
+  const removedHabitIds = new Set();
+  const habitGroups = new Map();
+  for (const habit of habits) {
+    if (habit.deleted) continue;
+    const key = habitMigrationKey(habit);
+    if (!habitGroups.has(key)) habitGroups.set(key, []);
+    habitGroups.get(key).push(habit);
+  }
+
+  for (const group of habitGroups.values()) {
+    if (group.length < 2) continue;
+    group.sort((a, b) => {
+      const referencesFor = (id) =>
+        logs.filter((log) => !log.deleted && log.habitId === id).length +
+        goals.filter((goal) => !goal.deleted && goal.habitId === id).length;
+      return referencesFor(b.id) - referencesFor(a.id) || a.id.localeCompare(b.id);
+    });
+    group.slice(1).forEach((habit) => removedHabitIds.add(habit.id));
+  }
+
+  const nextHabits = habits.map((habit) =>
+    removedHabitIds.has(habit.id)
+      ? { ...habit, deleted: true, updatedAt: nowISO() }
+      : habit
+  );
+
+  const removedIdentityIds = new Set();
+  const identityGroups = new Map();
+  for (const statement of identity) {
+    if (statement.deleted) continue;
+    const key = identityMigrationKey(statement);
+    if (!identityGroups.has(key)) identityGroups.set(key, []);
+    identityGroups.get(key).push(statement);
+  }
+
+  for (const group of identityGroups.values()) {
+    if (group.length < 2) continue;
+    group.sort((a, b) => {
+      const habitsFor = (id) =>
+        nextHabits.filter((habit) => !habit.deleted && habit.identityId === id).length;
+      return habitsFor(b.id) - habitsFor(a.id) || a.id.localeCompare(b.id);
+    });
+    group.slice(1).forEach((statement) => removedIdentityIds.add(statement.id));
+  }
+
+  return {
+    habits: nextHabits,
+    identity: identity.map((statement) =>
+      removedIdentityIds.has(statement.id)
+        ? { ...statement, deleted: true, updatedAt: nowISO() }
+        : statement
+    ),
+    removedHabitIds,
+    removedIdentityIds,
   };
 }
 
@@ -331,6 +431,7 @@ export function DataProvider({ children }) {
     }
   });
   const [syncState, setSyncState] = useState('idle'); // idle | syncing | synced | error
+  const [syncError, setSyncError] = useState('');
 
   // The user id we have already pulled and merged for. Pushes stay parked until
   // that merge lands, so a fresh device cannot overwrite the server with the
@@ -438,6 +539,7 @@ export function DataProvider({ children }) {
       if (pulling.current === generation) return;
       pulling.current = generation;
       setSyncState('syncing');
+      setSyncError('');
 
       let results;
       try {
@@ -452,7 +554,10 @@ export function DataProvider({ children }) {
         ]);
       } catch {
         if (pulling.current === generation) pulling.current = null;
-        if (syncGeneration.current === generation) setSyncState('error');
+        if (syncGeneration.current === generation) {
+          setSyncError('Could not reach the sync server.');
+          setSyncState('error');
+        }
         return;
       }
 
@@ -473,19 +578,31 @@ export function DataProvider({ children }) {
       );
       if (h.error || l.error || g.error || optionalError) {
         if (pulling.current === generation) pulling.current = null;
+        const failed = [
+          ['habits', h],
+          ['habit logs', l],
+          ['goals', g],
+          ['identity', v],
+          ['day notes', n],
+          ['reviews', rv],
+          ['nutrition', food],
+        ].find(([, result]) => result.error && !isMissingTable(result.error));
+        setSyncError(
+          failed
+            ? `${failed[0]}: ${failed[1].error.message || failed[1].error.code}`
+            : 'Cloud download failed.'
+        );
         setSyncState('error');
         return;
       }
 
       let local = latest.current;
+      const remoteHabits = (h.data || []).map(habitFromRow);
+      const remoteIdentity = (v.data || []).map(statementFromRow);
       if (initial) {
-        local = withAccountSafeSeedIds(
-          local,
-          new Set((h.data || []).map((record) => record.id)),
-          new Set((v.data || []).map((record) => record.id))
-        );
+        local = withAccountSafeSeedIds(local, remoteHabits, remoteIdentity);
       }
-      let mergedHabits = mergeById((h.data || []).map(habitFromRow), local.habits);
+      let mergedHabits = mergeById(remoteHabits, local.habits);
       const mergedLogs = mergeById((l.data || []).map(logFromRow), local.logs);
       const mergedGoals = mergeById((g.data || []).map(goalFromRow), local.goals);
       // identity arrived after the first schema, so a project that has not run
@@ -493,7 +610,7 @@ export function DataProvider({ children }) {
       let mergedIdentity =
         v.error && isMissingTable(v.error)
           ? local.identity
-          : mergeById((v.data || []).map(statementFromRow), local.identity);
+          : mergeById(remoteIdentity, local.identity);
       const mergedNotes =
         n.error && isMissingTable(n.error)
           ? local.dayNotes
@@ -513,6 +630,17 @@ export function DataProvider({ children }) {
       if (initial && mergedIdentity.length === 0) {
         mergedIdentity = starterIdentity({ uniqueIds: true });
       }
+
+      const collapsed = collapseMigratedDuplicates(
+        mergedHabits,
+        mergedLogs,
+        mergedGoals,
+        mergedIdentity
+      );
+      mergedHabits = collapsed.habits;
+      mergedIdentity = collapsed.identity;
+      collapsed.removedHabitIds.forEach((id) => markDirty('habits', id));
+      collapsed.removedIdentityIds.forEach((id) => markDirty('identity', id));
 
       setHabits(mergedHabits);
       setLogs(mergedLogs);
@@ -590,10 +718,12 @@ export function DataProvider({ children }) {
     if (!anyDirty) return;
 
     setSyncState('syncing');
+    setSyncError('');
     clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(async () => {
       const generation = syncGeneration.current;
       let failed = false;
+      let firstError = '';
 
       for (const [kind, { table, to }] of Object.entries(TABLES)) {
         if (
@@ -624,7 +754,14 @@ export function DataProvider({ children }) {
           currentUserId.current !== user.id
         ) return;
         if (error) {
+          if (isMissingTable(error)) {
+            for (const [id, revision] of revisions) {
+              if (dirty.current[kind].get(id) === revision) dirty.current[kind].delete(id);
+            }
+            continue;
+          }
           failed = true;
+          if (!firstError) firstError = `${table}: ${error.message || error.code || 'write failed'}`;
           continue;
         }
 
@@ -636,6 +773,7 @@ export function DataProvider({ children }) {
       }
 
       const stillDirty = Object.values(dirty.current).some((records) => records.size > 0);
+      setSyncError(firstError);
       setSyncState(failed ? 'error' : stillDirty ? 'syncing' : 'synced');
     }, PUSH_DEBOUNCE_MS);
 
@@ -653,6 +791,11 @@ export function DataProvider({ children }) {
     storageScope,
     retryTick,
   ]);
+
+  const syncNow = useCallback(() => {
+    setRetryTick((tick) => tick + 1);
+    if (available && user && storageScope === user.id) pullRemote();
+  }, [available, user, storageScope, pullRemote]);
 
   // --- derived --------------------------------------------------------------
 
@@ -1162,6 +1305,8 @@ export function DataProvider({ children }) {
     updateGoal,
     deleteGoal,
     syncState,
+    syncError,
+    syncNow,
     syncAvailable: isSupabaseConfigured,
     dataReady: Boolean(desiredScope && storageScope === desiredScope),
   };
