@@ -33,6 +33,7 @@ import {
   findStarterHabitCounterpart,
   isComplete,
   isKept,
+  migrateLiftHabitToProgram,
   targetOf,
   valueOf,
   SEED_TIME,
@@ -476,6 +477,10 @@ export function DataProvider({ children }) {
       if (records.identity.length === 0) records.identity = starterIdentity();
     }
 
+    const liftMigration = migrateLiftHabitToProgram(records.habits);
+    records.habits = liftMigration.habits;
+    liftMigration.changedIds.forEach((id) => markDirty('habits', id));
+
     setHabits(records.habits);
     setLogs(records.logs);
     setGoals(records.goals);
@@ -485,7 +490,7 @@ export function DataProvider({ children }) {
     setNutrition(records.nutrition);
     setStorageScope(desiredScope);
     setSyncState(user ? 'syncing' : 'idle');
-  }, [desiredScope, storageScope, user]);
+  }, [desiredScope, storageScope, user, markDirty]);
 
   // Persist the active account only. Countdown remains a device preference.
   useEffect(() => {
@@ -623,6 +628,10 @@ export function DataProvider({ children }) {
       Object.entries(cleanedHabits.changed).forEach(([kind, ids]) => {
         ids.forEach((id) => markDirty(kind, id));
       });
+
+      const liftMigration = migrateLiftHabitToProgram(mergedHabits);
+      mergedHabits = liftMigration.habits;
+      liftMigration.changedIds.forEach((id) => markDirty('habits', id));
 
       const collapsedIdentity = collapseMigratedIdentityDuplicates(
         mergedHabits,

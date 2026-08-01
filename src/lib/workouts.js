@@ -388,3 +388,29 @@ export function weekAhead(fromIso) {
 /** Disclaimer shown under the expanded session list. */
 export const PROGRAM_DISCLAIMER =
   'General programming, not physio. A back that rules out deadlifts warrants a professional opinion.';
+
+/** The count habit today’s session writes into (Lift / Workout). */
+export function findLiftHabit(habits) {
+  return (
+    habits.find((habit) => habit.kind === 'count' && /\blift\b/i.test(habit.name)) ||
+    habits.find((habit) => habit.kind === 'count' && /\bworkout\b/i.test(habit.name)) ||
+    null
+  );
+}
+
+/** Optional walk habit cardio sessions can nudge. */
+export function findWalkHabit(habits) {
+  return habits.find((habit) => habit.kind === 'count' && /\bwalk\b/i.test(habit.name)) || null;
+}
+
+/** How far through a session the logged amount has gotten. */
+export function sessionProgress(session, amount) {
+  const total = session.lifts.length;
+  const done = Math.max(0, Math.min(total, Number(amount) || 0));
+  return {
+    done,
+    total,
+    complete: total > 0 && done >= total,
+    fraction: total ? done / total : 0,
+  };
+}

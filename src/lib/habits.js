@@ -138,9 +138,11 @@ export const STARTER_HABITS = [
     name: 'Lift',
     emoji: '\u{1F3CB}',
     kind: 'count',
-    target: 2,
-    unit: 'lifts',
-    cadence: 'daily',
+    target: 4,
+    unit: 'moves',
+    // Matches the Mon–Fri lifting week in lib/workouts.js.
+    cadence: 'weekdays',
+    weekdays: [0, 1, 2, 3, 4],
   },
   {
     id: '7a110000-0000-4000-8000-000000000004',
@@ -179,6 +181,42 @@ const STARTER_ALIASES = new Map([
   ['protein', STARTER_HABITS[4].id],
   ['weigh in', STARTER_HABITS[5].id],
 ]);
+
+export const LIFT_STARTER_ID = STARTER_HABITS[2].id;
+
+/**
+ * Soft-upgrade the old Lift seed (daily · 2 lifts) to the Mon–Fri program.
+ * Skips habits that have already been customized away from that shape.
+ */
+export function migrateLiftHabitToProgram(habits, migratedAt = new Date().toISOString()) {
+  const changedIds = new Set();
+  const next = habits.map((habit) => {
+    if (habit.deleted || (habit.kind || 'check') !== 'count') return habit;
+    const familyId =
+      habit.id === LIFT_STARTER_ID
+        ? LIFT_STARTER_ID
+        : STARTER_ALIASES.get(normalizeStarterName(habit.name));
+    if (familyId !== LIFT_STARTER_ID) return habit;
+
+    const isOldDefault =
+      (habit.cadence || 'daily') === 'daily' &&
+      Number(habit.target) === 2 &&
+      (habit.unit || '') === 'lifts' &&
+      (habit.weekdays || []).length === 0;
+    if (!isOldDefault) return habit;
+
+    changedIds.add(habit.id);
+    return {
+      ...habit,
+      target: 4,
+      unit: 'moves',
+      cadence: 'weekdays',
+      weekdays: [0, 1, 2, 3, 4],
+      updatedAt: migratedAt,
+    };
+  });
+  return { habits: next, changedIds };
+}
 
 const normalizeStarterName = (name) =>
   String(name || '')

@@ -13,7 +13,10 @@ import {
   PROGRAM_DISCLAIMER,
   SESSIONS,
   WEEK,
+  findLiftHabit,
+  findWalkHabit,
   sessionFor,
+  sessionProgress,
   weekAhead,
 } from '../src/lib/workouts.js';
 
@@ -228,6 +231,33 @@ test('weekAhead on Sunday rolls to next Mon–Sun', () => {
   assert.equal(ahead.days[0].day, '2026-08-03');
   assert.equal(ahead.days[0].session.name, 'Push');
   assert.equal(ahead.days[6].session.kind, 'walk');
+});
+
+test('sessionProgress clamps to the prescribed move list', () => {
+  const push = SESSIONS.push;
+  assert.deepEqual(sessionProgress(push, 0), {
+    done: 0,
+    total: 4,
+    complete: false,
+    fraction: 0,
+  });
+  assert.equal(sessionProgress(push, 2).done, 2);
+  assert.equal(sessionProgress(push, 2).complete, false);
+  assert.equal(sessionProgress(push, 4).complete, true);
+  assert.equal(sessionProgress(push, 99).done, 4);
+  assert.equal(sessionProgress(SESSIONS.run, 1).complete, true);
+});
+
+test('findLiftHabit / findWalkHabit pick the count habits the UI writes to', () => {
+  const habits = [
+    { kind: 'count', name: 'Walk after meals' },
+    { kind: 'amount', name: 'Protein' },
+    { kind: 'count', name: 'Lift' },
+  ];
+  assert.equal(findLiftHabit(habits).name, 'Lift');
+  assert.equal(findWalkHabit(habits).name, 'Walk after meals');
+  assert.equal(findLiftHabit([{ kind: 'count', name: 'Workout' }]).name, 'Workout');
+  assert.equal(findLiftHabit([]), null);
 });
 
 if (failed) {
