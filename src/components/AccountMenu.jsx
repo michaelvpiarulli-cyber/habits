@@ -198,7 +198,7 @@ export function AccountMenu({ auth, theme, onClose }) {
               Download a backup
             </button>
             <p className="field__hint">
-              Every habit, log, goal, value, note, macro tally, and review as one JSON file. Worth
+              Every habit, log, goal, value, note, meal log, and review as one JSON file. Worth
               doing now and then regardless of sync — a file on your own disk is the copy nobody
               else can lose.
             </p>

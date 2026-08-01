@@ -211,8 +211,10 @@ create table if not exists public.reviews (
 create index if not exists reviews_user_week_idx on public.reviews (user_id, week_start);
 
 -- ---------------------------------------------------------- nutrition_logs --
--- One macro total per day. This stays separate from habits because calories,
--- carbs, and fat are observations, not four more daily pass/fail obligations.
+-- One row per day. Meals are logged through the day; calories/protein/carbs/fat
+-- are the rolled-up totals so protein habits and charts keep a single number.
+-- This stays separate from habits because macros are observations, not four
+-- more daily pass/fail obligations.
 
 create table if not exists public.nutrition_logs (
   id         uuid primary key,
@@ -222,11 +224,16 @@ create table if not exists public.nutrition_logs (
   protein    numeric     not null default 0 check (protein >= 0),
   carbs      numeric     not null default 0 check (carbs >= 0),
   fat        numeric     not null default 0 check (fat >= 0),
+  meals      jsonb       not null default '[]'::jsonb,
   deleted    boolean     not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (user_id, day)
 );
+
+-- Existing projects created before meals existed.
+alter table public.nutrition_logs
+  add column if not exists meals jsonb not null default '[]'::jsonb;
 
 create index if not exists nutrition_logs_user_day_idx
   on public.nutrition_logs (user_id, day);
