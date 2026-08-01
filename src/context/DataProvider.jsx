@@ -28,7 +28,16 @@ import {
   nowISO,
 } from '../lib/mappers';
 import { todayISO } from '../lib/dates';
-import { isComplete, isKept, targetOf, valueOf, SEED_TIME, STARTER_HABITS } from '../lib/habits';
+import {
+  cleanupStarterHabitDuplicates,
+  findStarterHabitCounterpart,
+  isComplete,
+  isKept,
+  targetOf,
+  valueOf,
+  SEED_TIME,
+  STARTER_HABITS,
+} from '../lib/habits';
 
 /**
  * Single owner of habits, logs, and goals.
@@ -293,7 +302,7 @@ function withAccountSafeSeedIds(records, remoteHabits, remoteIdentity) {
       const local = records.habits.find((habit) => habit.id === starter.id);
       const existing = remoteHabits.find(
         (habit) => !habit.deleted && habitMigrationKey(habit) === habitMigrationKey(local)
-      );
+      ) || findStarterHabitCounterpart(local, remoteHabits);
       return [starter.id, existing?.id || newId()];
     })
   );
@@ -339,33 +348,7 @@ function withAccountSafeSeedIds(records, remoteHabits, remoteIdentity) {
   };
 }
 
-function collapseMigratedDuplicates(habits, logs, goals, identity) {
-  const removedHabitIds = new Set();
-  const habitGroups = new Map();
-  for (const habit of habits) {
-    if (habit.deleted) continue;
-    const key = habitMigrationKey(habit);
-    if (!habitGroups.has(key)) habitGroups.set(key, []);
-    habitGroups.get(key).push(habit);
-  }
-
-  for (const group of habitGroups.values()) {
-    if (group.length < 2) continue;
-    group.sort((a, b) => {
-      const referencesFor = (id) =>
-        logs.filter((log) => !log.deleted && log.habitId === id).length +
-        goals.filter((goal) => !goal.deleted && goal.habitId === id).length;
-      return referencesFor(b.id) - referencesFor(a.id) || a.id.localeCompare(b.id);
-    });
-    group.slice(1).forEach((habit) => removedHabitIds.add(habit.id));
-  }
-
-  const nextHabits = habits.map((habit) =>
-    removedHabitIds.has(habit.id)
-      ? { ...habit, deleted: true, updatedAt: nowISO() }
-      : habit
-  );
-
+function collapseMigratedIdentityDuplicates(habits, identity) {
   const removedIdentityIds = new Set();
   const identityGroups = new Map();
   for (const statement of identity) {
@@ -379,20 +362,18 @@ function collapseMigratedDuplicates(habits, logs, goals, identity) {
     if (group.length < 2) continue;
     group.sort((a, b) => {
       const habitsFor = (id) =>
-        nextHabits.filter((habit) => !habit.deleted && habit.identityId === id).length;
+        habits.filter((habit) => !habit.deleted && habit.identityId === id).length;
       return habitsFor(b.id) - habitsFor(a.id) || a.id.localeCompare(b.id);
     });
     group.slice(1).forEach((statement) => removedIdentityIds.add(statement.id));
   }
 
   return {
-    habits: nextHabits,
     identity: identity.map((statement) =>
       removedIdentityIds.has(statement.id)
         ? { ...statement, deleted: true, updatedAt: nowISO() }
         : statement
     ),
-    removedHabitIds,
     removedIdentityIds,
   };
 }
@@ -603,8 +584,8 @@ export function DataProvider({ children }) {
         local = withAccountSafeSeedIds(local, remoteHabits, remoteIdentity);
       }
       let mergedHabits = mergeById(remoteHabits, local.habits);
-      const mergedLogs = mergeById((l.data || []).map(logFromRow), local.logs);
-      const mergedGoals = mergeById((g.data || []).map(goalFromRow), local.goals);
+      let mergedLogs = mergeById((l.data || []).map(logFromRow), local.logs);
+      let mergedGoals = mergeById((g.data || []).map(goalFromRow), local.goals);
       // identity arrived after the first schema, so a project that has not run
       // the migration reads as "nothing remote" rather than as a failure.
       let mergedIdentity =
@@ -631,16 +612,24 @@ export function DataProvider({ children }) {
         mergedIdentity = starterIdentity({ uniqueIds: true });
       }
 
-      const collapsed = collapseMigratedDuplicates(
+      const cleanedHabits = cleanupStarterHabitDuplicates(
         mergedHabits,
         mergedLogs,
-        mergedGoals,
+        mergedGoals
+      );
+      mergedHabits = cleanedHabits.habits;
+      mergedLogs = cleanedHabits.logs;
+      mergedGoals = cleanedHabits.goals;
+      Object.entries(cleanedHabits.changed).forEach(([kind, ids]) => {
+        ids.forEach((id) => markDirty(kind, id));
+      });
+
+      const collapsedIdentity = collapseMigratedIdentityDuplicates(
+        mergedHabits,
         mergedIdentity
       );
-      mergedHabits = collapsed.habits;
-      mergedIdentity = collapsed.identity;
-      collapsed.removedHabitIds.forEach((id) => markDirty('habits', id));
-      collapsed.removedIdentityIds.forEach((id) => markDirty('identity', id));
+      mergedIdentity = collapsedIdentity.identity;
+      collapsedIdentity.removedIdentityIds.forEach((id) => markDirty('identity', id));
 
       setHabits(mergedHabits);
       setLogs(mergedLogs);

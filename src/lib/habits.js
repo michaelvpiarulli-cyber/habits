@@ -1,4 +1,4 @@
-import { WEEKDAY_LABELS } from './dates';
+import { WEEKDAY_LABELS } from './dates.js';
 
 /**
  * What "done" means, per habit kind.
@@ -169,3 +169,201 @@ export const STARTER_HABITS = [
     cadence: 'daily',
   },
 ];
+
+const STARTER_ALIASES = new Map([
+  ['whole foods', STARTER_HABITS[0].id],
+  ['walk after meals', STARTER_HABITS[1].id],
+  ['lift', STARTER_HABITS[2].id],
+  ['workout', STARTER_HABITS[2].id],
+  ['sleep', STARTER_HABITS[3].id],
+  ['protein', STARTER_HABITS[4].id],
+  ['weigh in', STARTER_HABITS[5].id],
+]);
+
+const normalizeStarterName = (name) =>
+  String(name || '')
+    .normalize('NFKC')
+    .trim()
+    .toLocaleLowerCase('en-US')
+    .replace(/\s+/g, ' ');
+
+const starterDefaults = (starter, sortOrder) => ({
+  emoji: '',
+  cadence: 'daily',
+  weekdays: [],
+  perWeek: 3,
+  kind: 'check',
+  target: null,
+  unit: '',
+  floor: null,
+  cue: '',
+  afterId: null,
+  archived: false,
+  sortOrder,
+  ...starter,
+});
+
+const starterFor = (habit) => {
+  const starterId = STARTER_ALIASES.get(normalizeStarterName(habit.name));
+  const starter = STARTER_HABITS.find((candidate) => candidate.id === starterId);
+  if (!starter || (habit.kind || 'check') !== (starter.kind || 'check')) return null;
+  return starter;
+};
+
+/**
+ * A generated starter has a durable provenance marker: SEED_TIME plus the
+ * untouched starter payload. User-created records never receive that timestamp,
+ * and editing a starter bumps it, so cleanup can be conservative without
+ * collapsing intentional custom duplicates.
+ */
+export function isPristineStarterHabit(habit, starter = starterFor(habit)) {
+  if (!starter || habit.updatedAt !== SEED_TIME) return false;
+  const expected = starterDefaults(starter, STARTER_HABITS.indexOf(starter));
+  return (
+    normalizeStarterName(habit.name) === normalizeStarterName(starter.name) &&
+    habit.emoji === expected.emoji &&
+    (habit.cadence || 'daily') === expected.cadence &&
+    JSON.stringify(habit.weekdays || []) === JSON.stringify(expected.weekdays) &&
+    (habit.perWeek ?? 3) === expected.perWeek &&
+    (habit.kind || 'check') === expected.kind &&
+    (habit.target ?? null) === (expected.target ?? null) &&
+    (habit.unit || '') === expected.unit &&
+    (habit.floor ?? null) === expected.floor &&
+    (habit.cue || '') === expected.cue &&
+    (habit.afterId || null) === expected.afterId &&
+    !!habit.archived === expected.archived &&
+    (habit.sortOrder ?? 0) === expected.sortOrder
+  );
+}
+
+const referenceCount = (habitId, logs, goals) =>
+  logs.filter((log) => !log.deleted && log.habitId === habitId).length +
+  goals.filter((goal) => !goal.deleted && goal.habitId === habitId).length;
+
+const rankCanonical = (a, b, logs = [], goals = []) =>
+  Number(isPristineStarterHabit(a)) - Number(isPristineStarterHabit(b)) ||
+  referenceCount(b.id, logs, goals) - referenceCount(a.id, logs, goals) ||
+  String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')) ||
+  a.id.localeCompare(b.id);
+
+/**
+ * Reuse an established starter-family row during account migration. Matching
+ * deliberately ignores editable presentation/target fields so renamed aliases
+ * such as Workout/Lift and emoji changes do not create another seed copy.
+ */
+export function findStarterHabitCounterpart(seed, habits) {
+  const starter = isPristineStarterHabit(seed) ? starterFor(seed) : null;
+  if (!starter) return null;
+  return (
+    habits
+      .filter(
+        (habit) =>
+          !habit.deleted &&
+          habit.id !== seed.id &&
+          starterFor(habit)?.id === starter.id
+      )
+      .sort((a, b) => rankCanonical(a, b))[0] || null
+  );
+}
+
+const mergeNotes = (left, right) =>
+  [...new Set([left, right].map((note) => (note || '').trim()).filter(Boolean))].join('\n');
+
+/**
+ * Remove only accidental starter seeds, preserve custom duplicates, and move
+ * history to the surviving row. Every changed record is returned as a normal
+ * LWW edit so the caller can upsert tombstones/foreign-key changes to Supabase.
+ */
+export function cleanupStarterHabitDuplicates(
+  habits,
+  logs,
+  goals,
+  cleanedAt = new Date().toISOString()
+) {
+  const canonicalByRemovedId = new Map();
+
+  for (const starter of STARTER_HABITS) {
+    const family = habits.filter(
+      (habit) => !habit.deleted && starterFor(habit)?.id === starter.id
+    );
+    const pristine = family.filter((habit) => isPristineStarterHabit(habit, starter));
+    if (pristine.length === 0) continue;
+
+    const established = family.filter((habit) => !isPristineStarterHabit(habit, starter));
+    if (established.length > 0) {
+      const canonical = established.sort((a, b) => rankCanonical(a, b, logs, goals))[0];
+      pristine.forEach((habit) => canonicalByRemovedId.set(habit.id, canonical.id));
+    } else if (pristine.length > 1) {
+      const [canonical, ...duplicates] = pristine.sort((a, b) =>
+        rankCanonical(a, b, logs, goals)
+      );
+      duplicates.forEach((habit) => canonicalByRemovedId.set(habit.id, canonical.id));
+    }
+  }
+
+  if (canonicalByRemovedId.size === 0) {
+    return {
+      habits,
+      logs,
+      goals,
+      changed: { habits: new Set(), logs: new Set(), goals: new Set() },
+    };
+  }
+
+  const changed = { habits: new Set(), logs: new Set(), goals: new Set() };
+  const nextHabits = habits.map((habit) => {
+    const canonicalId = canonicalByRemovedId.get(habit.id);
+    if (canonicalId) {
+      changed.habits.add(habit.id);
+      return { ...habit, deleted: true, updatedAt: cleanedAt };
+    }
+    const nextAfterId = canonicalByRemovedId.get(habit.afterId);
+    if (nextAfterId) {
+      changed.habits.add(habit.id);
+      return { ...habit, afterId: nextAfterId, updatedAt: cleanedAt };
+    }
+    return habit;
+  });
+
+  const nextLogs = logs.map((log) => ({ ...log }));
+  const logByHabitDay = new Map(
+    nextLogs.map((log) => [`${log.habitId}:${log.day}`, log])
+  );
+
+  for (const log of nextLogs) {
+    const canonicalId = canonicalByRemovedId.get(log.habitId);
+    if (!canonicalId || log.deleted) continue;
+    const canonicalKey = `${canonicalId}:${log.day}`;
+    const existing = logByHabitDay.get(canonicalKey);
+
+    if (!existing) {
+      logByHabitDay.delete(`${log.habitId}:${log.day}`);
+      log.habitId = canonicalId;
+      log.updatedAt = cleanedAt;
+      logByHabitDay.set(canonicalKey, log);
+      changed.logs.add(log.id);
+      continue;
+    }
+
+    const amounts = [existing.amount, log.amount].filter(
+      (amount) => amount !== null && amount !== undefined
+    );
+    existing.amount = amounts.length ? Math.max(...amounts.map(Number)) : null;
+    existing.note = mergeNotes(existing.note, log.note);
+    existing.deleted = false;
+    existing.updatedAt = cleanedAt;
+    log.deleted = true;
+    log.updatedAt = cleanedAt;
+    changed.logs.add(existing.id);
+    changed.logs.add(log.id);
+  }
+
+  const nextGoals = goals.map((goal) => {
+    const canonicalId = canonicalByRemovedId.get(goal.habitId);
+    if (!canonicalId) return goal;
+    changed.goals.add(goal.id);
+    return { ...goal, habitId: canonicalId, updatedAt: cleanedAt };
+  });
+
+  return { habits: nextHabits, logs: nextLogs, goals: nextGoals, changed };
+}
