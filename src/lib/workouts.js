@@ -4,11 +4,11 @@ import { addDays, dow, WEEKDAY_LABELS } from './dates.js';
  * The training week: two Push days, one Pull, one Legs, one run, one brisk walk.
  *
  * Fixed to weekdays rather than rotating, because a schedule you can recite —
- * Monday is push, Wednesday is legs, Saturday is the run — needs no lookup and
+ * Monday is push, Sunday is legs, Saturday is the run — needs no lookup and
  * survives a missed day without drifting.
  *
  * Legs get their own day. Nothing lower-body appears on push or pull: squats,
- * lunges, hip thrusts and calf work all live on Wednesday, where they can be
+ * lunges, hip thrusts and calf work all live on Sunday, where they can be
  * the session rather than the thing tacked on after bench.
  *
  * ---------------------------------------------------------------------------
@@ -47,12 +47,13 @@ import { addDays, dow, WEEKDAY_LABELS } from './dates.js';
  * hinges gone.
  *
  * ---------------------------------------------------------------------------
- * THURSDAY — PUSH (second push; replaces a walk)
+ * THURSDAY — PUSH (second push)
  *
- * No hybrid "upper" days. One of the two walks becomes a second Push so the
- * week has two Push days and one run. Monday hits the 135 bench ceiling;
- * Thursday is a lighter incline-focused Push so press volume stays on Push
- * days only. Friday stays Pull. Sunday keeps the remaining brisk walk.
+ * No hybrid "upper" days. The week has two Push days, two Pull days, Legs on
+ * Sunday (when there is time for squats), one run, and a mid-week brisk walk
+ * on Wednesday for recovery between Pull and the second Push. Monday hits the
+ * 135 bench ceiling; Thursday is a lighter incline-focused Push so press
+ * volume stays on Push days only. Friday stays Pull.
  * ---------------------------------------------------------------------------
  */
 
@@ -75,7 +76,7 @@ export const FORBIDDEN_MOVE_PATTERNS = [
 
 /**
  * Lower-body work that must not appear on push or pull days.
- * Legs stay on Wednesday.
+ * Legs stay on Sunday.
  */
 export const LOWER_BODY_PATTERNS = [
   /\bsquat\b/i,
@@ -339,15 +340,15 @@ export const SESSIONS = {
 export const WEEK = [
   SESSIONS.push, // Mon — Push (heavy)
   SESSIONS.pull, // Tue — Pull
-  SESSIONS.legs, // Wed — Legs
-  SESSIONS.push2, // Thu — second Push (was a walk)
+  SESSIONS.walk, // Wed — Brisk walk (recovery between Pull and Push)
+  SESSIONS.push2, // Thu — second Push
   SESSIONS.pull2, // Fri — second Pull
   SESSIONS.run, // Sat — Easy run (only run)
-  SESSIONS.walk, // Sun — Brisk walk (only walk)
+  SESSIONS.legs, // Sun — Legs
 ];
 
 /** The weekdays the lifting sessions land on — 0=Mon. */
-export const LIFT_DAYS = [0, 1, 2, 3, 4];
+export const LIFT_DAYS = [0, 1, 3, 4, 6];
 
 export function sessionFor(dayOfWeek) {
   return WEEK[dayOfWeek] || SESSIONS.walk;
