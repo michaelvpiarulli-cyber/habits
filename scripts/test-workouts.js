@@ -32,11 +32,11 @@ function test(name, fn) {
 
 console.log('workouts');
 
-test('weekday schedule: Mon push, Tue pull, Wed walk, Thu push, Fri pull, Sat run, Sun legs', () => {
+test('weekday schedule: Mon push, Tue pull, Wed legs, Thu push, Fri pull, Sat run, Sun legs', () => {
   assert.equal(WEEK.length, 7);
   assert.equal(WEEK[0], SESSIONS.push);
   assert.equal(WEEK[1], SESSIONS.pull);
-  assert.equal(WEEK[2], SESSIONS.walk);
+  assert.equal(WEEK[2], SESSIONS.legs);
   assert.equal(WEEK[3], SESSIONS.push2);
   assert.equal(WEEK[4], SESSIONS.pull2);
   assert.equal(WEEK[5], SESSIONS.run);
@@ -44,7 +44,7 @@ test('weekday schedule: Mon push, Tue pull, Wed walk, Thu push, Fri pull, Sat ru
 
   assert.equal(sessionFor(0).name, 'Push');
   assert.equal(sessionFor(1).name, 'Pull');
-  assert.equal(sessionFor(2).kind, 'walk');
+  assert.equal(sessionFor(2).name, 'Legs');
   assert.equal(sessionFor(3).name, 'Push');
   assert.equal(sessionFor(4).name, 'Pull');
   assert.equal(sessionFor(5).kind, 'run');
@@ -52,7 +52,7 @@ test('weekday schedule: Mon push, Tue pull, Wed walk, Thu push, Fri pull, Sat ru
 
   const kinds = WEEK.map((s) => s.kind);
   assert.equal(kinds.filter((k) => k === 'run').length, 1);
-  assert.equal(kinds.filter((k) => k === 'walk').length, 1);
+  assert.equal(WEEK.filter((s) => s.name === 'Legs').length, 2);
   assert.equal(WEEK.filter((s) => s.name === 'Push').length, 2);
 });
 
@@ -67,8 +67,8 @@ test('no hybrid upper day — lift days are only Push, Pull, or Legs', () => {
   assert.equal(SESSIONS.upper, undefined);
 });
 
-test('lift days are Mon, Tue, Thu, Fri, Sun', () => {
-  assert.deepEqual(LIFT_DAYS, [0, 1, 3, 4, 6]);
+test('lift days are every day except Saturday', () => {
+  assert.deepEqual(LIFT_DAYS, [0, 1, 2, 3, 4, 6]);
   for (const d of LIFT_DAYS) {
     assert.equal(sessionFor(d).kind, 'lift');
   }
@@ -198,7 +198,7 @@ test('weekAhead lists remaining days of the week after today', () => {
     ahead.days.map((d) => [d.weekday, d.session.name]),
     [
       ['Tue', 'Pull'],
-      ['Wed', 'Brisk walk'],
+      ['Wed', 'Legs'],
       ['Thu', 'Push'],
       ['Fri', 'Pull'],
       ['Sat', 'Easy run'],
@@ -216,9 +216,9 @@ test('weekAhead on Friday is Sat run then Sun legs', () => {
   assert.equal(ahead.days[1].session.name, 'Legs');
 });
 
-test('week has exactly one run and one walk', () => {
+test('week has exactly one run and two legs days', () => {
   assert.equal(WEEK.filter((s) => s.kind === 'run').length, 1);
-  assert.equal(WEEK.filter((s) => s.kind === 'walk').length, 1);
+  assert.equal(WEEK.filter((s) => s.name === 'Legs').length, 2);
 });
 
 test('weekAhead on Sunday rolls to next Mon–Sun', () => {
