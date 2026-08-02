@@ -237,20 +237,25 @@ create index if not exists nutrition_logs_user_day_idx
 -- overload needs the load and reps that were actually hit.
 
 create table if not exists public.lift_logs (
-  id         uuid primary key,
-  user_id    uuid        not null references auth.users (id) on delete cascade,
-  day        date        not null,
-  move       text        not null,
-  load_kind  text        not null default 'barbell'
-               check (load_kind in ('barbell', 'dumbbell', 'machine', 'bodyweight', 'cardio')),
-  load_lb    numeric,
-  sets       numeric     check (sets is null or sets > 0),
-  reps       numeric     check (reps is null or reps > 0),
-  deleted    boolean     not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
+  id          uuid primary key,
+  user_id     uuid        not null references auth.users (id) on delete cascade,
+  day         date        not null,
+  move        text        not null,
+  load_kind   text        not null default 'barbell'
+                check (load_kind in ('barbell', 'dumbbell', 'machine', 'bodyweight', 'cardio')),
+  load_lb     numeric,
+  sets        numeric     check (sets is null or sets > 0),
+  reps        numeric     check (reps is null or reps > 0),
+  set_entries jsonb       not null default '[]'::jsonb,
+  deleted     boolean     not null default false,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
   unique (user_id, day, move)
 );
+
+-- Existing projects created before per-set entries existed.
+alter table public.lift_logs
+  add column if not exists set_entries jsonb not null default '[]'::jsonb;
 
 create index if not exists lift_logs_user_day_idx
   on public.lift_logs (user_id, day);

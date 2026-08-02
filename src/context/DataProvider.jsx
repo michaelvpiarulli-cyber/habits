@@ -1303,12 +1303,30 @@ export function DataProvider({ children }) {
       if (!move) return;
 
       const loadKind = fields.loadKind || 'barbell';
+      const setEntries = Array.isArray(fields.setEntries)
+        ? fields.setEntries
+            .map((entry) => ({
+              loadLb:
+                loadKind === 'bodyweight' || loadKind === 'cardio'
+                  ? null
+                  : entry.loadLb == null
+                    ? null
+                    : Math.max(0, Number(entry.loadLb) || 0),
+              reps: Math.max(0, Number(entry.reps) || 0),
+            }))
+            .filter((entry) => entry.reps > 0)
+        : [];
+
       const loadLb =
         loadKind === 'bodyweight' || loadKind === 'cardio'
           ? null
-          : Math.max(0, Number(fields.loadLb) || 0);
-      const sets = Math.max(0, Number(fields.sets) || 0);
-      const reps = Math.max(0, Number(fields.reps) || 0);
+          : setEntries.length
+            ? Math.max(...setEntries.map((entry) => Number(entry.loadLb) || 0))
+            : Math.max(0, Number(fields.loadLb) || 0);
+      const sets = setEntries.length || Math.max(0, Number(fields.sets) || 0);
+      const reps = setEntries.length
+        ? Math.min(...setEntries.map((entry) => entry.reps))
+        : Math.max(0, Number(fields.reps) || 0);
       const empty = sets <= 0 || reps <= 0;
 
       setLiftLogs((prev) => {
@@ -1323,6 +1341,7 @@ export function DataProvider({ children }) {
                   loadLb,
                   sets: empty ? entry.sets : sets,
                   reps: empty ? entry.reps : reps,
+                  setEntries: empty ? [] : setEntries,
                   deleted: empty,
                   updatedAt: nowISO(),
                 }
@@ -1338,6 +1357,7 @@ export function DataProvider({ children }) {
           loadLb,
           sets,
           reps,
+          setEntries,
           deleted: false,
           createdAt: nowISO(),
           updatedAt: nowISO(),
