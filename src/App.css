@@ -1970,6 +1970,10 @@ form.field {
   border-left-color: var(--ink-soft);
 }
 
+.workout.is-complete {
+  border-left-color: var(--violet);
+}
+
 .workout__head {
   display: flex;
   align-items: center;
@@ -1994,6 +1998,38 @@ form.field {
   color: var(--ink-soft);
 }
 
+.workout.is-complete .workout__focus {
+  color: var(--violet);
+}
+
+.workout__meta {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workout__fill {
+  position: relative;
+  width: 36px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--sunk);
+  overflow: hidden;
+}
+
+.workout__fill::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fill, 0%);
+  background: var(--blue);
+}
+
+.workout.is-complete .workout__fill::after {
+  background: var(--violet);
+}
+
 .workout__toggle {
   flex: none;
   width: 28px;
@@ -2003,6 +2039,15 @@ form.field {
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.workout__hint {
+  margin: 0;
+  padding: 0 14px 8px;
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
@@ -2018,37 +2063,59 @@ form.field {
 .lift__body {
   display: flex;
   align-items: flex-start;
-  gap: 11px;
+  gap: 12px;
   width: 100%;
-  padding: 10px 11px;
+  padding: 12px 12px;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--paper);
   text-align: left;
 }
 
-.lift__tick {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  border: 1.5px solid var(--rule);
-  border-radius: var(--radius);
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  color: var(--ink-soft);
+.lift__body:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-.lift.is-done .lift__tick {
+.lift__body:not(:disabled):active {
+  background: var(--sunk);
+}
+
+.lift__check {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-top: 1px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-size: 0.938rem;
+  font-weight: 700;
+  color: var(--on-ink);
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.lift__check.is-on,
+.lift.is-done .lift__check {
   background: var(--blue);
   border-color: var(--blue);
-  color: var(--on-ink);
+}
+
+.lift.is-done .lift__body {
+  border-color: var(--blue);
 }
 
 .lift.is-done .lift__move {
   color: var(--ink-soft);
   text-decoration: line-through;
+}
+
+.workout__actions {
+  padding: 0 12px 10px;
 }
 
 .lift__detail {
