@@ -11,49 +11,75 @@ import { PROGRAM_DISCLAIMER, sessionFor, weekAhead } from '../lib/workouts';
  * the list. Tapping the third movement sets that count to three. One number,
  * already syncing, and no table for something that is only meaningful today.
  *
- * Collapsed to the session name until tapped, because on a Monday you mostly
- * need to know it is push day, not to read twelve sets on the way past.
- *
- * Below the collapsible today block, a compact look-ahead lists the rest of
- * the week (or next week on Sunday) from the same weekday program — readable
- * without changing the date or opening today's lifts.
+ * Opens with the lift list visible so checking off each movement is the main
+ * job of the card, not something buried behind a +.
  */
 export function Workout({ day }) {
   const { activeHabits, logFor, setValue } = useData();
   const session = sessionFor(dow(day));
   const ahead = weekAhead(day);
+  const total = session.lifts.length;
 
   // The count habit this session drives, if there is one.
   const lift = activeHabits.find((h) => h.kind === 'count' && /lift/i.test(h.name));
   const done = lift ? Number(logFor(lift.id, day)?.amount) || 0 : 0;
+  const complete = total > 0 && done >= total;
+  const fraction = total ? Math.min(1, done / total) : 0;
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => !complete);
 
   const mark = (index) => {
     if (!lift) return;
-    // Tapping the movement you just finished sets the count to its position;
-    // tapping the last completed one again steps back.
+    // Tap an unfinished lift to check through it; tap the last checked one to undo.
     setValue(lift, day, done === index + 1 ? index : index + 1);
   };
 
+  const markAll = () => {
+    if (!lift || complete) return;
+    setValue(lift, day, total);
+  };
+
+  const summary = !lift
+    ? session.focus
+    : complete
+      ? 'Session done'
+      : done > 0
+        ? `${done} of ${total} done`
+        : `Tap each lift when you finish · ${total} moves`;
+
   return (
-    <section className={`workout workout--${session.kind}`}>
-      <button type="button" className="workout__head" onClick={() => setOpen((o) => !o)}>
+    <section className={`workout workout--${session.kind} ${complete ? 'is-complete' : ''}`}>
+      <button
+        type="button"
+        className="workout__head"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
         <span>
           <span className="eyebrow">Today’s training</span>
           <span className="workout__name">{session.name}</span>
-          <span className="workout__focus">{session.focus}</span>
+          <span className="workout__focus">{summary}</span>
         </span>
-        <span className="workout__toggle" aria-hidden="true">
-          {open ? '−' : '+'}
+        <span className="workout__meta" aria-hidden="true">
+          {lift && total > 0 && (
+            <span className="workout__fill" style={{ '--fill': `${Math.round(fraction * 100)}%` }} />
+          )}
+          <span className="workout__toggle">{open ? '−' : '+'}</span>
         </span>
       </button>
 
       {open && (
         <>
+          {lift ? (
+            <p className="workout__hint">Tap the box when you finish a lift.</p>
+          ) : (
+            <p className="workout__hint">Add a Lift habit to check moves off.</p>
+          )}
+
           <ol className="workout__lifts">
             {session.lifts.map((l, i) => {
               const isDone = i < done;
+              const label = isDone ? `Mark ${l.move} not done` : `Mark ${l.move} done`;
               return (
                 <li key={l.move} className={`lift ${isDone ? 'is-done' : ''}`}>
                   <button
@@ -62,9 +88,10 @@ export function Workout({ day }) {
                     onClick={() => mark(i)}
                     disabled={!lift}
                     aria-pressed={isDone}
+                    aria-label={label}
                   >
-                    <span className="lift__tick" aria-hidden="true">
-                      {isDone ? '✓' : i + 1}
+                    <span className={`lift__check ${isDone ? 'is-on' : ''}`} aria-hidden="true">
+                      {isDone ? '✓' : ''}
                     </span>
                     <span className="lift__detail">
                       <span className="lift__move">{l.move}</span>
@@ -79,6 +106,15 @@ export function Workout({ day }) {
               );
             })}
           </ol>
+
+          {lift && !complete && (
+            <div className="workout__actions">
+              <button type="button" className="btn" onClick={markAll}>
+                Mark session done
+              </button>
+            </div>
+          )}
+
           <p className="workout__disclaimer">{PROGRAM_DISCLAIMER}</p>
         </>
       )}
