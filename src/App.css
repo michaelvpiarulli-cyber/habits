@@ -2148,7 +2148,7 @@ form.field {
 }
 
 /* =========================================================================
-   Today's macro tally
+   Today's meals
    ========================================================================= */
 
 .nutrition {
@@ -2188,6 +2188,15 @@ form.field {
   color: var(--violet);
 }
 
+.nutrition__meals {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
 .nutrition__toggle {
   flex: none;
   width: 28px;
@@ -2204,11 +2213,86 @@ form.field {
   border-top: 1px solid var(--rule);
 }
 
+.meals {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meal {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.meal.has-data {
+  border-color: var(--violet);
+}
+
+.meal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 11px;
+  text-align: left;
+}
+
+.meal__name {
+  display: block;
+  font-size: 0.938rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.meal__summary {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  color: var(--ink-soft);
+}
+
+.meal.has-data .meal__summary {
+  color: var(--violet);
+}
+
+.meal__toggle {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+  font-size: 0.938rem;
+}
+
+.meal__body {
+  padding: 0 11px 11px;
+  border-top: 1px solid var(--rule);
+}
+
 .nutrition__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   padding-top: 12px;
+}
+
+.nutrition__control--wide {
+  font-family: var(--sans);
+}
+
+.nutrition__control--wide input {
+  font-family: var(--sans);
+  font-size: 0.938rem;
 }
 
 .nutrition__field {
@@ -2256,8 +2340,13 @@ form.field {
 
 .nutrition__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+
+.nutrition__form .field__hint {
+  margin-top: 10px;
 }
 
 /* =========================================================================

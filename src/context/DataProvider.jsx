@@ -38,6 +38,12 @@ import {
   SEED_TIME,
   STARTER_HABITS,
 } from '../lib/habits';
+import {
+  compactMeals,
+  emptyNutritionDay,
+  normalizeNutritionEntry,
+  sumMacros,
+} from '../lib/nutrition';
 
 /**
  * Single owner of habits, logs, and goals.
@@ -1174,25 +1180,33 @@ export function DataProvider({ children }) {
   );
 
   const nutritionFor = useCallback(
-    (day) =>
-      nutrition.find((entry) => !entry.deleted && entry.day === day) || {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-      },
+    (day) => {
+      const entry = nutrition.find((row) => !row.deleted && row.day === day);
+      return normalizeNutritionEntry(entry) || emptyNutritionDay(day);
+    },
     [nutrition]
   );
 
-  const saveNutrition = useCallback(
-    (day, fields) => {
-      const values = {
-        calories: Math.max(0, Number(fields.calories) || 0),
-        protein: Math.max(0, Number(fields.protein) || 0),
-        carbs: Math.max(0, Number(fields.carbs) || 0),
-        fat: Math.max(0, Number(fields.fat) || 0),
-      };
-      const empty = Object.values(values).every((value) => value === 0);
+  const writeNutritionDay = useCallback(
+    (day, meals) => {
+      const cleaned = compactMeals(meals).map((meal) => {
+        const id =
+          !meal.id || String(meal.id).startsWith('slot-') || String(meal.id).startsWith('legacy-')
+            ? newId()
+            : meal.id;
+        return {
+          id,
+          slot: meal.slot || 'snack',
+          label: meal.label || '',
+          note: meal.note || '',
+          calories: Math.max(0, Number(meal.calories) || 0),
+          protein: Math.max(0, Number(meal.protein) || 0),
+          carbs: Math.max(0, Number(meal.carbs) || 0),
+          fat: Math.max(0, Number(meal.fat) || 0),
+        };
+      });
+      const totals = sumMacros(cleaned);
+      const empty = cleaned.length === 0;
 
       setNutrition((prev) => {
         const existing = prev.find((entry) => entry.day === day);
@@ -1200,7 +1214,13 @@ export function DataProvider({ children }) {
           markDirty('nutrition', existing.id);
           return prev.map((entry) =>
             entry.id === existing.id
-              ? { ...entry, ...values, deleted: empty, updatedAt: nowISO() }
+              ? {
+                  ...entry,
+                  ...totals,
+                  meals: cleaned,
+                  deleted: empty,
+                  updatedAt: nowISO(),
+                }
               : entry
           );
         }
@@ -1208,7 +1228,8 @@ export function DataProvider({ children }) {
         const entry = {
           id: newId(),
           day,
-          ...values,
+          ...totals,
+          meals: cleaned,
           deleted: false,
           createdAt: nowISO(),
           updatedAt: nowISO(),
@@ -1216,8 +1237,34 @@ export function DataProvider({ children }) {
         markDirty('nutrition', entry.id);
         return [...prev, entry];
       });
+
+      return { ...totals, meals: cleaned };
     },
     [markDirty]
+  );
+
+  /** Replace the day's meals; day totals are recomputed from the list. */
+  const saveMeals = useCallback((day, meals) => writeNutritionDay(day, meals), [writeNutritionDay]);
+
+  /**
+   * Back-compat for a flat day total. Becomes a single "Earlier log" meal when
+   * the day has no meal list yet; otherwise ignored in favor of saveMeals.
+   */
+  const saveNutrition = useCallback(
+    (day, fields) => {
+      const meal = {
+        id: newId(),
+        slot: 'day',
+        label: 'Earlier log',
+        note: '',
+        calories: Math.max(0, Number(fields.calories) || 0),
+        protein: Math.max(0, Number(fields.protein) || 0),
+        carbs: Math.max(0, Number(fields.carbs) || 0),
+        fat: Math.max(0, Number(fields.fat) || 0),
+      };
+      return writeNutritionDay(day, [meal]);
+    },
+    [writeNutritionDay]
   );
 
   /**
@@ -1272,6 +1319,7 @@ export function DataProvider({ children }) {
     reviews: activeReviews,
     nutritionFor,
     saveNutrition,
+    saveMeals,
     exportAll,
     countdown,
     setCountdown,

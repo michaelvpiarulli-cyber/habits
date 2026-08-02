@@ -5,6 +5,10 @@ A habit and goal tracker. Same stack as `bible-year-plan` — Vite + React + Sup
 Six habits ship as the starting set: whole foods, walk after meals, lift, sleep, protein, weigh in.
 Edit or delete any of them on the Habits tab.
 
+Food is logged as **meals** on Today (breakfast, lunch, dinner, snacks). Day totals still roll up
+for the Protein habit. If you already use sync, re-run [`supabase/schema.sql`](supabase/schema.sql)
+once so `nutrition_logs.meals` exists.
+
 ## How habits are tracked
 
 Not everything is a checkbox, so a habit picks one of four kinds:
