@@ -140,9 +140,9 @@ export const STARTER_HABITS = [
     kind: 'count',
     target: 4,
     unit: 'moves',
-    // Matches lift days in lib/workouts.js: Mon, Tue, Thu, Fri, Sun.
+    // Matches lift days in lib/workouts.js: every day except Saturday.
     cadence: 'weekdays',
-    weekdays: [0, 1, 3, 4, 6],
+    weekdays: [0, 1, 2, 3, 4, 6],
   },
   {
     id: '7a110000-0000-4000-8000-000000000004',
@@ -189,7 +189,7 @@ export const LIFT_STARTER_ID = STARTER_HABITS[2].id;
  * Skips habits that have already been customized away from that shape.
  */
 export function migrateLiftHabitToProgram(habits, migratedAt = new Date().toISOString()) {
-  const programDays = [0, 1, 3, 4, 6];
+  const programDays = [0, 1, 2, 3, 4, 6];
   const changedIds = new Set();
   const next = habits.map((habit) => {
     if (habit.deleted || (habit.kind || 'check') !== 'count') return habit;
@@ -205,11 +205,11 @@ export function migrateLiftHabitToProgram(habits, migratedAt = new Date().toISOS
         Number(habit.target) === 2 &&
         (habit.unit || '') === 'lifts' &&
         days.length === 0) ||
-      // Prior fitness migration used Mon–Fri before Legs moved to Sunday.
       (habit.cadence === 'weekdays' &&
         Number(habit.target) === 4 &&
         (habit.unit || '') === 'moves' &&
-        JSON.stringify(days) === JSON.stringify([0, 1, 2, 3, 4]));
+        (JSON.stringify(days) === JSON.stringify([0, 1, 2, 3, 4]) ||
+          JSON.stringify(days) === JSON.stringify([0, 1, 3, 4, 6])));
     if (!isOldDefault) return habit;
 
     changedIds.add(habit.id);
