@@ -5,6 +5,11 @@ A habit and goal tracker. Same stack as `bible-year-plan` — Vite + React + Sup
 Six habits ship as the starting set: whole foods, walk after meals, lift, sleep, protein, weigh in.
 Edit or delete any of them on the Habits tab.
 
+On Today’s training you can check off each lift and log **weight × reps per set**.
+Next session’s target follows what you logged (reps-first once a barbell hits 135 lb
+or dumbbells hit 15 lb). Sync needs the `lift_logs` table from
+[`supabase/schema.sql`](supabase/schema.sql).
+
 ## How habits are tracked
 
 Not everything is a checkbox, so a habit picks one of four kinds:
@@ -35,7 +40,7 @@ Supabase adds sign-in and cross-device sync on top of that; it is not required.
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. In the dashboard, open **SQL Editor → New query**, paste all of [`supabase/schema.sql`](supabase/schema.sql), and run it.
-   That creates the `habits`, `habit_logs`, and `goals` tables with row-level security, so each
+   That creates the habit, goal, nutrition, and lift-log tables with row-level security, so each
    account can only ever read or write its own rows.
 3. Copy `.env.example` to `.env.local` and fill in the project URL and publishable (anon) key from
    **Project Settings → API**.

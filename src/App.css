@@ -2143,6 +2143,109 @@ form.field {
   color: var(--ink-soft);
 }
 
+.lift__last,
+.lift__cue {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.lift__cue {
+  color: var(--blue);
+}
+
+.lift__log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 11px 12px;
+}
+
+.lift__log-label {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.lift__sets-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lift__set-row {
+  display: grid;
+  grid-template-columns: 3.2em minmax(0, 1fr) auto minmax(0, 0.85fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.lift__set-n {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.lift__set-x {
+  color: var(--ink-soft);
+  font-size: 0.938rem;
+}
+
+.lift__log-field {
+  min-width: 0;
+}
+
+.lift__log-control {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 7px 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  color: var(--ink-soft);
+}
+
+.lift__log-control:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px var(--blue-wash);
+}
+
+.lift__log-control input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.938rem;
+  color: var(--ink);
+}
+
+.lift__log-control input:disabled {
+  color: var(--ink-soft);
+}
+
+.lift__log-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lift__log-save {
+  padding: 8px 12px;
+  font-size: 0.813rem;
+}
+
 .workout__disclaimer {
   margin: 0;
   padding: 0 14px 12px;

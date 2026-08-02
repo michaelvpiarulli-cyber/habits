@@ -24,6 +24,8 @@ import {
   reviewToRow,
   nutritionFromRow,
   nutritionToRow,
+  liftLogFromRow,
+  liftLogToRow,
   newId,
   nowISO,
 } from '../lib/mappers';
@@ -60,6 +62,7 @@ const KEYS = {
   dayNotes: 'tally-day-notes',
   reviews: 'tally-reviews',
   nutrition: 'tally-nutrition',
+  liftLogs: 'tally-lift-logs',
   countdown: 'tally-countdown',
 };
 
@@ -141,6 +144,7 @@ const TABLES = {
   dayNotes: { table: 'day_notes', from: noteFromRow, to: noteToRow },
   reviews: { table: 'reviews', from: reviewFromRow, to: reviewToRow },
   nutrition: { table: 'nutrition_logs', from: nutritionFromRow, to: nutritionToRow },
+  liftLogs: { table: 'lift_logs', from: liftLogFromRow, to: liftLogToRow },
 };
 
 /**
@@ -154,7 +158,16 @@ const isMissingTable = (error) => MISSING_TABLE_CODES.has(error?.code);
 
 const TOMBSTONE_TTL_DAYS = 90;
 const PUSH_DEBOUNCE_MS = 700;
-const ACCOUNT_KINDS = ['habits', 'logs', 'goals', 'identity', 'dayNotes', 'reviews', 'nutrition'];
+const ACCOUNT_KINDS = [
+  'habits',
+  'logs',
+  'goals',
+  'identity',
+  'dayNotes',
+  'reviews',
+  'nutrition',
+  'liftLogs',
+];
 const ANONYMOUS_SCOPE = 'anonymous';
 const LEGACY_CLAIM_KEY = 'tally-legacy-account';
 const migratedKey = (userId) => `tally-account-migrated:${userId}`;
@@ -261,6 +274,7 @@ function claimLegacyRecords(userId) {
     dayNotes: legacy.dayNotes,
     reviews: legacy.reviews,
     nutrition: legacy.nutrition,
+    liftLogs: legacy.liftLogs,
   };
 }
 
@@ -345,6 +359,7 @@ function withAccountSafeSeedIds(records, remoteHabits, remoteIdentity) {
     dayNotes: records.dayNotes,
     reviews: records.reviews,
     nutrition: records.nutrition,
+    liftLogs: records.liftLogs,
   };
 }
 
@@ -402,6 +417,7 @@ export function DataProvider({ children }) {
   const [dayNotes, setDayNotes] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [nutrition, setNutrition] = useState([]);
+  const [liftLogs, setLiftLogs] = useState([]);
   const [storageScope, setStorageScope] = useState(null);
   const [countdown, setCountdown] = useState(() => {
     try {
@@ -427,8 +443,26 @@ export function DataProvider({ children }) {
     revisions.set(id, (revisions.get(id) || 0) + 1);
   }, []);
   const [retryTick, setRetryTick] = useState(0);
-  const latest = useRef({ habits, logs, goals, identity, dayNotes, reviews, nutrition });
-  latest.current = { habits, logs, goals, identity, dayNotes, reviews, nutrition };
+  const latest = useRef({
+    habits,
+    logs,
+    goals,
+    identity,
+    dayNotes,
+    reviews,
+    nutrition,
+    liftLogs,
+  });
+  latest.current = {
+    habits,
+    logs,
+    goals,
+    identity,
+    dayNotes,
+    reviews,
+    nutrition,
+    liftLogs,
+  };
   const currentUserId = useRef(user?.id);
   currentUserId.current = user?.id;
   const desiredScope = authLoading ? null : user?.id || ANONYMOUS_SCOPE;
@@ -483,6 +517,7 @@ export function DataProvider({ children }) {
     setDayNotes(records.dayNotes);
     setReviews(records.reviews);
     setNutrition(records.nutrition);
+    setLiftLogs(records.liftLogs);
     setStorageScope(desiredScope);
     setSyncState(user ? 'syncing' : 'idle');
   }, [desiredScope, storageScope, user]);
@@ -511,6 +546,10 @@ export function DataProvider({ children }) {
     if (storageScope)
       localStorage.setItem(scopedKey('nutrition', storageScope), JSON.stringify(nutrition));
   }, [nutrition, storageScope]);
+  useEffect(() => {
+    if (storageScope)
+      localStorage.setItem(scopedKey('liftLogs', storageScope), JSON.stringify(liftLogs));
+  }, [liftLogs, storageScope]);
   useEffect(() => localStorage.setItem(KEYS.countdown, JSON.stringify(countdown)), [countdown]);
 
   const pullRemote = useCallback(
@@ -532,6 +571,7 @@ export function DataProvider({ children }) {
           supabase.from('day_notes').select('*').eq('user_id', user.id),
           supabase.from('reviews').select('*').eq('user_id', user.id),
           supabase.from('nutrition_logs').select('*').eq('user_id', user.id),
+          supabase.from('lift_logs').select('*').eq('user_id', user.id),
         ]);
       } catch {
         if (pulling.current === generation) pulling.current = null;
@@ -552,9 +592,9 @@ export function DataProvider({ children }) {
         if (pulling.current === generation) pulling.current = null;
         return;
       }
-      const [h, l, g, v, n, rv, food] = results;
+      const [h, l, g, v, n, rv, food, lifts] = results;
 
-      const optionalError = [v, n, rv, food].some(
+      const optionalError = [v, n, rv, food, lifts].some(
         (result) => result.error && !isMissingTable(result.error)
       );
       if (h.error || l.error || g.error || optionalError) {
@@ -567,6 +607,7 @@ export function DataProvider({ children }) {
           ['day notes', n],
           ['reviews', rv],
           ['nutrition', food],
+          ['lift logs', lifts],
         ].find(([, result]) => result.error && !isMissingTable(result.error));
         setSyncError(
           failed
@@ -604,6 +645,10 @@ export function DataProvider({ children }) {
         food.error && isMissingTable(food.error)
           ? local.nutrition
           : mergeById((food.data || []).map(nutritionFromRow), local.nutrition);
+      const mergedLiftLogs =
+        lifts.error && isMissingTable(lifts.error)
+          ? local.liftLogs
+          : mergeById((lifts.data || []).map(liftLogFromRow), local.liftLogs);
 
       // Seeds are created only after an account proves empty, and use random
       // ids so two users can never compete for the same primary key.
@@ -638,6 +683,7 @@ export function DataProvider({ children }) {
       setDayNotes(mergedNotes);
       setReviews(mergedReviews);
       setNutrition(mergedNutrition);
+      setLiftLogs(mergedLiftLogs);
 
       if (initial) {
         // On first sign-in, send local-only records up. Later pulls only adopt
@@ -649,6 +695,7 @@ export function DataProvider({ children }) {
         mergedNotes.forEach((r) => markDirty('dayNotes', r.id));
         mergedReviews.forEach((r) => markDirty('reviews', r.id));
         mergedNutrition.forEach((r) => markDirty('nutrition', r.id));
+        mergedLiftLogs.forEach((r) => markDirty('liftLogs', r.id));
       }
 
       hydratedFor.current = user.id;
@@ -702,7 +749,7 @@ export function DataProvider({ children }) {
       hydratedFor.current !== user.id
     ) return;
 
-    const pending = { habits, logs, goals, identity, dayNotes, reviews, nutrition };
+    const pending = { habits, logs, goals, identity, dayNotes, reviews, nutrition, liftLogs };
     const anyDirty = Object.values(dirty.current).some((s) => s.size > 0);
     if (!anyDirty) return;
 
@@ -775,6 +822,7 @@ export function DataProvider({ children }) {
     dayNotes,
     reviews,
     nutrition,
+    liftLogs,
     available,
     user,
     storageScope,
@@ -1220,6 +1268,107 @@ export function DataProvider({ children }) {
     [markDirty]
   );
 
+  const liftLogFor = useCallback(
+    (day, move) => liftLogs.find((entry) => !entry.deleted && entry.day === day && entry.move === move) || null,
+    [liftLogs]
+  );
+
+  /**
+   * Most recent logged performance for a movement before `beforeDay`
+   * (exclusive). Used to prescribe today's target without counting today's
+   * in-progress log as history.
+   */
+  const lastLiftLog = useCallback(
+    (move, beforeDay) => {
+      let best = null;
+      for (const entry of liftLogs) {
+        if (entry.deleted || entry.move !== move) continue;
+        if (beforeDay && entry.day >= beforeDay) continue;
+        if (
+          !best ||
+          entry.day > best.day ||
+          (entry.day === best.day && entry.updatedAt > best.updatedAt)
+        ) {
+          best = entry;
+        }
+      }
+      return best;
+    },
+    [liftLogs]
+  );
+
+  const saveLiftLog = useCallback(
+    (day, fields) => {
+      const move = String(fields.move || '').trim();
+      if (!move) return;
+
+      const loadKind = fields.loadKind || 'barbell';
+      const setEntries = Array.isArray(fields.setEntries)
+        ? fields.setEntries
+            .map((entry) => ({
+              loadLb:
+                loadKind === 'bodyweight' || loadKind === 'cardio'
+                  ? null
+                  : entry.loadLb == null
+                    ? null
+                    : Math.max(0, Number(entry.loadLb) || 0),
+              reps: Math.max(0, Number(entry.reps) || 0),
+            }))
+            .filter((entry) => entry.reps > 0)
+        : [];
+
+      const loadLb =
+        loadKind === 'bodyweight' || loadKind === 'cardio'
+          ? null
+          : setEntries.length
+            ? Math.max(...setEntries.map((entry) => Number(entry.loadLb) || 0))
+            : Math.max(0, Number(fields.loadLb) || 0);
+      const sets = setEntries.length || Math.max(0, Number(fields.sets) || 0);
+      const reps = setEntries.length
+        ? Math.min(...setEntries.map((entry) => entry.reps))
+        : Math.max(0, Number(fields.reps) || 0);
+      const empty = sets <= 0 || reps <= 0;
+
+      setLiftLogs((prev) => {
+        const existing = prev.find((entry) => entry.day === day && entry.move === move);
+        if (existing) {
+          markDirty('liftLogs', existing.id);
+          return prev.map((entry) =>
+            entry.id === existing.id
+              ? {
+                  ...entry,
+                  loadKind,
+                  loadLb,
+                  sets: empty ? entry.sets : sets,
+                  reps: empty ? entry.reps : reps,
+                  setEntries: empty ? [] : setEntries,
+                  deleted: empty,
+                  updatedAt: nowISO(),
+                }
+              : entry
+          );
+        }
+        if (empty) return prev;
+        const entry = {
+          id: newId(),
+          day,
+          move,
+          loadKind,
+          loadLb,
+          sets,
+          reps,
+          setEntries,
+          deleted: false,
+          createdAt: nowISO(),
+          updatedAt: nowISO(),
+        };
+        markDirty('liftLogs', entry.id);
+        return [...prev, entry];
+      });
+    },
+    [markDirty]
+  );
+
   /**
    * Everything, as one JSON file. Deliberately the raw records rather than a
    * prettied report: the point is that a copy exists off the device and can be
@@ -1237,6 +1386,7 @@ export function DataProvider({ children }) {
       dayNotes,
       reviews,
       nutrition,
+      liftLogs,
       countdown,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -1246,7 +1396,7 @@ export function DataProvider({ children }) {
     a.download = `tally-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [habits, logs, goals, identity, dayNotes, reviews, nutrition, countdown]);
+  }, [habits, logs, goals, identity, dayNotes, reviews, nutrition, liftLogs, countdown]);
 
   const statementOfDay = useMemo(() => {
     if (activeIdentity.length === 0) return null;
@@ -1272,6 +1422,9 @@ export function DataProvider({ children }) {
     reviews: activeReviews,
     nutritionFor,
     saveNutrition,
+    liftLogFor,
+    lastLiftLog,
+    saveLiftLog,
     exportAll,
     countdown,
     setCountdown,
