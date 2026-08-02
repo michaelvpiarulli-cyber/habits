@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   cleanupStarterHabitDuplicates,
+  collapseLogsByHabitDay,
   findStarterHabitCounterpart,
   SEED_TIME,
   STARTER_HABITS,
@@ -195,6 +196,45 @@ const custom = (fields) => ({
 
   assert.equal(result.habits.find((habit) => habit.id === first.id).deleted, false);
   assert.equal(result.habits.find((habit) => habit.id === second.id).deleted, true);
+}
+
+{
+  const logs = [
+    {
+      id: 'keep',
+      habitId: 'habit-a',
+      day: '2026-08-01',
+      amount: 1,
+      note: 'first',
+      deleted: false,
+      updatedAt: '2026-08-01T08:00:00.000Z',
+    },
+    {
+      id: 'drop',
+      habitId: 'habit-a',
+      day: '2026-08-01',
+      amount: 3,
+      note: 'second',
+      deleted: false,
+      updatedAt: '2026-08-01T18:00:00.000Z',
+    },
+    {
+      id: 'other-day',
+      habitId: 'habit-a',
+      day: '2026-08-02',
+      amount: 1,
+      note: '',
+      deleted: false,
+      updatedAt: '2026-08-02T08:00:00.000Z',
+    },
+  ];
+  const result = collapseLogsByHabitDay(logs, CLEANED_AT);
+  assert.equal(result.logs.find((log) => log.id === 'drop').deleted, false);
+  assert.equal(result.logs.find((log) => log.id === 'drop').amount, 3);
+  assert.equal(result.logs.find((log) => log.id === 'drop').note, 'first\nsecond');
+  assert.equal(result.logs.find((log) => log.id === 'keep').deleted, true);
+  assert.equal(result.logs.find((log) => log.id === 'other-day').deleted, false);
+  assert.deepEqual(result.changed, new Set(['keep', 'drop']));
 }
 
 console.log('habit migrations\n\nall tests passed');

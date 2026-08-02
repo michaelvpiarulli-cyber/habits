@@ -367,3 +367,42 @@ export function cleanupStarterHabitDuplicates(
 
   return { habits: nextHabits, logs: nextLogs, goals: nextGoals, changed };
 }
+
+/**
+ * One living row per habit per day. Remapping starter ids onto a counterpart can
+ * leave two local logs on the same key; the database unique index only allows
+ * one, and a batch upsert of both fails the whole sync.
+ */
+export function collapseLogsByHabitDay(logs, cleanedAt = new Date().toISOString()) {
+  const changed = new Set();
+  const living = new Map();
+  const next = logs.map((log) => ({ ...log }));
+
+  for (const log of next) {
+    if (log.deleted) continue;
+    const key = `${log.habitId}:${log.day}`;
+    const existing = living.get(key);
+    if (!existing) {
+      living.set(key, log);
+      continue;
+    }
+
+    const newer =
+      new Date(log.updatedAt || 0) >= new Date(existing.updatedAt || 0) ? log : existing;
+    const older = newer === log ? existing : log;
+    const amounts = [existing.amount, log.amount].filter(
+      (amount) => amount !== null && amount !== undefined
+    );
+    newer.amount = amounts.length ? Math.max(...amounts.map(Number)) : null;
+    newer.note = mergeNotes(existing.note, log.note);
+    newer.deleted = false;
+    newer.updatedAt = cleanedAt;
+    older.deleted = true;
+    older.updatedAt = cleanedAt;
+    living.set(key, newer);
+    changed.add(newer.id);
+    changed.add(older.id);
+  }
+
+  return { logs: next, changed };
+}
