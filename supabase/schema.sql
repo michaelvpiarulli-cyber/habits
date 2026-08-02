@@ -231,6 +231,33 @@ create table if not exists public.nutrition_logs (
 create index if not exists nutrition_logs_user_day_idx
   on public.nutrition_logs (user_id, day);
 
+-- --------------------------------------------------------------- lift_logs --
+-- One performance log per movement per day. Separate from habit_logs because
+-- the Lift habit only tracks how many movements were completed; progressive
+-- overload needs the load and reps that were actually hit.
+
+create table if not exists public.lift_logs (
+  id         uuid primary key,
+  user_id    uuid        not null references auth.users (id) on delete cascade,
+  day        date        not null,
+  move       text        not null,
+  load_kind  text        not null default 'barbell'
+               check (load_kind in ('barbell', 'dumbbell', 'machine', 'bodyweight', 'cardio')),
+  load_lb    numeric,
+  sets       numeric     check (sets is null or sets > 0),
+  reps       numeric     check (reps is null or reps > 0),
+  deleted    boolean     not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, day, move)
+);
+
+create index if not exists lift_logs_user_day_idx
+  on public.lift_logs (user_id, day);
+
+create index if not exists lift_logs_user_move_idx
+  on public.lift_logs (user_id, move);
+
 -- ------------------------------------------------------------------ RLS ----
 -- Identical shape on every table: you may only read or write rows whose
 -- user_id is your own. The `with check` on insert/update is what stops a client
@@ -243,12 +270,14 @@ alter table public.identity    enable row level security;
 alter table public.day_notes  enable row level security;
 alter table public.reviews    enable row level security;
 alter table public.nutrition_logs enable row level security;
+alter table public.lift_logs  enable row level security;
 
 do $$
 declare t text;
 begin
   foreach t in array array[
-    'habits', 'habit_logs', 'goals', 'identity', 'day_notes', 'reviews', 'nutrition_logs'
+    'habits', 'habit_logs', 'goals', 'identity', 'day_notes', 'reviews',
+    'nutrition_logs', 'lift_logs'
   ] loop
     execute format('drop policy if exists "own rows read"   on public.%I', t);
     execute format('drop policy if exists "own rows insert" on public.%I', t);
@@ -279,6 +308,7 @@ set search_path = public
 as $$
   delete from public.habit_logs where deleted and updated_at < now() - older_than;
   delete from public.nutrition_logs where deleted and updated_at < now() - older_than;
+  delete from public.lift_logs where deleted and updated_at < now() - older_than;
   delete from public.goals      where deleted and updated_at < now() - older_than;
   delete from public.habits     where deleted and updated_at < now() - older_than;
 $$;

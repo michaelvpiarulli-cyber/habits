@@ -388,3 +388,165 @@ export function weekAhead(fromIso) {
 /** Disclaimer shown under the expanded session list. */
 export const PROGRAM_DISCLAIMER =
   'General programming, not physio. A back that rules out deadlifts warrants a professional opinion.';
+
+/** Dumbbells available in this gym — progression can only land on these. */
+export const DUMBBELL_STEPS_LB = [5, 10, 15];
+
+/** Smallest plate jump that still fits a home-gym bar loaded under 135. */
+export const BARBELL_STEP_LB = 5;
+
+/** Machine stack notch used when a working set tops its rep range. */
+export const MACHINE_STEP_LB = 5;
+
+/**
+ * Parse a program sets string like "4 × 8–10" or "3 × 8 each".
+ * Cardio durations ("30 min") return null so callers can skip overload.
+ */
+export function parseSets(setsStr) {
+  if (!setsStr) return null;
+  const each = /\beach\b/i.test(setsStr);
+  const range = String(setsStr).match(
+    /(\d+)\s*[×x]\s*(\d+)(?:\s*[–\-]\s*(\d+))?/i
+  );
+  if (!range) return null;
+  const setCount = Number(range[1]);
+  const repLow = Number(range[2]);
+  const repHigh = range[3] ? Number(range[3]) : repLow;
+  return { setCount, repLow, repHigh, each };
+}
+
+/** Display string for a loadKind + numeric lb. */
+export function formatLoad(loadKind, loadLb) {
+  if (loadKind === 'bodyweight') return 'bodyweight';
+  if (loadKind === 'cardio') return 'conversational';
+  if (loadLb == null || Number.isNaN(Number(loadLb))) return '';
+  const n = Number(loadLb);
+  if (loadKind === 'dumbbell') return `${n} lb each`;
+  return `${n} lb`;
+}
+
+/** Display string for sets × reps, preserving an "each" side marker. */
+export function formatSets(setCount, reps, { each = false } = {}) {
+  const base = `${setCount} × ${reps}`;
+  return each ? `${base} each` : base;
+}
+
+function atLoadCeiling(loadKind, loadLb) {
+  if (loadKind === 'bodyweight') return true;
+  if (loadKind === 'barbell') return Number(loadLb) >= BARBELL_MAX_LB;
+  if (loadKind === 'dumbbell') return Number(loadLb) >= DUMBBELL_MAX_LB;
+  return false;
+}
+
+function bumpLoad(loadKind, loadLb) {
+  const current = Number(loadLb) || 0;
+  if (loadKind === 'barbell') {
+    return Math.min(BARBELL_MAX_LB, current + BARBELL_STEP_LB);
+  }
+  if (loadKind === 'dumbbell') {
+    return DUMBBELL_STEPS_LB.find((step) => step > current) ?? DUMBBELL_MAX_LB;
+  }
+  if (loadKind === 'machine') {
+    return current + MACHINE_STEP_LB;
+  }
+  return current;
+}
+
+/**
+ * Next working-set target from a program lift + the last logged performance.
+ *
+ * Rules (equipment ceilings in mind):
+ * - No history → program baseline.
+ * - Cardio → program baseline, no overload.
+ * - Under ceiling and reps hit the range top → add load, reset reps to the low.
+ * - Under ceiling and reps still short → +1 rep, same load.
+ * - At ceiling (or bodyweight) and reps short → +1 rep, same load.
+ * - At ceiling and reps already at/above the top → hold; cue tempo or an extra set.
+ *
+ * Returns a lift-shaped object plus `cue` (short why) and `source`
+ * ('program' | 'progress' | 'hold').
+ */
+export function prescribeNext(programLift, lastLog) {
+  const parsed = parseSets(programLift.sets);
+  const baseline = {
+    move: programLift.move,
+    sets: programLift.sets,
+    load: programLift.load,
+    loadKind: programLift.loadKind,
+    loadLb: programLift.loadLb,
+    setCount: parsed?.setCount ?? null,
+    reps: parsed?.repHigh ?? parsed?.repLow ?? null,
+    note: programLift.note,
+    cue: null,
+    source: 'program',
+  };
+
+  if (!parsed || programLift.loadKind === 'cardio') return baseline;
+  if (!lastLog || lastLog.reps == null || lastLog.sets == null) return baseline;
+
+  const loadKind = programLift.loadKind;
+  const lastLoad =
+    loadKind === 'bodyweight' ? null : Number(lastLog.loadLb ?? programLift.loadLb);
+  const lastReps = Number(lastLog.reps);
+  const lastSets = Number(lastLog.sets) || parsed.setCount;
+  const { repLow, repHigh, each } = parsed;
+
+  if (!Number.isFinite(lastReps) || lastReps <= 0) return baseline;
+
+  const ceiling = atLoadCeiling(loadKind, lastLoad ?? 0);
+
+  // Hit the top of the range under a movable load → add weight, restart reps.
+  if (!ceiling && lastReps >= repHigh) {
+    const nextLoad = bumpLoad(loadKind, lastLoad);
+    const bumped = nextLoad !== lastLoad;
+    return {
+      move: programLift.move,
+      setCount: lastSets,
+      reps: repLow,
+      sets: formatSets(lastSets, repLow, { each }),
+      loadKind,
+      loadLb: nextLoad,
+      load: formatLoad(loadKind, nextLoad),
+      note: programLift.note,
+      cue: bumped
+        ? `Last hit ${lastReps} — add load, restart at ${repLow}`
+        : `Hold ${formatLoad(loadKind, nextLoad)}; load is topped out`,
+      source: bumped ? 'progress' : 'hold',
+    };
+  }
+
+  // Still climbing the rep range (or at a load ceiling) → +1 rep.
+  if (lastReps < repHigh) {
+    const nextReps = lastReps + 1;
+    return {
+      move: programLift.move,
+      setCount: lastSets,
+      reps: nextReps,
+      sets: formatSets(lastSets, nextReps, { each }),
+      loadKind,
+      loadLb: lastLoad,
+      load: formatLoad(loadKind, lastLoad),
+      note: programLift.note,
+      cue: `Last hit ${lastReps} — go for ${nextReps}`,
+      source: 'progress',
+    };
+  }
+
+  // At ceiling with the range already cleared — hold and change the quality.
+  const holdLoad = lastLoad;
+  return {
+    move: programLift.move,
+    setCount: lastSets,
+    reps: Math.max(lastReps, repHigh),
+    sets: formatSets(lastSets, Math.max(lastReps, repHigh), { each }),
+    loadKind,
+    loadLb: holdLoad,
+    load: formatLoad(loadKind, holdLoad),
+    note: programLift.note,
+    cue:
+      loadKind === 'bodyweight'
+        ? `Range cleared — add a set or slow the eccentric`
+        : `At the ${formatLoad(loadKind, holdLoad)} ceiling — 3-second eccentric`,
+    source: 'hold',
+  };
+}

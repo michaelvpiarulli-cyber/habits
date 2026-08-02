@@ -13,6 +13,10 @@ import {
   PROGRAM_DISCLAIMER,
   SESSIONS,
   WEEK,
+  parseSets,
+  formatLoad,
+  formatSets,
+  prescribeNext,
   sessionFor,
   weekAhead,
 } from '../src/lib/workouts.js';
@@ -228,6 +232,107 @@ test('weekAhead on Sunday rolls to next Mon–Sun', () => {
   assert.equal(ahead.days[0].day, '2026-08-03');
   assert.equal(ahead.days[0].session.name, 'Push');
   assert.equal(ahead.days[6].session.kind, 'walk');
+});
+
+test('parseSets reads set × rep ranges and each-side markers', () => {
+  assert.deepEqual(parseSets('4 × 8–10'), {
+    setCount: 4,
+    repLow: 8,
+    repHigh: 10,
+    each: false,
+  });
+  assert.deepEqual(parseSets('3 × 8 each'), {
+    setCount: 3,
+    repLow: 8,
+    repHigh: 8,
+    each: true,
+  });
+  assert.equal(parseSets('30 min'), null);
+});
+
+test('formatLoad and formatSets match program display language', () => {
+  assert.equal(formatLoad('barbell', 135), '135 lb');
+  assert.equal(formatLoad('dumbbell', 15), '15 lb each');
+  assert.equal(formatLoad('bodyweight', null), 'bodyweight');
+  assert.equal(formatSets(4, 9), '4 × 9');
+  assert.equal(formatSets(3, 10, { each: true }), '3 × 10 each');
+});
+
+test('prescribeNext returns the program baseline with no history', () => {
+  const bench = SESSIONS.push.lifts[0];
+  const next = prescribeNext(bench, null);
+  assert.equal(next.source, 'program');
+  assert.equal(next.loadLb, 135);
+  assert.equal(next.sets, bench.sets);
+  assert.equal(next.cue, null);
+});
+
+test('prescribeNext adds a rep at the barbell ceiling', () => {
+  const bench = SESSIONS.push.lifts[0]; // 4 × 8–10 @ 135
+  const next = prescribeNext(bench, { loadLb: 135, sets: 4, reps: 8 });
+  assert.equal(next.source, 'progress');
+  assert.equal(next.loadLb, 135);
+  assert.equal(next.reps, 9);
+  assert.equal(next.sets, '4 × 9');
+  assert.match(next.cue, /go for 9/i);
+});
+
+test('prescribeNext holds at ceiling once the rep range is cleared', () => {
+  const bench = SESSIONS.push.lifts[0];
+  const next = prescribeNext(bench, { loadLb: 135, sets: 4, reps: 10 });
+  assert.equal(next.source, 'hold');
+  assert.equal(next.loadLb, BARBELL_MAX_LB);
+  assert.equal(next.reps, 10);
+  assert.match(next.cue, /eccentric/i);
+});
+
+test('prescribeNext adds load under the barbell ceiling after topping reps', () => {
+  const ohp = SESSIONS.push.lifts[1]; // 4 × 8 @ 80
+  const next = prescribeNext(ohp, { loadLb: 80, sets: 4, reps: 8 });
+  assert.equal(next.source, 'progress');
+  assert.equal(next.loadLb, 85);
+  assert.equal(next.reps, 8);
+  assert.equal(next.sets, '4 × 8');
+  assert.match(next.cue, /add load/i);
+});
+
+test('prescribeNext climbs dumbbell steps and stops at 15', () => {
+  const fly = SESSIONS.push2.lifts[2]; // 3 × 12–15 @ 15
+  const mid = prescribeNext(
+    { ...fly, loadLb: 10, load: '10 lb each' },
+    { loadLb: 10, sets: 3, reps: 15 }
+  );
+  assert.equal(mid.loadLb, 15);
+  assert.equal(mid.reps, 12);
+
+  const top = prescribeNext(fly, { loadLb: 15, sets: 3, reps: 15 });
+  assert.equal(top.source, 'hold');
+  assert.equal(top.loadLb, DUMBBELL_MAX_LB);
+  assert.match(top.cue, /ceiling|eccentric/i);
+});
+
+test('prescribeNext adds machine load with no hard ceiling', () => {
+  const pulldown = SESSIONS.pull.lifts[0]; // 4 × 8 @ 145
+  const next = prescribeNext(pulldown, { loadLb: 145, sets: 4, reps: 8 });
+  assert.equal(next.source, 'progress');
+  assert.equal(next.loadLb, 150);
+  assert.equal(next.reps, 8);
+});
+
+test('prescribeNext progresses bodyweight via reps only', () => {
+  const dips = SESSIONS.push.lifts[3]; // 3 × 12–15
+  const next = prescribeNext(dips, { loadLb: null, sets: 3, reps: 12 });
+  assert.equal(next.source, 'progress');
+  assert.equal(next.loadKind, 'bodyweight');
+  assert.equal(next.reps, 13);
+  assert.equal(next.load, 'bodyweight');
+});
+
+test('prescribeNext leaves cardio alone', () => {
+  const run = SESSIONS.run.lifts[0];
+  const next = prescribeNext(run, { loadLb: null, sets: 1, reps: 30 });
+  assert.equal(next.source, 'program');
+  assert.equal(next.sets, run.sets);
 });
 
 if (failed) {

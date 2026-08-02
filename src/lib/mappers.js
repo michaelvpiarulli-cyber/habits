@@ -176,6 +176,33 @@ export const nutritionToRow = (n, userId) => ({
   updated_at: n.updatedAt,
 });
 
+export const liftLogFromRow = (r) => ({
+  id: r.id,
+  day: r.day,
+  move: r.move,
+  loadKind: r.load_kind || 'barbell',
+  loadLb: num(r.load_lb),
+  sets: num(r.sets),
+  reps: num(r.reps),
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const liftLogToRow = (l, userId) => ({
+  id: l.id,
+  user_id: userId,
+  day: l.day,
+  move: l.move,
+  load_kind: l.loadKind || 'barbell',
+  load_lb: l.loadLb ?? null,
+  sets: l.sets ?? null,
+  reps: l.reps ?? null,
+  deleted: !!l.deleted,
+  created_at: l.createdAt,
+  updated_at: l.updatedAt,
+});
+
 export const goalFromRow = (r) => ({
   id: r.id,
   title: r.title,
