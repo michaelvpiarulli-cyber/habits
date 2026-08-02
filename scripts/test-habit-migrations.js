@@ -231,10 +231,26 @@ const custom = (fields) => ({
   assert.equal(result.habits[0].target, 4);
   assert.equal(result.habits[0].unit, 'moves');
   assert.equal(result.habits[0].cadence, 'weekdays');
-  assert.deepEqual(result.habits[0].weekdays, [0, 1, 2, 3, 4]);
+  assert.deepEqual(result.habits[0].weekdays, [0, 1, 3, 4, 6]);
   assert.equal(result.habits[0].updatedAt, CLEANED_AT);
   assert.equal(result.habits[1].target, 3);
   assert.equal(result.habits[1].cadence, 'daily');
+}
+
+{
+  const monFri = {
+    id: STARTER_HABITS[2].id,
+    name: 'Lift',
+    kind: 'count',
+    target: 4,
+    unit: 'moves',
+    cadence: 'weekdays',
+    weekdays: [0, 1, 2, 3, 4],
+    deleted: false,
+    updatedAt: SEED_TIME,
+  };
+  const result = migrateLiftHabitToProgram([monFri], CLEANED_AT);
+  assert.deepEqual(result.habits[0].weekdays, [0, 1, 3, 4, 6]);
 }
 
 {
@@ -242,7 +258,7 @@ const custom = (fields) => ({
   assert.equal(lift.cadence, 'weekdays');
   assert.equal(lift.target, 4);
   assert.equal(lift.unit, 'moves');
-  assert.deepEqual(lift.weekdays, [0, 1, 2, 3, 4]);
+  assert.deepEqual(lift.weekdays, [0, 1, 3, 4, 6]);
 }
 
 console.log('habit migrations\n\nall tests passed');

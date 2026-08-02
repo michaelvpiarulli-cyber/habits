@@ -140,9 +140,9 @@ export const STARTER_HABITS = [
     kind: 'count',
     target: 4,
     unit: 'moves',
-    // Matches the Mon–Fri lifting week in lib/workouts.js.
+    // Matches lift days in lib/workouts.js: Mon, Tue, Thu, Fri, Sun.
     cadence: 'weekdays',
-    weekdays: [0, 1, 2, 3, 4],
+    weekdays: [0, 1, 3, 4, 6],
   },
   {
     id: '7a110000-0000-4000-8000-000000000004',
@@ -185,10 +185,11 @@ const STARTER_ALIASES = new Map([
 export const LIFT_STARTER_ID = STARTER_HABITS[2].id;
 
 /**
- * Soft-upgrade the old Lift seed (daily · 2 lifts) to the Mon–Fri program.
+ * Soft-upgrade the old Lift seed (daily · 2 lifts) to the program lift days.
  * Skips habits that have already been customized away from that shape.
  */
 export function migrateLiftHabitToProgram(habits, migratedAt = new Date().toISOString()) {
+  const programDays = [0, 1, 3, 4, 6];
   const changedIds = new Set();
   const next = habits.map((habit) => {
     if (habit.deleted || (habit.kind || 'check') !== 'count') return habit;
@@ -198,11 +199,17 @@ export function migrateLiftHabitToProgram(habits, migratedAt = new Date().toISOS
         : STARTER_ALIASES.get(normalizeStarterName(habit.name));
     if (familyId !== LIFT_STARTER_ID) return habit;
 
+    const days = habit.weekdays || [];
     const isOldDefault =
-      (habit.cadence || 'daily') === 'daily' &&
-      Number(habit.target) === 2 &&
-      (habit.unit || '') === 'lifts' &&
-      (habit.weekdays || []).length === 0;
+      ((habit.cadence || 'daily') === 'daily' &&
+        Number(habit.target) === 2 &&
+        (habit.unit || '') === 'lifts' &&
+        days.length === 0) ||
+      // Prior fitness migration used Mon–Fri before Legs moved to Sunday.
+      (habit.cadence === 'weekdays' &&
+        Number(habit.target) === 4 &&
+        (habit.unit || '') === 'moves' &&
+        JSON.stringify(days) === JSON.stringify([0, 1, 2, 3, 4]));
     if (!isOldDefault) return habit;
 
     changedIds.add(habit.id);
@@ -211,7 +218,7 @@ export function migrateLiftHabitToProgram(habits, migratedAt = new Date().toISOS
       target: 4,
       unit: 'moves',
       cadence: 'weekdays',
-      weekdays: [0, 1, 2, 3, 4],
+      weekdays: programDays,
       updatedAt: migratedAt,
     };
   });
