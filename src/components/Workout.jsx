@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { useData } from '../context/DataProvider';
+import { targetOf } from '../lib/habits';
 import { dow } from '../lib/dates';
-import { PROGRAM_DISCLAIMER, sessionFor, weekAhead } from '../lib/workouts';
+import {
+  PROGRAM_DISCLAIMER,
+  findLiftHabit,
+  findWalkHabit,
+  sessionFor,
+  sessionProgress,
+  weekAhead,
+} from '../lib/workouts';
 
 /**
  * Today's session on the daily tab.
@@ -11,41 +19,73 @@ import { PROGRAM_DISCLAIMER, sessionFor, weekAhead } from '../lib/workouts';
  * the list. Tapping the third movement sets that count to three. One number,
  * already syncing, and no table for something that is only meaningful today.
  *
+ * Cardio days (run / walk) still write that 0/1 into the Lift habit so the
+ * training record can see them, even though Lift itself is only due Mon–Fri.
+ * Finishing a cardio session also nudges Walk after meals once.
+ *
  * Collapsed to the session name until tapped, because on a Monday you mostly
  * need to know it is push day, not to read twelve sets on the way past.
- *
- * Below the collapsible today block, a compact look-ahead lists the rest of
- * the week (or next week on Sunday) from the same weekday program — readable
- * without changing the date or opening today's lifts.
  */
 export function Workout({ day }) {
   const { activeHabits, logFor, setValue } = useData();
   const session = sessionFor(dow(day));
   const ahead = weekAhead(day);
+  const isCardio = session.kind === 'run' || session.kind === 'walk';
 
-  // The count habit this session drives, if there is one.
-  const lift = activeHabits.find((h) => h.kind === 'count' && /lift/i.test(h.name));
-  const done = lift ? Number(logFor(lift.id, day)?.amount) || 0 : 0;
+  const lift = findLiftHabit(activeHabits);
+  const walk = findWalkHabit(activeHabits);
+  const logged = lift ? Number(logFor(lift.id, day)?.amount) || 0 : 0;
+  const { done, total, complete, fraction } = sessionProgress(session, logged);
 
   const [open, setOpen] = useState(false);
 
   const mark = (index) => {
     if (!lift) return;
-    // Tapping the movement you just finished sets the count to its position;
-    // tapping the last completed one again steps back.
-    setValue(lift, day, done === index + 1 ? index : index + 1);
+    const next = done === index + 1 ? index : index + 1;
+    setValue(lift, day, next);
+
+    // Cardio completion is a nudge, not a wipe — only bump walk when finishing.
+    if (isCardio && walk && next >= total && done < total) {
+      const current = Number(logFor(walk.id, day)?.amount) || 0;
+      if (current < targetOf(walk)) setValue(walk, day, current + 1);
+    }
   };
 
+  const markAll = () => {
+    if (!lift || complete) return;
+    setValue(lift, day, total);
+    if (isCardio && walk) {
+      const current = Number(logFor(walk.id, day)?.amount) || 0;
+      if (current < targetOf(walk)) setValue(walk, day, current + 1);
+    }
+  };
+
+  const summary = !lift
+    ? session.focus
+    : complete
+      ? 'Done'
+      : done > 0
+        ? `${done} of ${total}`
+        : session.focus;
+
   return (
-    <section className={`workout workout--${session.kind}`}>
-      <button type="button" className="workout__head" onClick={() => setOpen((o) => !o)}>
+    <section className={`workout workout--${session.kind} ${complete ? 'is-complete' : ''}`}>
+      <button
+        type="button"
+        className="workout__head"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
         <span>
           <span className="eyebrow">Today’s training</span>
           <span className="workout__name">{session.name}</span>
-          <span className="workout__focus">{session.focus}</span>
+          <span className="workout__focus">{summary}</span>
         </span>
-        <span className="workout__toggle" aria-hidden="true">
-          {open ? '−' : '+'}
+        <span className="workout__meta" aria-hidden="true">
+          {lift && total > 0 && (
+            <span className="workout__fill" style={{ '--fill': `${Math.round(fraction * 100)}%` }} />
+          )}
+          <span className="workout__toggle">{open ? '−' : '+'}</span>
         </span>
       </button>
 
@@ -79,6 +119,15 @@ export function Workout({ day }) {
               );
             })}
           </ol>
+
+          {lift && !complete && (
+            <div className="workout__actions">
+              <button type="button" className="btn" onClick={markAll}>
+                Mark session done
+              </button>
+            </div>
+          )}
+
           <p className="workout__disclaimer">{PROGRAM_DISCLAIMER}</p>
         </>
       )}

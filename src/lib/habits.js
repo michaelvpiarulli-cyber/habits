@@ -138,9 +138,11 @@ export const STARTER_HABITS = [
     name: 'Lift',
     emoji: '\u{1F3CB}',
     kind: 'count',
-    target: 2,
-    unit: 'lifts',
-    cadence: 'daily',
+    target: 4,
+    unit: 'moves',
+    // Matches lift days in lib/workouts.js: every day except Saturday.
+    cadence: 'weekdays',
+    weekdays: [0, 1, 2, 3, 4, 6],
   },
   {
     id: '7a110000-0000-4000-8000-000000000004',
@@ -179,6 +181,49 @@ const STARTER_ALIASES = new Map([
   ['protein', STARTER_HABITS[4].id],
   ['weigh in', STARTER_HABITS[5].id],
 ]);
+
+export const LIFT_STARTER_ID = STARTER_HABITS[2].id;
+
+/**
+ * Soft-upgrade the old Lift seed (daily · 2 lifts) to the program lift days.
+ * Skips habits that have already been customized away from that shape.
+ */
+export function migrateLiftHabitToProgram(habits, migratedAt = new Date().toISOString()) {
+  const programDays = [0, 1, 2, 3, 4, 6];
+  const changedIds = new Set();
+  const next = habits.map((habit) => {
+    if (habit.deleted || (habit.kind || 'check') !== 'count') return habit;
+    const familyId =
+      habit.id === LIFT_STARTER_ID
+        ? LIFT_STARTER_ID
+        : STARTER_ALIASES.get(normalizeStarterName(habit.name));
+    if (familyId !== LIFT_STARTER_ID) return habit;
+
+    const days = habit.weekdays || [];
+    const isOldDefault =
+      ((habit.cadence || 'daily') === 'daily' &&
+        Number(habit.target) === 2 &&
+        (habit.unit || '') === 'lifts' &&
+        days.length === 0) ||
+      (habit.cadence === 'weekdays' &&
+        Number(habit.target) === 4 &&
+        (habit.unit || '') === 'moves' &&
+        (JSON.stringify(days) === JSON.stringify([0, 1, 2, 3, 4]) ||
+          JSON.stringify(days) === JSON.stringify([0, 1, 3, 4, 6])));
+    if (!isOldDefault) return habit;
+
+    changedIds.add(habit.id);
+    return {
+      ...habit,
+      target: 4,
+      unit: 'moves',
+      cadence: 'weekdays',
+      weekdays: programDays,
+      updatedAt: migratedAt,
+    };
+  });
+  return { habits: next, changedIds };
+}
 
 const normalizeStarterName = (name) =>
   String(name || '')

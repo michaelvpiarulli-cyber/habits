@@ -5,6 +5,10 @@ A habit and goal tracker. Same stack as `bible-year-plan` — Vite + React + Sup
 Six habits ship as the starting set: whole foods, walk after meals, lift, sleep, protein, weigh in.
 Edit or delete any of them on the Habits tab.
 
+Lift is due Mon–Fri and tracks the four prescribed moves on each training day. Saturday’s easy run
+and Sunday’s brisk walk still show under Today’s training; finishing them nudges Walk after meals.
+The Record tab plots the training week and macro trends alongside the habit contact sheet.
+
 ## How habits are tracked
 
 Not everything is a checkbox, so a habit picks one of four kinds:

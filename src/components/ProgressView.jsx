@@ -4,6 +4,7 @@ import { addDays, monthLabel, parseISO, rangeOfDays, todayISO } from '../lib/dat
 import { describeCadence, describeTarget, fractionOf, isTrend } from '../lib/habits';
 import { bestStreak, completionRate, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { TrendChart } from './TrendChart';
+import { TrainingRecord } from './TrainingRecord';
 import { ReviewList } from './WeeklyReview';
 
 const HISTORY_DAYS = 84; // twelve weeks — enough to see a pattern, few enough to scan
@@ -125,12 +126,29 @@ function StreakCard({ habit, doneSet, today, from }) {
 }
 
 export function ProgressView() {
-  const { activeHabits, doneSets, doneSetFor, logFor, valueFor } = useData();
+  const { activeHabits, doneSets, doneSetFor, logFor, valueFor, nutritionFor } = useData();
   const today = todayISO();
   const from = addDays(today, -(HISTORY_DAYS - 1));
   const days = useMemo(() => rangeOfDays(from, today), [from, today]);
 
   const trendHabits = activeHabits.filter(isTrend);
+  const proteinPoints = useMemo(
+    () =>
+      days
+        .map((day) => ({ day, value: nutritionFor(day).protein || 0 }))
+        .filter((point) => point.value > 0),
+    [days, nutritionFor]
+  );
+  const caloriePoints = useMemo(
+    () =>
+      days
+        .map((day) => ({ day, value: nutritionFor(day).calories || 0 }))
+        .filter((point) => point.value > 0),
+    [days, nutritionFor]
+  );
+  const proteinHabit = activeHabits.find(
+    (habit) => habit.kind === 'amount' && /protein/i.test(habit.name)
+  );
 
   if (activeHabits.length === 0) {
     return (
@@ -159,6 +177,31 @@ export function ProgressView() {
         <span className="key key--full" /> done
         <span className="key key--perfect" /> everything
       </p>
+
+      <TrainingRecord />
+
+      {(proteinPoints.length > 0 || caloriePoints.length > 0) && (
+        <section className="section">
+          <h2 className="eyebrow">Macros</h2>
+          <p className="section__note">From the daily macro tally — not a fourth habit to pass or fail.</p>
+          {proteinPoints.length > 0 && (
+            <div className="macro-trend">
+              <h3 className="eyebrow">Protein</h3>
+              <TrendChart
+                points={proteinPoints}
+                target={proteinHabit?.target || null}
+                unit="g"
+              />
+            </div>
+          )}
+          {caloriePoints.length > 0 && (
+            <div className="macro-trend">
+              <h3 className="eyebrow">Calories</h3>
+              <TrendChart points={caloriePoints} unit="kcal" />
+            </div>
+          )}
+        </section>
+      )}
 
       {trendHabits.map((habit) => {
         const points = days

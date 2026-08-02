@@ -13,7 +13,10 @@ import {
   PROGRAM_DISCLAIMER,
   SESSIONS,
   WEEK,
+  findLiftHabit,
+  findWalkHabit,
   sessionFor,
+  sessionProgress,
   weekAhead,
 } from '../src/lib/workouts.js';
 
@@ -32,7 +35,7 @@ function test(name, fn) {
 
 console.log('workouts');
 
-test('weekday schedule: Mon push, Tue pull, Wed legs, Thu push, Fri pull, Sat run, Sun walk', () => {
+test('weekday schedule: Mon push, Tue pull, Wed legs, Thu push, Fri pull, Sat run, Sun legs', () => {
   assert.equal(WEEK.length, 7);
   assert.equal(WEEK[0], SESSIONS.push);
   assert.equal(WEEK[1], SESSIONS.pull);
@@ -40,7 +43,7 @@ test('weekday schedule: Mon push, Tue pull, Wed legs, Thu push, Fri pull, Sat ru
   assert.equal(WEEK[3], SESSIONS.push2);
   assert.equal(WEEK[4], SESSIONS.pull2);
   assert.equal(WEEK[5], SESSIONS.run);
-  assert.equal(WEEK[6], SESSIONS.walk);
+  assert.equal(WEEK[6], SESSIONS.legs);
 
   assert.equal(sessionFor(0).name, 'Push');
   assert.equal(sessionFor(1).name, 'Pull');
@@ -48,11 +51,11 @@ test('weekday schedule: Mon push, Tue pull, Wed legs, Thu push, Fri pull, Sat ru
   assert.equal(sessionFor(3).name, 'Push');
   assert.equal(sessionFor(4).name, 'Pull');
   assert.equal(sessionFor(5).kind, 'run');
-  assert.equal(sessionFor(6).kind, 'walk');
+  assert.equal(sessionFor(6).name, 'Legs');
 
   const kinds = WEEK.map((s) => s.kind);
   assert.equal(kinds.filter((k) => k === 'run').length, 1);
-  assert.equal(kinds.filter((k) => k === 'walk').length, 1);
+  assert.equal(WEEK.filter((s) => s.name === 'Legs').length, 2);
   assert.equal(WEEK.filter((s) => s.name === 'Push').length, 2);
 });
 
@@ -67,8 +70,8 @@ test('no hybrid upper day — lift days are only Push, Pull, or Legs', () => {
   assert.equal(SESSIONS.upper, undefined);
 });
 
-test('lift days are Mon–Fri (0, 1, 2, 3, 4)', () => {
-  assert.deepEqual(LIFT_DAYS, [0, 1, 2, 3, 4]);
+test('lift days are every day except Saturday', () => {
+  assert.deepEqual(LIFT_DAYS, [0, 1, 2, 3, 4, 6]);
   for (const d of LIFT_DAYS) {
     assert.equal(sessionFor(d).kind, 'lift');
   }
@@ -202,23 +205,23 @@ test('weekAhead lists remaining days of the week after today', () => {
       ['Thu', 'Push'],
       ['Fri', 'Pull'],
       ['Sat', 'Easy run'],
-      ['Sun', 'Brisk walk'],
+      ['Sun', 'Legs'],
     ]
   );
   assert.equal(ahead.days[0].day, '2026-07-28');
 });
 
-test('weekAhead on Friday is Sat run then Sun walk', () => {
+test('weekAhead on Friday is Sat run then Sun legs', () => {
   const ahead = weekAhead('2026-07-31'); // Friday
   assert.equal(ahead.label, 'Coming up');
   assert.equal(ahead.days.length, 2);
   assert.equal(ahead.days[0].session.kind, 'run');
-  assert.equal(ahead.days[1].session.kind, 'walk');
+  assert.equal(ahead.days[1].session.name, 'Legs');
 });
 
-test('week has exactly one run and one walk', () => {
+test('week has exactly one run and two legs days', () => {
   assert.equal(WEEK.filter((s) => s.kind === 'run').length, 1);
-  assert.equal(WEEK.filter((s) => s.kind === 'walk').length, 1);
+  assert.equal(WEEK.filter((s) => s.name === 'Legs').length, 2);
 });
 
 test('weekAhead on Sunday rolls to next Mon–Sun', () => {
@@ -227,7 +230,34 @@ test('weekAhead on Sunday rolls to next Mon–Sun', () => {
   assert.equal(ahead.days.length, 7);
   assert.equal(ahead.days[0].day, '2026-08-03');
   assert.equal(ahead.days[0].session.name, 'Push');
-  assert.equal(ahead.days[6].session.kind, 'walk');
+  assert.equal(ahead.days[6].session.name, 'Legs');
+});
+
+test('sessionProgress clamps to the prescribed move list', () => {
+  const push = SESSIONS.push;
+  assert.deepEqual(sessionProgress(push, 0), {
+    done: 0,
+    total: 4,
+    complete: false,
+    fraction: 0,
+  });
+  assert.equal(sessionProgress(push, 2).done, 2);
+  assert.equal(sessionProgress(push, 2).complete, false);
+  assert.equal(sessionProgress(push, 4).complete, true);
+  assert.equal(sessionProgress(push, 99).done, 4);
+  assert.equal(sessionProgress(SESSIONS.run, 1).complete, true);
+});
+
+test('findLiftHabit / findWalkHabit pick the count habits the UI writes to', () => {
+  const habits = [
+    { kind: 'count', name: 'Walk after meals' },
+    { kind: 'amount', name: 'Protein' },
+    { kind: 'count', name: 'Lift' },
+  ];
+  assert.equal(findLiftHabit(habits).name, 'Lift');
+  assert.equal(findWalkHabit(habits).name, 'Walk after meals');
+  assert.equal(findLiftHabit([{ kind: 'count', name: 'Workout' }]).name, 'Workout');
+  assert.equal(findLiftHabit([]), null);
 });
 
 if (failed) {

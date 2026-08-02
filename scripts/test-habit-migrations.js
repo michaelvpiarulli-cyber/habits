@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   cleanupStarterHabitDuplicates,
   findStarterHabitCounterpart,
+  migrateLiftHabitToProgram,
   SEED_TIME,
   STARTER_HABITS,
 } from '../src/lib/habits.js';
@@ -195,6 +196,85 @@ const custom = (fields) => ({
 
   assert.equal(result.habits.find((habit) => habit.id === first.id).deleted, false);
   assert.equal(result.habits.find((habit) => habit.id === second.id).deleted, true);
+}
+
+{
+  const oldLift = {
+    id: STARTER_HABITS[2].id,
+    name: 'Lift',
+    emoji: '🏋️',
+    kind: 'count',
+    target: 2,
+    unit: 'lifts',
+    cadence: 'daily',
+    weekdays: [],
+    perWeek: 3,
+    floor: null,
+    cue: '',
+    afterId: null,
+    archived: false,
+    sortOrder: 2,
+    deleted: false,
+    createdAt: '2026-07-26T00:00:00.000Z',
+    updatedAt: SEED_TIME,
+  };
+  const customized = {
+    ...oldLift,
+    id: 'custom-lift',
+    target: 3,
+    unit: 'sets',
+    updatedAt: '2026-07-30T12:00:00.000Z',
+  };
+  const result = migrateLiftHabitToProgram([oldLift, customized], CLEANED_AT);
+
+  assert.deepEqual(result.changedIds, new Set([oldLift.id]));
+  assert.equal(result.habits[0].target, 4);
+  assert.equal(result.habits[0].unit, 'moves');
+  assert.equal(result.habits[0].cadence, 'weekdays');
+  assert.deepEqual(result.habits[0].weekdays, [0, 1, 2, 3, 4, 6]);
+  assert.equal(result.habits[0].updatedAt, CLEANED_AT);
+  assert.equal(result.habits[1].target, 3);
+  assert.equal(result.habits[1].cadence, 'daily');
+}
+
+{
+  const monFri = {
+    id: STARTER_HABITS[2].id,
+    name: 'Lift',
+    kind: 'count',
+    target: 4,
+    unit: 'moves',
+    cadence: 'weekdays',
+    weekdays: [0, 1, 2, 3, 4],
+    deleted: false,
+    updatedAt: SEED_TIME,
+  };
+  const result = migrateLiftHabitToProgram([monFri], CLEANED_AT);
+  assert.deepEqual(result.habits[0].weekdays, [0, 1, 2, 3, 4, 6]);
+}
+
+{
+  const noWed = {
+    id: STARTER_HABITS[2].id,
+    name: 'Lift',
+    kind: 'count',
+    target: 4,
+    unit: 'moves',
+    cadence: 'weekdays',
+    weekdays: [0, 1, 3, 4, 6],
+    deleted: false,
+    updatedAt: SEED_TIME,
+  };
+  const result = migrateLiftHabitToProgram([noWed], CLEANED_AT);
+  assert.deepEqual(result.habits[0].weekdays, [0, 1, 2, 3, 4, 6]);
+}
+
+{
+  const lift = STARTER_HABITS[2];
+  assert.equal(lift.cadence, 'weekdays');
+  assert.equal(lift.target, 4);
+  assert.equal(lift.unit, 'moves');
+  assert.deepEqual(lift.weekdays, [0, 1, 2, 3, 4, 6]);
 }
 
 console.log('habit migrations\n\nall tests passed');
