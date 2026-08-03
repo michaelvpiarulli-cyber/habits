@@ -104,9 +104,17 @@ create table if not exists public.habit_logs (
   note       text,
   deleted    boolean     not null default false,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (habit_id, day)
+  updated_at timestamptz not null default now()
 );
+
+-- Living rows only. Soft-deleted tombstones must not block a later log on the
+-- same habit and day (clearing a day writes deleted=true; checking it again
+-- inserts a new living row). Safe to re-run: drop the original unique constraint
+-- if an older install still has it, then create the partial index.
+alter table public.habit_logs drop constraint if exists habit_logs_habit_id_day_key;
+create unique index if not exists habit_logs_habit_day_alive_idx
+  on public.habit_logs (habit_id, day)
+  where not deleted;
 
 create index if not exists habit_logs_user_day_idx on public.habit_logs (user_id, day);
 
@@ -249,9 +257,15 @@ create table if not exists public.lift_logs (
   set_entries jsonb       not null default '[]'::jsonb,
   deleted     boolean     not null default false,
   created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
-  unique (user_id, day, move)
+  updated_at  timestamptz not null default now()
 );
+
+-- Living rows only. Soft-deleted tombstones must not block a later log on the
+-- same movement and day.
+alter table public.lift_logs drop constraint if exists lift_logs_user_id_day_move_key;
+create unique index if not exists lift_logs_user_day_move_alive_idx
+  on public.lift_logs (user_id, day, move)
+  where not deleted;
 
 -- Existing projects created before per-set entries existed.
 alter table public.lift_logs
