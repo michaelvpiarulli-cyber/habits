@@ -84,7 +84,14 @@ export function AccountMenu({ auth, theme, onClose }) {
           {syncAvailable && auth.user && (
             <div className="field">
               <p className="account__email">{auth.username}</p>
-              {syncError && <p className="note note--bad">{syncError}</p>}
+              {syncError && (
+                <p className="note note--bad">
+                  {syncError}
+                  {/missing in Supabase/i.test(syncError)
+                    ? ''
+                    : ' Workouts stay on this device until this clears.'}
+                </p>
+              )}
               <button type="button" className="btn" onClick={syncNow}>
                 Sync now
               </button>

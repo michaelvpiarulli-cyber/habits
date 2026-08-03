@@ -151,8 +151,9 @@ const TABLES = {
 /**
  * PostgREST's codes for "that table isn't there". A table added in a later
  * version of the schema may be missing from a project that has not run the
- * migration yet; when that happens the feature stays local instead of the whole
- * app reporting itself as broken.
+ * migration yet. Keep those rows dirty and surface the error so the data is
+ * uploaded once the table exists — clearing dirty here used to strand workouts
+ * on the device that logged them.
  */
 const MISSING_TABLE_CODES = new Set(['PGRST205', 'PGRST106', '42P01']);
 const isMissingTable = (error) => MISSING_TABLE_CODES.has(error?.code);
@@ -160,6 +161,8 @@ const isRlsViolation = (error) =>
   error?.code === '42501' || /row-level security/i.test(error?.message || '');
 const isUniqueViolation = (error) =>
   error?.code === '23505' || /duplicate key/i.test(error?.message || '');
+const missingTableMessage = (table) =>
+  `${table}: missing in Supabase — run supabase/schema.sql in the SQL editor, then Sync now`;
 
 const TOMBSTONE_TTL_DAYS = 90;
 const PUSH_DEBOUNCE_MS = 700;
@@ -176,6 +179,7 @@ const ACCOUNT_KINDS = [
 const ANONYMOUS_SCOPE = 'anonymous';
 const LEGACY_CLAIM_KEY = 'tally-legacy-account';
 const migratedKey = (userId) => `tally-account-migrated:${userId}`;
+const anonymousClaimedKey = (userId) => `tally-anonymous-claimed:${userId}`;
 const scopedKey = (kind, scope) => `${KEYS[kind]}:${scope}`;
 
 function loadList(key) {
@@ -280,6 +284,40 @@ function claimLegacyRecords(userId) {
     reviews: legacy.reviews,
     nutrition: legacy.nutrition,
     liftLogs: legacy.liftLogs,
+  };
+}
+
+/**
+ * Workouts and habits logged while signed out live under the anonymous scope.
+ * Fold them into the account once on first sign-in on this device so they can
+ * sync to the computer (and every other signed-in browser).
+ */
+function claimAnonymousRecords(userId) {
+  if (localStorage.getItem(anonymousClaimedKey(userId))) return null;
+  const anonymous = loadScopedRecords(ANONYMOUS_SCOPE);
+  const hasData = ACCOUNT_KINDS.some((kind) => anonymous[kind].length > 0);
+  localStorage.setItem(anonymousClaimedKey(userId), hasData ? 'claimed' : 'empty');
+  if (!hasData) return null;
+
+  return {
+    habits: anonymous.habits.map((habit) => ({
+      ...habit,
+      id: fixId(habit.id),
+      afterId: fixId(habit.afterId),
+    })),
+    logs: anonymous.logs.map((log) => ({
+      ...log,
+      habitId: fixId(log.habitId),
+    })),
+    goals: anonymous.goals.map((goal) => ({
+      ...goal,
+      habitId: fixId(goal.habitId),
+    })),
+    identity: anonymous.identity,
+    dayNotes: anonymous.dayNotes,
+    reviews: anonymous.reviews,
+    nutrition: anonymous.nutrition,
+    liftLogs: anonymous.liftLogs,
   };
 }
 
@@ -532,6 +570,12 @@ export function DataProvider({ children }) {
           ACCOUNT_KINDS.map((kind) => [kind, mergeById(records[kind], claimed[kind])])
         );
       }
+      const fromAnonymous = claimAnonymousRecords(user.id);
+      if (fromAnonymous) {
+        records = Object.fromEntries(
+          ACCOUNT_KINDS.map((kind) => [kind, mergeById(records[kind], fromAnonymous[kind])])
+        );
+      }
     } else {
       const hasScopedData = ACCOUNT_KINDS.some((kind) => records[kind].length > 0);
       const claimant = localStorage.getItem(LEGACY_CLAIM_KEY);
@@ -555,6 +599,32 @@ export function DataProvider({ children }) {
     setStorageScope(desiredScope);
     setSyncState(user ? 'syncing' : 'idle');
   }, [desiredScope, storageScope, user]);
+
+  // Already-signed-in sessions after an update still need a one-time fold of
+  // any workouts left in the anonymous browser cache.
+  useEffect(() => {
+    if (!user || storageScope !== user.id) return;
+    const fromAnonymous = claimAnonymousRecords(user.id);
+    if (!fromAnonymous) return;
+
+    setHabits((prev) => mergeById(prev, fromAnonymous.habits));
+    setLogs((prev) => mergeById(prev, fromAnonymous.logs));
+    setGoals((prev) => mergeById(prev, fromAnonymous.goals));
+    setIdentity((prev) => mergeById(prev, fromAnonymous.identity));
+    setDayNotes((prev) => mergeById(prev, fromAnonymous.dayNotes));
+    setReviews((prev) => mergeById(prev, fromAnonymous.reviews));
+    setNutrition((prev) => mergeById(prev, fromAnonymous.nutrition));
+    setLiftLogs((prev) => mergeById(prev, fromAnonymous.liftLogs));
+
+    fromAnonymous.habits.forEach((r) => markDirty('habits', r.id));
+    fromAnonymous.logs.forEach((r) => markDirty('logs', r.id));
+    fromAnonymous.goals.forEach((r) => markDirty('goals', r.id));
+    fromAnonymous.identity.forEach((r) => markDirty('identity', r.id));
+    fromAnonymous.dayNotes.forEach((r) => markDirty('dayNotes', r.id));
+    fromAnonymous.reviews.forEach((r) => markDirty('reviews', r.id));
+    fromAnonymous.nutrition.forEach((r) => markDirty('nutrition', r.id));
+    fromAnonymous.liftLogs.forEach((r) => markDirty('liftLogs', r.id));
+  }, [user, storageScope, markDirty]);
 
   // Persist the active account only. Countdown remains a device preference.
   useEffect(() => {
@@ -801,6 +871,7 @@ export function DataProvider({ children }) {
       const habitIdRewrites = new Map();
       const identityIdRewrites = new Map();
       const logIdRewrites = new Map();
+      const liftLogIdRewrites = new Map();
       const knownHabitIds = new Set(pending.habits.map((habit) => habit.id));
 
       const stillCurrent = () =>
@@ -828,6 +899,7 @@ export function DataProvider({ children }) {
             .select('*')
             .eq('habit_id', attempt.habit_id)
             .eq('day', attempt.day)
+            .eq('deleted', false)
             .maybeSingle();
           if (existing?.id) {
             const adopted = { ...attempt, id: existing.id };
@@ -839,6 +911,30 @@ export function DataProvider({ children }) {
               }
             } else {
               if (attempt.id !== existing.id) logIdRewrites.set(attempt.id, existing.id);
+              return { error: null, row: existing };
+            }
+          }
+        }
+
+        if (kind === 'liftLogs' && isUniqueViolation(error)) {
+          const { data: existing } = await supabase
+            .from('lift_logs')
+            .select('*')
+            .eq('user_id', attempt.user_id)
+            .eq('day', attempt.day)
+            .eq('move', attempt.move)
+            .eq('deleted', false)
+            .maybeSingle();
+          if (existing?.id) {
+            const adopted = { ...attempt, id: existing.id };
+            if (new Date(attempt.updated_at || 0) >= new Date(existing.updated_at || 0)) {
+              ({ error } = await supabase.from(table).upsert(adopted));
+              if (!error) {
+                if (attempt.id !== adopted.id) liftLogIdRewrites.set(attempt.id, adopted.id);
+                return { error: null, row: adopted };
+              }
+            } else {
+              if (attempt.id !== existing.id) liftLogIdRewrites.set(attempt.id, existing.id);
               return { error: null, row: existing };
             }
           }
@@ -856,6 +952,7 @@ export function DataProvider({ children }) {
           if (kind === 'habits') habitIdRewrites.set(previousId, replacementId);
           else if (kind === 'identity') identityIdRewrites.set(previousId, replacementId);
           else if (kind === 'logs') logIdRewrites.set(previousId, replacementId);
+          else if (kind === 'liftLogs') liftLogIdRewrites.set(previousId, replacementId);
         }
         return { error, row: attempt };
       };
@@ -910,6 +1007,8 @@ export function DataProvider({ children }) {
             };
           } else if (kind === 'identity') {
             record = { ...r, id: identityIdRewrites.get(r.id) || r.id };
+          } else if (kind === 'liftLogs') {
+            record = { ...r, id: liftLogIdRewrites.get(r.id) || r.id };
           }
           return to(record, user.id);
         });
@@ -928,7 +1027,9 @@ export function DataProvider({ children }) {
         if (!stillCurrent()) return;
 
         if (error && isMissingTable(error)) {
-          clearDirty(kind, revisions);
+          // Leave dirty so the rows upload once the table is provisioned.
+          failed = true;
+          if (!firstError) firstError = missingTableMessage(table);
           continue;
         }
 
@@ -943,7 +1044,12 @@ export function DataProvider({ children }) {
               result = { error: { message: 'write failed' }, row };
             }
             if (result.error) {
-              if (isMissingTable(result.error)) continue;
+              if (isMissingTable(result.error)) {
+                failed = true;
+                if (!firstError) firstError = missingTableMessage(table);
+                rowFailed = true;
+                continue;
+              }
               rowFailed = true;
               if (!firstError) {
                 firstError = `${table}: ${result.error.message || result.error.code || 'write failed'}`;
@@ -973,7 +1079,12 @@ export function DataProvider({ children }) {
 
       if (!stillCurrent()) return;
 
-      if (habitIdRewrites.size || identityIdRewrites.size || logIdRewrites.size) {
+      if (
+        habitIdRewrites.size ||
+        identityIdRewrites.size ||
+        logIdRewrites.size ||
+        liftLogIdRewrites.size
+      ) {
         const mapHabit = (habit) => ({
           ...habit,
           id: habitIdRewrites.get(habit.id) || habit.id,
@@ -995,6 +1106,10 @@ export function DataProvider({ children }) {
           ...statement,
           id: identityIdRewrites.get(statement.id) || statement.id,
         });
+        const mapLiftLog = (entry) => ({
+          ...entry,
+          id: liftLogIdRewrites.get(entry.id) || entry.id,
+        });
         if (habitIdRewrites.size || identityIdRewrites.size) {
           setHabits((prev) => prev.map(mapHabit));
         }
@@ -1003,6 +1118,7 @@ export function DataProvider({ children }) {
         }
         if (habitIdRewrites.size) setGoals((prev) => prev.map(mapGoal));
         if (identityIdRewrites.size) setIdentity((prev) => prev.map(mapIdentity));
+        if (liftLogIdRewrites.size) setLiftLogs((prev) => prev.map(mapLiftLog));
       }
 
       const stillDirty = Object.values(dirty.current).some((records) => records.size > 0);

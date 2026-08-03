@@ -257,9 +257,15 @@ create table if not exists public.lift_logs (
   set_entries jsonb       not null default '[]'::jsonb,
   deleted     boolean     not null default false,
   created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
-  unique (user_id, day, move)
+  updated_at  timestamptz not null default now()
 );
+
+-- Living rows only. Soft-deleted tombstones must not block a later log on the
+-- same movement and day.
+alter table public.lift_logs drop constraint if exists lift_logs_user_id_day_move_key;
+create unique index if not exists lift_logs_user_day_move_alive_idx
+  on public.lift_logs (user_id, day, move)
+  where not deleted;
 
 -- Existing projects created before per-set entries existed.
 alter table public.lift_logs
