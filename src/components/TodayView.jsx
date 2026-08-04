@@ -9,6 +9,7 @@ import { Countdown } from './Countdown';
 import { DayNote } from './DayNote';
 import { Workout } from './Workout';
 import { NutritionTracker } from './NutritionTracker';
+import { PastDayEditor } from './PastDayEditor';
 import {
   PerfectDayOverlay,
   PerfectDaySeal,
@@ -17,7 +18,7 @@ import {
 } from './PerfectDay';
 
 /** The strip of this week across the top. Violet means every habit landed. */
-function WeekStrip({ habits, doneSets, today }) {
+function WeekStrip({ habits, doneSets, today, onSelectDay }) {
   const monday = startOfWeek(today);
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
 
@@ -40,8 +41,8 @@ function WeekStrip({ habits, doneSets, today }) {
           .filter(Boolean)
           .join(' ');
 
-        return (
-          <li key={day} className={cls}>
+        const content = (
+          <>
             <span className="strip__initial" aria-hidden="true">
               {WEEKDAY_INITIALS[i]}
             </span>
@@ -54,6 +55,23 @@ function WeekStrip({ habits, doneSets, today }) {
             <span className="visually-hidden">
               {day}: {doneCount} of {dueCount} done{perfect ? ', a perfect day' : ''}
             </span>
+          </>
+        );
+
+        return (
+          <li key={day} className={cls}>
+            {day < today ? (
+              <button
+                type="button"
+                className="strip__button"
+                onClick={() => onSelectDay(day)}
+                aria-label={`Edit habits for ${formatLong(day)}`}
+              >
+                {content}
+              </button>
+            ) : (
+              content
+            )}
           </li>
         );
       })}
@@ -176,7 +194,9 @@ function HabitRow({ habit, day, editing, setEditing }) {
 export function TodayView() {
   const { activeHabits, doneSets, statementOfDay, keptSetFor } = useData();
   const [editing, setEditing] = useState(null);
+  const [editingDay, setEditingDay] = useState(null);
   const today = todayISO();
+  const yesterday = addDays(today, -1);
 
   // A habit one miss from breaking its chain goes to the top — the whole point
   // of the rule is that the second miss is the one that matters, so it has to
@@ -209,6 +229,9 @@ export function TodayView() {
             </>
           )}
         </h1>
+        <button type="button" className="btn today__backfill" onClick={() => setEditingDay(yesterday)}>
+          ← Edit yesterday
+        </button>
         {allDone && <PerfectDaySeal streak={perfectStreak} />}
       </header>
 
@@ -219,7 +242,12 @@ export function TodayView() {
       */}
       <div className="today">
         <aside className="today__rail">
-          <WeekStrip habits={activeHabits} doneSets={doneSets} today={today} />
+          <WeekStrip
+            habits={activeHabits}
+            doneSets={doneSets}
+            today={today}
+            onSelectDay={setEditingDay}
+          />
           <Countdown />
           {statementOfDay && (
             <div className="today-statement">
@@ -271,6 +299,9 @@ export function TodayView() {
       </div>
 
       {celebrate && <PerfectDayOverlay streak={perfectStreak} onDone={dismissCelebrate} />}
+      {editingDay && (
+        <PastDayEditor day={editingDay} onClose={() => setEditingDay(null)} />
+      )}
     </div>
   );
 }
