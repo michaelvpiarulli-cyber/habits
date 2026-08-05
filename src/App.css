@@ -224,6 +224,31 @@
   gap: 5px;
 }
 
+.strip__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.strip__btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.strip__btn:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
 .strip__initial {
   font-family: var(--mono);
   font-size: 0.625rem;
@@ -263,9 +288,85 @@
   font-weight: 500;
 }
 
+.strip__day.is-selected .strip__box {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--blue-wash);
+}
+
+.strip__day.is-selected .strip__initial {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.strip__day.is-selected.is-today .strip__box {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 2px var(--pink-wash);
+}
+
 /* The overprint: both inks on the same day. Nothing else in the app is violet. */
 .strip__day.is-perfect .strip__ink {
   background: var(--violet);
+}
+
+/* =========================================================================
+   Day navigation (previous / next on the daily tab)
+   ========================================================================= */
+
+.day-nav {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.day-nav__center {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.day-nav__center .eyebrow {
+  margin: 0;
+}
+
+.day-nav__btn {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin-top: -6px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.day-nav__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.day-nav__btn:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+}
+
+.day-nav__today {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pink);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* =========================================================================
