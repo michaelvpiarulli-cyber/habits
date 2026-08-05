@@ -1,6 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../context/DataProvider';
-import { addDays, formatLong, startOfWeek, todayISO, WEEKDAY_INITIALS } from '../lib/dates';
+import {
+  addDays,
+  formatLong,
+  relativeDay,
+  startOfWeek,
+  todayISO,
+  WEEKDAY_INITIALS,
+} from '../lib/dates';
 import { describeCadence, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
 import { atRiskToday, countInWeek, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
@@ -16,23 +23,25 @@ import {
   usePerfectStreak,
 } from './PerfectDay';
 
-/** The strip of this week across the top. Violet means every habit landed. */
-function WeekStrip({ habits, doneSets, today }) {
-  const monday = startOfWeek(today);
+/** The strip of the week being viewed. Tap a day to open it. */
+function WeekStrip({ habits, doneSets, calendarToday, selected, onSelect }) {
+  const monday = startOfWeek(selected);
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
 
   return (
-    <ol className="strip" aria-label="This week">
+    <ol className="strip" aria-label="Week">
       {days.map((day, i) => {
-        const future = day > today;
+        const future = day > calendarToday;
         const perfect = !future && isPerfectDay(habits, doneSets, day);
         const dueCount = habits.filter((h) => isDue(h, day) && h.cadence !== 'per_week').length;
         const doneCount = habits.filter((h) => doneSets.get(h.id)?.has(day)).length;
         const some = !perfect && doneCount > 0;
+        const isSelected = day === selected;
 
         const cls = [
           'strip__day',
-          day === today && 'is-today',
+          day === calendarToday && 'is-today',
+          isSelected && 'is-selected',
           future && 'is-future',
           perfect && 'is-perfect',
           some && 'is-some',
@@ -42,18 +51,26 @@ function WeekStrip({ habits, doneSets, today }) {
 
         return (
           <li key={day} className={cls}>
-            <span className="strip__initial" aria-hidden="true">
-              {WEEKDAY_INITIALS[i]}
-            </span>
-            <span className="strip__box">
-              <span
-                className="strip__ink"
-                style={{ '--fill': dueCount ? `${Math.round((doneCount / dueCount) * 100)}%` : '0%' }}
-              />
-            </span>
-            <span className="visually-hidden">
-              {day}: {doneCount} of {dueCount} done{perfect ? ', a perfect day' : ''}
-            </span>
+            <button
+              type="button"
+              className="strip__btn"
+              disabled={future}
+              aria-current={isSelected ? 'date' : undefined}
+              aria-label={`${formatLong(day)}${future ? ' (upcoming)' : ''}`}
+              onClick={() => onSelect(day)}
+            >
+              <span className="strip__initial" aria-hidden="true">
+                {WEEKDAY_INITIALS[i]}
+              </span>
+              <span className="strip__box">
+                <span
+                  className="strip__ink"
+                  style={{
+                    '--fill': dueCount ? `${Math.round((doneCount / dueCount) * 100)}%` : '0%',
+                  }}
+                />
+              </span>
+            </button>
           </li>
         );
       })}
@@ -62,7 +79,7 @@ function WeekStrip({ habits, doneSets, today }) {
 }
 
 /** One habit, one day. The mark on the left is the whole interaction for most kinds. */
-function HabitRow({ habit, day, editing, setEditing }) {
+function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
   const { logFor, doneSetFor, keptSetFor, toggleDay, bumpDay, setValue, valueFor } = useData();
 
   const log = logFor(habit.id, day);
@@ -72,9 +89,10 @@ function HabitRow({ habit, day, editing, setEditing }) {
   // The chain is measured on floor days, not only full ones.
   const keptSet = keptSetFor(habit.id);
   const streak = currentStreak(habit, keptSet, day);
-  const atRisk = atRiskToday(habit, keptSet, day);
+  const atRisk = day === calendarToday && atRiskToday(habit, keptSet, day);
   const isEditing = editing === habit.id;
   const needsEntry = habit.kind === 'amount' || habit.kind === 'measure';
+  const dayLabel = relativeDay(day, calendarToday);
 
   // Weight barely moves overnight, so the entry field opens on the last reading.
   const lastReading = useMemo(() => {
@@ -96,7 +114,10 @@ function HabitRow({ habit, day, editing, setEditing }) {
   if (habit.kind === 'count') {
     status = `${value} of ${targetOf(habit)}${habit.unit ? ` ${habit.unit}` : ''}`;
   } else if (habit.kind === 'amount') {
-    status = value > 0 ? `${value} of ${targetOf(habit)} ${habit.unit}`.trim() : `Target ${targetOf(habit)} ${habit.unit}`.trim();
+    status =
+      value > 0
+        ? `${value} of ${targetOf(habit)} ${habit.unit}`.trim()
+        : `Target ${targetOf(habit)} ${habit.unit}`.trim();
   } else if (habit.kind === 'measure') {
     status = value > 0 ? `${value} ${habit.unit}`.trim() : 'Not recorded yet';
   } else {
@@ -121,8 +142,8 @@ function HabitRow({ habit, day, editing, setEditing }) {
             needsEntry
               ? `Record ${habit.name}`
               : complete
-                ? `Clear ${habit.name} for today`
-                : `Mark ${habit.name} done`
+                ? `Clear ${habit.name} for ${dayLabel}`
+                : `Mark ${habit.name} done for ${dayLabel}`
           }
         />
 
@@ -176,28 +197,79 @@ function HabitRow({ habit, day, editing, setEditing }) {
 export function TodayView() {
   const { activeHabits, doneSets, statementOfDay, keptSetFor } = useData();
   const [editing, setEditing] = useState(null);
-  const today = todayISO();
+  const calendarToday = todayISO();
+  const [day, setDay] = useState(calendarToday);
+
+  // Never leave the picker on a future date if the calendar rolls over.
+  useEffect(() => {
+    setDay((current) => (current > calendarToday ? calendarToday : current));
+  }, [calendarToday]);
+
+  const viewingToday = day === calendarToday;
+  const canGoForward = day < calendarToday;
 
   // A habit one miss from breaking its chain goes to the top — the whole point
   // of the rule is that the second miss is the one that matters, so it has to
   // be the thing you see first.
   const dueToday = activeHabits
-    .filter((h) => isDue(h, today))
+    .filter((h) => isDue(h, day))
     .sort((a, b) => {
-      const risk = (h) => (atRiskToday(h, keptSetFor(h.id), today) ? 0 : 1);
+      const risk = (h) =>
+        viewingToday && atRiskToday(h, keptSetFor(h.id), day) ? 0 : 1;
       return risk(a) - risk(b);
     });
-  const restToday = activeHabits.filter((h) => !isDue(h, today));
+  const restToday = activeHabits.filter((h) => !isDue(h, day));
 
-  const doneCount = dueToday.filter((h) => doneSets.get(h.id)?.has(today)).length;
+  const doneCount = dueToday.filter((h) => doneSets.get(h.id)?.has(day)).length;
   const allDone = dueToday.length > 0 && doneCount === dueToday.length;
-  const perfectStreak = usePerfectStreak(activeHabits, doneSets, today);
-  const [celebrate, dismissCelebrate] = usePerfectCelebration(allDone);
+  const perfectStreak = usePerfectStreak(activeHabits, doneSets, day);
+  const [celebrate, dismissCelebrate] = usePerfectCelebration(viewingToday && allDone);
+
+  const goPrev = () => {
+    setEditing(null);
+    setDay((d) => addDays(d, -1));
+  };
+  const goNext = () => {
+    if (!canGoForward) return;
+    setEditing(null);
+    setDay((d) => addDays(d, 1));
+  };
+  const selectDay = (next) => {
+    if (next > calendarToday) return;
+    setEditing(null);
+    setDay(next);
+  };
 
   return (
     <div className={`view ${allDone ? 'view--perfect' : ''}`}>
       <header className="view__head">
-        <p className="eyebrow">{formatLong(today)}</p>
+        <div className="day-nav">
+          <button
+            type="button"
+            className="day-nav__btn"
+            onClick={goPrev}
+            aria-label="Previous day"
+          >
+            ‹
+          </button>
+          <div className="day-nav__center">
+            <p className="eyebrow">{formatLong(day)}</p>
+            {!viewingToday && (
+              <button type="button" className="day-nav__today" onClick={() => selectDay(calendarToday)}>
+                Back to today
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            className="day-nav__btn"
+            onClick={goNext}
+            disabled={!canGoForward}
+            aria-label="Next day"
+          >
+            ›
+          </button>
+        </div>
         <h1 className="view__title">
           {allDone ? (
             <>
@@ -219,26 +291,36 @@ export function TodayView() {
       */}
       <div className="today">
         <aside className="today__rail">
-          <WeekStrip habits={activeHabits} doneSets={doneSets} today={today} />
-          <Countdown />
-          {statementOfDay && (
+          <WeekStrip
+            habits={activeHabits}
+            doneSets={doneSets}
+            calendarToday={calendarToday}
+            selected={day}
+            onSelect={selectDay}
+          />
+          {viewingToday && <Countdown />}
+          {viewingToday && statementOfDay && (
             <div className="today-statement">
               <p className="eyebrow">Today’s value</p>
               <p className="today-statement__name">{statementOfDay.name}</p>
-              {statementOfDay.note && <p className="today-statement__note">{statementOfDay.note}</p>}
-          {statementOfDay.verseText && (
-            <blockquote className="verse verse--today">
-              <p className="verse__text">{statementOfDay.verseText}</p>
-              {statementOfDay.verseRef && <cite className="verse__ref">{statementOfDay.verseRef}</cite>}
-            </blockquote>
-          )}
+              {statementOfDay.note && (
+                <p className="today-statement__note">{statementOfDay.note}</p>
+              )}
+              {statementOfDay.verseText && (
+                <blockquote className="verse verse--today">
+                  <p className="verse__text">{statementOfDay.verseText}</p>
+                  {statementOfDay.verseRef && (
+                    <cite className="verse__ref">{statementOfDay.verseRef}</cite>
+                  )}
+                </blockquote>
+              )}
             </div>
           )}
         </aside>
 
         <div className="today__main">
-          <Workout day={today} />
-          <NutritionTracker day={today} />
+          <Workout day={day} />
+          <NutritionTracker day={day} />
 
           {activeHabits.length === 0 ? (
             <div className="empty">
@@ -250,23 +332,37 @@ export function TodayView() {
           ) : (
             <ul className="rows">
               {dueToday.map((h) => (
-                <HabitRow key={h.id} habit={h} day={today} editing={editing} setEditing={setEditing} />
+                <HabitRow
+                  key={h.id}
+                  habit={h}
+                  day={day}
+                  calendarToday={calendarToday}
+                  editing={editing}
+                  setEditing={setEditing}
+                />
               ))}
             </ul>
           )}
 
           {restToday.length > 0 && (
             <section className="rest">
-              <h2 className="eyebrow">Not scheduled today</h2>
+              <h2 className="eyebrow">Not scheduled {viewingToday ? 'today' : 'this day'}</h2>
               <ul className="rows rows--muted">
                 {restToday.map((h) => (
-                  <HabitRow key={h.id} habit={h} day={today} editing={editing} setEditing={setEditing} />
+                  <HabitRow
+                    key={h.id}
+                    habit={h}
+                    day={day}
+                    calendarToday={calendarToday}
+                    editing={editing}
+                    setEditing={setEditing}
+                  />
                 ))}
               </ul>
             </section>
           )}
 
-          <DayNote day={today} />
+          <DayNote day={day} />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../context/DataProvider';
-import { dow } from '../lib/dates';
+import { dow, relativeDay, todayISO } from '../lib/dates';
 import {
   PROGRAM_DISCLAIMER,
   formatLoad,
@@ -289,6 +289,10 @@ export function Workout({ day }) {
         ? `${done} of ${total} done`
         : `Tap each lift when you finish · ${total} moves`;
 
+  const dayLabel = relativeDay(day, todayISO());
+  const trainingLabel =
+    dayLabel === 'today' ? 'Today’s training' : dayLabel === 'yesterday' ? 'Yesterday’s training' : 'Training';
+
   return (
     <section className={`workout workout--${session.kind} ${complete ? 'is-complete' : ''}`}>
       <button
@@ -298,7 +302,7 @@ export function Workout({ day }) {
         aria-expanded={open}
       >
         <span>
-          <span className="eyebrow">Today’s training</span>
+          <span className="eyebrow">{trainingLabel}</span>
           <span className="workout__name">{session.name}</span>
           <span className="workout__focus">{summary}</span>
         </span>
