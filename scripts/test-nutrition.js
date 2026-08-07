@@ -9,6 +9,7 @@ import {
   normalizeNutritionEntry,
   sumMacros,
   summarizeMeals,
+  withFoodQuantity,
 } from '../src/lib/nutrition.js';
 
 let failed = 0;
@@ -118,6 +119,24 @@ test('meal foods roll up into meal macros', () => {
   assert.equal(normalized.calories, 177);
   assert.equal(normalized.meals[0].foods.length, 2);
   assert.match(normalized.meals[0].note, /Egg/);
+});
+
+test('portion quantity scales food macros', () => {
+  const food = withFoodQuantity(
+    {
+      id: 'egg',
+      name: 'Egg, large',
+      serving: '1 large',
+      baseCalories: 72,
+      baseProtein: 6.3,
+      baseCarbs: 0.4,
+      baseFat: 4.8,
+    },
+    2
+  );
+  assert.equal(food.quantity, 2);
+  assert.equal(food.calories, 144);
+  assert.equal(food.protein, 12.6);
 });
 
 if (failed) {

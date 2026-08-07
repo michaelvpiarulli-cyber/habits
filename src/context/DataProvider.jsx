@@ -44,6 +44,7 @@ import {
 import {
   compactMeals,
   emptyNutritionDay,
+  normalizeFood,
   normalizeNutritionEntry,
   sumMacros,
 } from '../lib/nutrition';
@@ -1556,18 +1557,29 @@ export function DataProvider({ children }) {
             ? newId()
             : meal.id;
         const foods = Array.isArray(meal.foods)
-          ? meal.foods.map((food) => ({
-              id: food.id && !String(food.id).startsWith('slot-') ? food.id : newId(),
-              name: food.name || '',
-              brand: food.brand || '',
-              serving: food.serving || '',
-              fdcId: food.fdcId || null,
-              source: food.source || '',
-              calories: Math.max(0, Number(food.calories) || 0),
-              protein: Math.max(0, Number(food.protein) || 0),
-              carbs: Math.max(0, Number(food.carbs) || 0),
-              fat: Math.max(0, Number(food.fat) || 0),
-            }))
+          ? meal.foods.map((food) => {
+              const normalized = normalizeFood({
+                ...food,
+                id: food.id && !String(food.id).startsWith('slot-') ? food.id : newId(),
+              });
+              return {
+                id: normalized.id,
+                name: normalized.name,
+                brand: normalized.brand,
+                serving: normalized.serving,
+                fdcId: normalized.fdcId,
+                source: normalized.source,
+                quantity: normalized.quantity,
+                baseCalories: normalized.baseCalories,
+                baseProtein: normalized.baseProtein,
+                baseCarbs: normalized.baseCarbs,
+                baseFat: normalized.baseFat,
+                calories: normalized.calories,
+                protein: normalized.protein,
+                carbs: normalized.carbs,
+                fat: normalized.fat,
+              };
+            })
           : [];
         return {
           id,

@@ -6,6 +6,7 @@ import {
   mealTitle,
   macrosAreEmpty,
   summarizeMeals,
+  withFoodQuantity,
   withMealFoodTotals,
 } from '../lib/nutrition';
 import { newId } from '../lib/mappers';
@@ -37,6 +38,22 @@ const draftToMeal = (draft) => {
     ),
   };
   return withMealFoodTotals(base);
+};
+
+const applyFoodsToDraft = (draft, foods) => {
+  const totaled = withMealFoodTotals({
+    ...draft,
+    foods,
+    note: foods.map((f) => f.name).join(', '),
+  });
+  return {
+    ...draft,
+    foods: totaled.foods,
+    note: totaled.note,
+    ...Object.fromEntries(
+      MACRO_FIELDS.map(({ id }) => [id, totaled[id] > 0 ? String(totaled[id]) : ''])
+    ),
+  };
 };
 
 /**
@@ -110,28 +127,40 @@ export function NutritionTracker({ day }) {
         if (draft.id !== mealId) return draft;
         const foods = [
           ...(draft.foods || []),
-          {
-            id: newId(),
-            name: food.name,
-            brand: food.brand || '',
-            serving: food.serving || '',
-            fdcId: food.fdcId || null,
-            source: food.source || '',
-            calories: food.calories,
-            protein: food.protein,
-            carbs: food.carbs,
-            fat: food.fat,
-          },
-        ];
-        const totaled = withMealFoodTotals({ ...draft, foods });
-        return {
-          ...draft,
-          foods: totaled.foods,
-          note: totaled.note,
-          ...Object.fromEntries(
-            MACRO_FIELDS.map(({ id }) => [id, totaled[id] > 0 ? String(totaled[id]) : ''])
+          withFoodQuantity(
+            {
+              id: newId(),
+              name: food.name,
+              brand: food.brand || '',
+              serving: food.serving || '1 serving',
+              fdcId: food.fdcId || null,
+              source: food.source || '',
+              baseCalories: food.calories,
+              baseProtein: food.protein,
+              baseCarbs: food.carbs,
+              baseFat: food.fat,
+              calories: food.calories,
+              protein: food.protein,
+              carbs: food.carbs,
+              fat: food.fat,
+            },
+            1
           ),
-        };
+        ];
+        return applyFoodsToDraft(draft, foods);
+      })
+    );
+    setSaved(false);
+  };
+
+  const setFoodQuantity = (mealId, foodId, quantity) => {
+    setDrafts((current) =>
+      current.map((draft) => {
+        if (draft.id !== mealId) return draft;
+        const foods = (draft.foods || []).map((food) =>
+          food.id === foodId ? withFoodQuantity(food, quantity) : food
+        );
+        return applyFoodsToDraft(draft, foods);
       })
     );
     setSaved(false);
@@ -142,23 +171,7 @@ export function NutritionTracker({ day }) {
       current.map((draft) => {
         if (draft.id !== mealId) return draft;
         const foods = (draft.foods || []).filter((food) => food.id !== foodId);
-        const totaled = withMealFoodTotals({
-          ...draft,
-          foods,
-          note: foods.map((f) => f.name).join(', '),
-          calories: 0,
-          protein: 0,
-          carbs: 0,
-          fat: 0,
-        });
-        return {
-          ...draft,
-          foods: totaled.foods,
-          note: totaled.note,
-          ...Object.fromEntries(
-            MACRO_FIELDS.map(({ id }) => [id, totaled[id] > 0 ? String(totaled[id]) : ''])
-          ),
-        };
+        return applyFoodsToDraft(draft, foods);
       })
     );
     setSaved(false);
@@ -287,6 +300,22 @@ export function NutritionTracker({ day }) {
                                   {food.serving || '1 serving'} · {food.calories || 0} kcal
                                 </span>
                               </span>
+                              <label className="food-line__qty">
+                                <span className="visually-hidden">Portions</span>
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  min="0.25"
+                                  max="99"
+                                  step="0.25"
+                                  value={food.quantity ?? 1}
+                                  aria-label={`Portions of ${food.name}`}
+                                  onChange={(event) =>
+                                    setFoodQuantity(draft.id, food.id, event.target.value)
+                                  }
+                                />
+                                <span>× {food.serving || 'serving'}</span>
+                              </label>
                               <button
                                 type="button"
                                 className="food-line__remove"
@@ -341,7 +370,8 @@ export function NutritionTracker({ day }) {
                       </div>
                       {hasFoods && (
                         <p className="field__hint">
-                          Macros are the sum of the foods above. Remove a food to edit by hand.
+                          Change the portion number to scale calories. Macros are the sum of the
+                          foods above.
                         </p>
                       )}
                     </div>

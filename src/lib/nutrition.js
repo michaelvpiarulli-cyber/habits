@@ -36,6 +36,75 @@ export function clampMacros(fields = {}) {
   };
 }
 
+const round1 = (n) => Math.round(Number(n) * 10) / 10;
+
+export function clampQuantity(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return Math.min(99, Math.round(n * 100) / 100);
+}
+
+/** Macros for one serving, used when scaling portion size. */
+export function foodBaseMacros(food = {}) {
+  const hasBase =
+    food.baseCalories != null ||
+    food.baseProtein != null ||
+    food.baseCarbs != null ||
+    food.baseFat != null;
+  if (hasBase) {
+    return {
+      calories: Math.max(0, Number(food.baseCalories) || 0),
+      protein: Math.max(0, Number(food.baseProtein) || 0),
+      carbs: Math.max(0, Number(food.baseCarbs) || 0),
+      fat: Math.max(0, Number(food.baseFat) || 0),
+    };
+  }
+  const quantity = clampQuantity(food.quantity ?? 1);
+  const current = clampMacros(food);
+  // Legacy rows only stored scaled macros — recover a per-serving base.
+  return {
+    calories: round1(current.calories / quantity),
+    protein: round1(current.protein / quantity),
+    carbs: round1(current.carbs / quantity),
+    fat: round1(current.fat / quantity),
+  };
+}
+
+export function scaleFoodMacros(base, quantity) {
+  const q = clampQuantity(quantity);
+  return {
+    calories: Math.round(base.calories * q),
+    protein: round1(base.protein * q),
+    carbs: round1(base.carbs * q),
+    fat: round1(base.fat * q),
+  };
+}
+
+export function normalizeFood(food = {}) {
+  const quantity = clampQuantity(food.quantity ?? 1);
+  const base = foodBaseMacros(food);
+  const scaled = scaleFoodMacros(base, quantity);
+  return {
+    id: food.id,
+    name: food.name || '',
+    brand: food.brand || '',
+    serving: food.serving || '',
+    fdcId: food.fdcId || null,
+    source: food.source || '',
+    quantity,
+    baseCalories: base.calories,
+    baseProtein: base.protein,
+    baseCarbs: base.carbs,
+    baseFat: base.fat,
+    ...scaled,
+  };
+}
+
+/** Apply a new portion multiplier and recompute macros. */
+export function withFoodQuantity(food, quantity) {
+  return normalizeFood({ ...food, quantity });
+}
+
 export function macrosAreEmpty(macros) {
   return MACRO_FIELDS.every(({ id }) => !(Number(macros?.[id]) > 0));
 }
@@ -50,18 +119,6 @@ export function sumMacros(items) {
       fat: totals.fat + macros.fat,
     };
   }, emptyMacros());
-}
-
-export function normalizeFood(food = {}) {
-  return {
-    id: food.id,
-    name: food.name || '',
-    brand: food.brand || '',
-    serving: food.serving || '',
-    fdcId: food.fdcId || null,
-    source: food.source || '',
-    ...clampMacros(food),
-  };
 }
 
 export function foodsFromMeal(meal) {
