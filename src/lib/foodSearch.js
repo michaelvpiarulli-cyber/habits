@@ -5,8 +5,46 @@
 
 import { COMMON_FOODS } from './commonFoods.js';
 import { mapUsdaFood } from './usdaFood.js';
+import { clampQuantity, scaleFoodMacros } from './nutrition.js';
 
 const USDA_SEARCH = 'https://api.nal.usda.gov/fdc/v1/foods/search';
+
+/**
+ * Pull a leading count out of "3 eggs", "2x chicken", "1/2 banana".
+ * Returns the multiplier plus the food text to search.
+ */
+export function parseFoodQuery(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return { quantity: 1, foodQuery: '' };
+
+  const multi = text.match(/^(\d+(?:\.\d+)?)\s*[x×*]\s+(.+)$/i);
+  if (multi) {
+    return { quantity: clampQuantity(multi[1]), foodQuery: multi[2].trim() };
+  }
+
+  const spaced = text.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
+  if (spaced) {
+    return { quantity: clampQuantity(spaced[1]), foodQuery: spaced[2].trim() };
+  }
+
+  const half = text.match(/^(1\/2|½)\s+(.+)$/);
+  if (half) {
+    return { quantity: 0.5, foodQuery: half[2].trim() };
+  }
+
+  return { quantity: 1, foodQuery: text };
+}
+
+function searchTerms(foodQuery) {
+  const q = foodQuery.trim();
+  if (!q) return [];
+  const terms = [q];
+  // "eggs" should still hit "Egg, large"
+  if (q.length > 3 && /s$/i.test(q) && !/ss$/i.test(q)) {
+    terms.push(q.replace(/s$/i, ''));
+  }
+  return terms;
+}
 
 function scoreLocal(food, query) {
   const q = query.toLowerCase();
@@ -20,10 +58,21 @@ function scoreLocal(food, query) {
 }
 
 export function searchLocalFoods(query, limit = 8) {
-  const q = String(query || '').trim();
-  if (q.length < 1) return [];
-  return COMMON_FOODS.map((food) => ({ food, score: scoreLocal(food, q) }))
-    .filter((row) => row.score > 0)
+  const { foodQuery } = parseFoodQuery(query);
+  const terms = searchTerms(foodQuery);
+  if (terms.length === 0) return [];
+
+  const best = new Map();
+  for (const term of terms) {
+    for (const food of COMMON_FOODS) {
+      const score = scoreLocal(food, term);
+      if (score <= 0) continue;
+      const prev = best.get(food.id);
+      if (!prev || score > prev.score) best.set(food.id, { food, score });
+    }
+  }
+
+  return [...best.values()]
     .sort((a, b) => b.score - a.score || a.food.name.localeCompare(b.food.name))
     .slice(0, limit)
     .map(({ food }) => ({
@@ -45,7 +94,8 @@ function clientUsdaKey() {
 
 /** Call USDA (or the deployed /api/food-search proxy). */
 export async function searchUsdaFoods(query, { signal, limit = 8 } = {}) {
-  const q = String(query || '').trim();
+  const { foodQuery } = parseFoodQuery(query);
+  const q = searchTerms(foodQuery)[0] || '';
   if (q.length < 2) return [];
 
   const useProxy =
@@ -79,8 +129,10 @@ export async function searchUsdaFoods(query, { signal, limit = 8 } = {}) {
 
 /**
  * Local hits immediately; USDA fills in after. Dedupes by name.
+ * Attaches `quantity` from the typed query (e.g. "3 eggs" → 3).
  */
 export async function searchFoods(query, { signal, limit = 8 } = {}) {
+  const { quantity } = parseFoodQuery(query);
   const local = searchLocalFoods(query, limit);
   let remote = [];
   try {
@@ -98,5 +150,27 @@ export async function searchFoods(query, { signal, limit = 8 } = {}) {
     merged.push(food);
     if (merged.length >= limit) break;
   }
-  return merged;
+  return merged.map((food) => withSearchQuantity(food, quantity));
+}
+
+/** Scale preview macros for the typed count without losing the per-serving base. */
+export function withSearchQuantity(food, quantity) {
+  const q = clampQuantity(quantity);
+  const base = {
+    calories: food.calories,
+    protein: food.protein,
+    carbs: food.carbs,
+    fat: food.fat,
+  };
+  // Incoming food macros are per 1 serving; scale the preview for the list.
+  const scaled = q === 1 ? base : scaleFoodMacros(base, q);
+  return {
+    ...food,
+    quantity: q,
+    baseCalories: base.calories,
+    baseProtein: base.protein,
+    baseCarbs: base.carbs,
+    baseFat: base.fat,
+    ...scaled,
+  };
 }

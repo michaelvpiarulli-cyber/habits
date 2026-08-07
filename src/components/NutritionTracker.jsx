@@ -125,6 +125,7 @@ export function NutritionTracker({ day }) {
     setDrafts((current) =>
       current.map((draft) => {
         if (draft.id !== mealId) return draft;
+        const quantity = food.quantity ?? 1;
         const foods = [
           ...(draft.foods || []),
           withFoodQuantity(
@@ -135,16 +136,16 @@ export function NutritionTracker({ day }) {
               serving: food.serving || '1 serving',
               fdcId: food.fdcId || null,
               source: food.source || '',
-              baseCalories: food.calories,
-              baseProtein: food.protein,
-              baseCarbs: food.carbs,
-              baseFat: food.fat,
-              calories: food.calories,
-              protein: food.protein,
-              carbs: food.carbs,
-              fat: food.fat,
+              baseCalories: food.baseCalories ?? food.calories,
+              baseProtein: food.baseProtein ?? food.protein,
+              baseCarbs: food.baseCarbs ?? food.carbs,
+              baseFat: food.baseFat ?? food.fat,
+              calories: food.baseCalories ?? food.calories,
+              protein: food.baseProtein ?? food.protein,
+              carbs: food.baseCarbs ?? food.carbs,
+              fat: food.baseFat ?? food.fat,
             },
-            1
+            quantity
           ),
         ];
         return applyFoodsToDraft(draft, foods);
@@ -286,7 +287,7 @@ export function NutritionTracker({ day }) {
                       )}
 
                       <FoodSearch
-                        placeholder="e.g. chicken breast, banana, oats…"
+                        placeholder="e.g. 3 eggs, chicken breast…"
                         onPick={(food) => addFood(draft.id, food)}
                       />
 
@@ -297,25 +298,57 @@ export function NutritionTracker({ day }) {
                               <span className="food-line__main">
                                 <span className="food-line__name">{food.name}</span>
                                 <span className="food-line__meta">
-                                  {food.serving || '1 serving'} · {food.calories || 0} kcal
+                                  {(food.quantity ?? 1) !== 1
+                                    ? `${food.quantity} × ${food.serving || 'serving'}`
+                                    : food.serving || '1 serving'}{' '}
+                                  · {food.calories || 0} kcal
                                 </span>
                               </span>
-                              <label className="food-line__qty">
-                                <span className="visually-hidden">Portions</span>
-                                <input
-                                  type="number"
-                                  inputMode="decimal"
-                                  min="0.25"
-                                  max="99"
-                                  step="0.25"
-                                  value={food.quantity ?? 1}
-                                  aria-label={`Portions of ${food.name}`}
-                                  onChange={(event) =>
-                                    setFoodQuantity(draft.id, food.id, event.target.value)
+                              <div className="food-line__qty">
+                                <button
+                                  type="button"
+                                  className="food-line__step"
+                                  aria-label={`Fewer ${food.name}`}
+                                  onClick={() =>
+                                    setFoodQuantity(
+                                      draft.id,
+                                      food.id,
+                                      Math.max(0.25, (Number(food.quantity) || 1) - 1)
+                                    )
                                   }
-                                />
-                                <span>× {food.serving || 'serving'}</span>
-                              </label>
+                                >
+                                  −
+                                </button>
+                                <label>
+                                  <span className="visually-hidden">How many</span>
+                                  <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    min="0.25"
+                                    max="99"
+                                    step="1"
+                                    value={food.quantity ?? 1}
+                                    aria-label={`How many ${food.name}`}
+                                    onChange={(event) =>
+                                      setFoodQuantity(draft.id, food.id, event.target.value)
+                                    }
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  className="food-line__step"
+                                  aria-label={`More ${food.name}`}
+                                  onClick={() =>
+                                    setFoodQuantity(
+                                      draft.id,
+                                      food.id,
+                                      Math.min(99, (Number(food.quantity) || 1) + 1)
+                                    )
+                                  }
+                                >
+                                  +
+                                </button>
+                              </div>
                               <button
                                 type="button"
                                 className="food-line__remove"
@@ -370,8 +403,8 @@ export function NutritionTracker({ day }) {
                       </div>
                       {hasFoods && (
                         <p className="field__hint">
-                          Change the portion number to scale calories. Macros are the sum of the
-                          foods above.
+                          Type “3 eggs” or tap + / − to change how many. Calories scale with the
+                          count.
                         </p>
                       )}
                     </div>

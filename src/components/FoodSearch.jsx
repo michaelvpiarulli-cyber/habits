@@ -1,10 +1,15 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import { searchFoods, searchLocalFoods } from '../lib/foodSearch';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  parseFoodQuery,
+  searchFoods,
+  searchLocalFoods,
+  withSearchQuantity,
+} from '../lib/foodSearch';
 
 /**
- * Type-ahead food search. Local hits show instantly; USDA results fill in.
+ * Type-ahead food search. Supports "3 eggs" — count is parsed and macros scale.
  */
-export function FoodSearch({ onPick, placeholder = 'Type a food…' }) {
+export function FoodSearch({ onPick, placeholder = 'e.g. 3 eggs, banana…' }) {
   const listId = useId();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -13,6 +18,7 @@ export function FoodSearch({ onPick, placeholder = 'Type a food…' }) {
   const [active, setActive] = useState(0);
   const abortRef = useRef(null);
   const wrapRef = useRef(null);
+  const typedQuantity = useMemo(() => parseFoodQuery(query).quantity, [query]);
 
   useEffect(() => {
     const q = query.trim();
@@ -22,8 +28,8 @@ export function FoodSearch({ onPick, placeholder = 'Type a food…' }) {
       return undefined;
     }
 
-    // Instant local matches while the network search runs.
-    setResults(searchLocalFoods(q, 8));
+    const { quantity } = parseFoodQuery(q);
+    setResults(searchLocalFoods(q, 8).map((food) => withSearchQuantity(food, quantity)));
     setOpen(true);
     setActive(0);
     setLoading(true);
@@ -116,9 +122,14 @@ export function FoodSearch({ onPick, placeholder = 'Type a food…' }) {
                 onMouseEnter={() => setActive(index)}
                 onClick={() => pick(food)}
               >
-                <span className="food-search__name">{food.name}</span>
+                <span className="food-search__name">
+                  {typedQuantity !== 1 ? `${typedQuantity} × ` : ''}
+                  {food.name}
+                </span>
                 <span className="food-search__meta">
-                  {food.serving}
+                  {typedQuantity !== 1
+                    ? `${typedQuantity} × ${food.serving || 'serving'}`
+                    : food.serving}
                   {food.brand && food.brand !== 'Generic' ? ` · ${food.brand}` : ''}
                 </span>
                 <span className="food-search__macros">

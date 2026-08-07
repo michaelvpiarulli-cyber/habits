@@ -2,7 +2,11 @@
  * Local food catalog + USDA mapper — run with `npm test`.
  */
 import assert from 'node:assert/strict';
-import { searchLocalFoods } from '../src/lib/foodSearch.js';
+import {
+  parseFoodQuery,
+  searchLocalFoods,
+  withSearchQuantity,
+} from '../src/lib/foodSearch.js';
 import { mapUsdaFood } from '../src/lib/usdaFood.js';
 
 let failed = 0;
@@ -30,6 +34,21 @@ test('local search finds chicken breast with macros', () => {
 
 test('local search is empty for nonsense', () => {
   assert.deepEqual(searchLocalFoods('zzzznotfood'), []);
+});
+
+test('parseFoodQuery reads 3 eggs', () => {
+  assert.deepEqual(parseFoodQuery('3 eggs'), { quantity: 3, foodQuery: 'eggs' });
+  assert.deepEqual(parseFoodQuery('2x banana'), { quantity: 2, foodQuery: 'banana' });
+});
+
+test('3 eggs finds egg and scales macros', () => {
+  const hits = searchLocalFoods('3 eggs');
+  assert.ok(hits.length >= 1);
+  assert.match(hits[0].name, /egg/i);
+  const scaled = withSearchQuantity(hits[0], 3);
+  assert.equal(scaled.quantity, 3);
+  assert.equal(scaled.calories, hits[0].calories * 3);
+  assert.equal(scaled.baseCalories, hits[0].calories);
 });
 
 test('mapUsdaFood reads Energy kcal and macros', () => {
