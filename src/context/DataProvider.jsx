@@ -1555,11 +1555,26 @@ export function DataProvider({ children }) {
           !meal.id || String(meal.id).startsWith('slot-') || String(meal.id).startsWith('legacy-')
             ? newId()
             : meal.id;
+        const foods = Array.isArray(meal.foods)
+          ? meal.foods.map((food) => ({
+              id: food.id && !String(food.id).startsWith('slot-') ? food.id : newId(),
+              name: food.name || '',
+              brand: food.brand || '',
+              serving: food.serving || '',
+              fdcId: food.fdcId || null,
+              source: food.source || '',
+              calories: Math.max(0, Number(food.calories) || 0),
+              protein: Math.max(0, Number(food.protein) || 0),
+              carbs: Math.max(0, Number(food.carbs) || 0),
+              fat: Math.max(0, Number(food.fat) || 0),
+            }))
+          : [];
         return {
           id,
           slot: meal.slot || 'snack',
           label: meal.label || '',
           note: meal.note || '',
+          foods,
           calories: Math.max(0, Number(meal.calories) || 0),
           protein: Math.max(0, Number(meal.protein) || 0),
           carbs: Math.max(0, Number(meal.carbs) || 0),

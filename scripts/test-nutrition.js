@@ -96,6 +96,30 @@ test('day totals follow the meal list, not stale top-level fields', () => {
   assert.equal(normalized.protein, 35);
 });
 
+test('meal foods roll up into meal macros', () => {
+  const normalized = normalizeNutritionEntry({
+    id: 'day-4',
+    day: '2026-08-01',
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    meals: [
+      {
+        id: 'b',
+        slot: 'breakfast',
+        foods: [
+          { id: 'f1', name: 'Egg, large', calories: 72, protein: 6.3, carbs: 0.4, fat: 4.8 },
+          { id: 'f2', name: 'Banana', calories: 105, protein: 1.3, carbs: 27, fat: 0.4 },
+        ],
+      },
+    ],
+  });
+  assert.equal(normalized.calories, 177);
+  assert.equal(normalized.meals[0].foods.length, 2);
+  assert.match(normalized.meals[0].note, /Egg/);
+});
+
 if (failed) {
   console.error(`\n${failed} test(s) failed`);
   process.exit(1);

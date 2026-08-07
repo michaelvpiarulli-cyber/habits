@@ -1,0 +1,58 @@
+/**
+ * Local food catalog + USDA mapper — run with `npm test`.
+ */
+import assert from 'node:assert/strict';
+import { searchLocalFoods } from '../src/lib/foodSearch.js';
+import { mapUsdaFood } from '../src/lib/usdaFood.js';
+
+let failed = 0;
+
+function test(name, fn) {
+  try {
+    fn();
+    console.log(`  ok  ${name}`);
+  } catch (err) {
+    failed += 1;
+    console.error(`  FAIL  ${name}`);
+    console.error(`        ${err.message}`);
+  }
+}
+
+console.log('food search');
+
+test('local search finds chicken breast with macros', () => {
+  const hits = searchLocalFoods('chicken breast');
+  assert.ok(hits.length >= 1);
+  assert.match(hits[0].name, /chicken breast/i);
+  assert.ok(hits[0].calories > 0);
+  assert.ok(hits[0].protein > 0);
+});
+
+test('local search is empty for nonsense', () => {
+  assert.deepEqual(searchLocalFoods('zzzznotfood'), []);
+});
+
+test('mapUsdaFood reads Energy kcal and macros', () => {
+  const mapped = mapUsdaFood({
+    fdcId: 123,
+    description: 'Banana, raw',
+    dataType: 'SR Legacy',
+    foodNutrients: [
+      { nutrientName: 'Energy', unitName: 'KCAL', value: 89 },
+      { nutrientName: 'Protein', unitName: 'G', value: 1.1 },
+      { nutrientName: 'Carbohydrate, by difference', unitName: 'G', value: 23 },
+      { nutrientName: 'Total lipid (fat)', unitName: 'G', value: 0.3 },
+    ],
+  });
+  assert.equal(mapped.calories, 89);
+  assert.equal(mapped.protein, 1.1);
+  assert.equal(mapped.carbs, 23);
+  assert.equal(mapped.fat, 0.3);
+  assert.equal(mapped.serving, '100 g');
+});
+
+if (failed) {
+  console.error(`\n${failed} test(s) failed`);
+  process.exit(1);
+}
+console.log('\nall tests passed');

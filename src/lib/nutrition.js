@@ -4,6 +4,9 @@
  *
  * Older installs only stored day totals. Those become one "Earlier log" meal
  * the first time the record is normalized, so nothing disappears.
+ *
+ * Meals can hold individual `foods` (from search). When present, meal macros
+ * are the sum of those foods — MyFitnessPal-style logging.
  */
 
 export const MACRO_FIELDS = [
@@ -49,6 +52,51 @@ export function sumMacros(items) {
   }, emptyMacros());
 }
 
+export function normalizeFood(food = {}) {
+  return {
+    id: food.id,
+    name: food.name || '',
+    brand: food.brand || '',
+    serving: food.serving || '',
+    fdcId: food.fdcId || null,
+    source: food.source || '',
+    ...clampMacros(food),
+  };
+}
+
+export function foodsFromMeal(meal) {
+  if (!meal) return [];
+  if (Array.isArray(meal.foods) && meal.foods.length) {
+    return meal.foods.map(normalizeFood).filter((food) => food.name || !macrosAreEmpty(food));
+  }
+  return [];
+}
+
+/** Roll meal macros from foods when the list is present. */
+export function withMealFoodTotals(meal) {
+  const foods = foodsFromMeal(meal);
+  if (foods.length === 0) {
+    return {
+      ...meal,
+      foods: [],
+      ...clampMacros(meal),
+    };
+  }
+  const totals = sumMacros(foods);
+  const note =
+    meal.note ||
+    foods
+      .map((food) => food.name)
+      .filter(Boolean)
+      .join(', ');
+  return {
+    ...meal,
+    foods,
+    note,
+    ...totals,
+  };
+}
+
 export function mealTitle(meal, meals = []) {
   if (meal.label) return meal.label;
   if (meal.slot === 'day') return 'Earlier log';
@@ -87,13 +135,16 @@ export function normalizeNutritionEntry(entry, { inventLegacyMeal = true } = {})
   let meals = Array.isArray(entry.meals)
     ? entry.meals
         .filter((meal) => meal && !meal.deleted)
-        .map((meal) => ({
-          id: meal.id,
-          slot: meal.slot || 'snack',
-          label: meal.label || '',
-          note: meal.note || '',
-          ...clampMacros(meal),
-        }))
+        .map((meal) =>
+          withMealFoodTotals({
+            id: meal.id,
+            slot: meal.slot || 'snack',
+            label: meal.label || '',
+            note: meal.note || '',
+            foods: Array.isArray(meal.foods) ? meal.foods : [],
+            ...clampMacros(meal),
+          })
+        )
     : [];
 
   if (meals.length === 0 && inventLegacyMeal && !macrosAreEmpty(macros)) {
@@ -103,6 +154,7 @@ export function normalizeNutritionEntry(entry, { inventLegacyMeal = true } = {})
         slot: 'day',
         label: 'Earlier log',
         note: '',
+        foods: [],
         ...macros,
       },
     ];
@@ -118,7 +170,7 @@ export function normalizeNutritionEntry(entry, { inventLegacyMeal = true } = {})
 
 /** Placeholder rows so Breakfast / Lunch / Dinner / Snack always appear. */
 export function defaultMealsForEditor(meals) {
-  const list = sortMeals(meals).map((meal) => ({ ...meal }));
+  const list = sortMeals(meals).map((meal) => withMealFoodTotals({ ...meal }));
   const present = new Set(list.map((meal) => meal.slot));
 
   for (const slot of MEAL_SLOTS) {
@@ -129,6 +181,7 @@ export function defaultMealsForEditor(meals) {
         slot: slot.id,
         label: '',
         note: '',
+        foods: [],
         ...emptyMacros(),
         placeholder: true,
       });
@@ -141,6 +194,7 @@ export function defaultMealsForEditor(meals) {
       slot: 'snack',
       label: '',
       note: '',
+      foods: [],
       ...emptyMacros(),
       placeholder: true,
     });
@@ -150,7 +204,12 @@ export function defaultMealsForEditor(meals) {
 }
 
 export function compactMeals(meals) {
-  return sortMeals(meals).filter((meal) => !macrosAreEmpty(meal) || meal.note || meal.label);
+  return sortMeals(meals)
+    .map((meal) => withMealFoodTotals(meal))
+    .filter(
+      (meal) =>
+        !macrosAreEmpty(meal) || meal.note || meal.label || (meal.foods && meal.foods.length)
+    );
 }
 
 export function summarizeMeals(meals) {
