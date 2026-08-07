@@ -5,6 +5,10 @@ A habit and goal tracker. Same stack as `bible-year-plan` — Vite + React + Sup
 Six habits ship as the starting set: whole foods, walk after meals, lift, sleep, protein, weigh in.
 Edit or delete any of them on the Habits tab.
 
+Food is logged as **meals** on Today (breakfast, lunch, dinner, snacks) with calories and
+macros. Day totals still roll up for the Protein habit. If you already use sync, re-run
+[`supabase/schema.sql`](supabase/schema.sql) once so `nutrition_logs.meals` exists.
+
 On Today’s training you can check off each lift and log **weight × reps per set**.
 Next session’s target follows what you logged (reps-first once a barbell hits 135 lb
 or dumbbells hit 15 lb). Sync needs the `lift_logs` table from
