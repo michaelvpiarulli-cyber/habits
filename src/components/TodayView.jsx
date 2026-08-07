@@ -15,7 +15,6 @@ import { AmountEntry } from './AmountEntry';
 import { Countdown } from './Countdown';
 import { DayNote } from './DayNote';
 import { Workout } from './Workout';
-import { NutritionTracker } from './NutritionTracker';
 import {
   PerfectDayOverlay,
   PerfectDaySeal,
@@ -320,7 +319,6 @@ export function TodayView() {
 
         <div className="today__main">
           <Workout day={day} />
-          <NutritionTracker day={day} />
 
           {activeHabits.length === 0 ? (
             <div className="empty">

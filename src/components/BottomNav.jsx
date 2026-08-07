@@ -6,6 +6,12 @@ const TABS = [
     path: 'M5 5h14v14H5z',
   },
   {
+    id: 'calories',
+    label: 'Calories',
+    // A bowl / plate — the food diary.
+    path: 'M4 13c0-4.4 3.6-8 8-8s8 3.6 8 8v2H4v-2zM7 17h10v2H7z',
+  },
+  {
     id: 'record',
     label: 'Record',
     // A run of days, one short — the grid in miniature.

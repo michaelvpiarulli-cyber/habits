@@ -59,17 +59,23 @@ const applyFoodsToDraft = (draft, foods) => {
 /**
  * Log food as meals through the day. Type a food name to pull calories/macros
  * from the built-in catalog + USDA. Day totals still roll up for Protein.
+ *
+ * `standalone` is used on the Calories tab — diary is always open, no collapse.
  */
-export function NutritionTracker({ day }) {
+export function NutritionTracker({ day, standalone = false }) {
   const { activeHabits, nutritionFor, saveMeals, setValue } = useData();
   const entry = useMemo(() => nutritionFor(day), [nutritionFor, day]);
   const hasData = entry.meals.some(
     (meal) => !macrosAreEmpty(meal) || (meal.foods && meal.foods.length)
   );
-  const [open, setOpen] = useState(hasData);
+  const [open, setOpen] = useState(standalone || hasData);
   const [drafts, setDrafts] = useState(() => defaultMealsForEditor(entry.meals).map(asDraft));
   const [activeId, setActiveId] = useState(null);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (standalone) setOpen(true);
+  }, [standalone, day]);
 
   useEffect(() => {
     const formHasFocus = document.activeElement?.closest('.nutrition__form');
@@ -208,26 +214,32 @@ export function NutritionTracker({ day }) {
     : 'Type a food to pull calories';
   const mealLine = hasData ? summarizeMeals(entry.meals) : null;
 
-  return (
-    <section className={`nutrition ${hasData ? 'has-data' : ''}`}>
-      <button
-        type="button"
-        className="nutrition__head"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-      >
-        <span>
-          <span className="eyebrow">Today’s eating</span>
-          <span className="nutrition__name">Food diary</span>
-          <span className="nutrition__summary">{summary}</span>
-          {mealLine && <span className="nutrition__meals">{mealLine}</span>}
-        </span>
-        <span className="nutrition__toggle" aria-hidden="true">
-          {open ? '−' : '+'}
-        </span>
-      </button>
+  const showForm = standalone || open;
 
-      {open && (
+  return (
+    <section
+      className={`nutrition ${hasData ? 'has-data' : ''} ${standalone ? 'nutrition--page' : ''}`}
+    >
+      {!standalone && (
+        <button
+          type="button"
+          className="nutrition__head"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+        >
+          <span>
+            <span className="eyebrow">Today’s eating</span>
+            <span className="nutrition__name">Food diary</span>
+            <span className="nutrition__summary">{summary}</span>
+            {mealLine && <span className="nutrition__meals">{mealLine}</span>}
+          </span>
+          <span className="nutrition__toggle" aria-hidden="true">
+            {open ? '−' : '+'}
+          </span>
+        </button>
+      )}
+
+      {showForm && (
         <form
           className="nutrition__form"
           onSubmit={(event) => {
