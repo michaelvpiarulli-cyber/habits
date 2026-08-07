@@ -1,5 +1,5 @@
 /**
- * Vercel serverless food search → USDA FoodData Central.
+ * Vercel serverless food search → USDA FoodData Central (branded first).
  * Set USDA_FDC_API_KEY in project env for higher rate limits (free at api.data.gov).
  */
 
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   }
 
   const q = String(req.query.q || '').trim();
-  const limit = Math.min(20, Math.max(1, Number(req.query.limit) || 8));
+  const limit = Math.min(25, Math.max(1, Number(req.query.limit) || 12));
   if (q.length < 2) {
     return res.status(200).json({ foods: [] });
   }
@@ -28,7 +28,8 @@ export default async function handler(req, res) {
     api_key: apiKey,
     query: q,
     pageSize: String(limit),
-    dataType: 'Survey (FNDDS),Foundation,SR Legacy,Branded',
+    // Branded first so “Oikos yogurt” surfaces Dannon labels, not candy noise.
+    dataType: 'Branded,Survey (FNDDS),Foundation,SR Legacy',
   });
 
   try {

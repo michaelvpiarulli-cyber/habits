@@ -2654,7 +2654,7 @@ form.field {
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--card);
-  max-height: 220px;
+  max-height: 280px;
   overflow: auto;
   box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 12%, transparent);
   z-index: 5;

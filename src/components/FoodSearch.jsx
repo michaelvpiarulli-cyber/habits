@@ -4,12 +4,13 @@ import {
   searchFoods,
   searchLocalFoods,
   withSearchQuantity,
+  DEFAULT_SEARCH_LIMIT,
 } from '../lib/foodSearch';
 
 /**
  * Type-ahead food search. Supports "3 eggs" — count is parsed and macros scale.
  */
-export function FoodSearch({ onPick, placeholder = 'e.g. 3 eggs, banana…' }) {
+export function FoodSearch({ onPick, placeholder = 'e.g. oikos yogurt, 3 eggs…' }) {
   const listId = useId();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -29,7 +30,9 @@ export function FoodSearch({ onPick, placeholder = 'e.g. 3 eggs, banana…' }) {
     }
 
     const { quantity } = parseFoodQuery(q);
-    setResults(searchLocalFoods(q, 8).map((food) => withSearchQuantity(food, quantity)));
+    setResults(
+      searchLocalFoods(q, DEFAULT_SEARCH_LIMIT).map((food) => withSearchQuantity(food, quantity))
+    );
     setOpen(true);
     setActive(0);
     setLoading(true);
@@ -38,7 +41,7 @@ export function FoodSearch({ onPick, placeholder = 'e.g. 3 eggs, banana…' }) {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
-      searchFoods(q, { signal: controller.signal, limit: 8 })
+      searchFoods(q, { signal: controller.signal, limit: DEFAULT_SEARCH_LIMIT })
         .then((foods) => {
           if (!controller.signal.aborted) {
             setResults(foods);

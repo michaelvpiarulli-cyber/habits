@@ -8,6 +8,7 @@ import {
   withSearchQuantity,
 } from '../src/lib/foodSearch.js';
 import { mapUsdaFood } from '../src/lib/usdaFood.js';
+import { COMMON_FOODS } from '../src/lib/commonFoods.js';
 
 let failed = 0;
 
@@ -24,6 +25,10 @@ function test(name, fn) {
 
 console.log('food search');
 
+test('catalog is large enough for branded logging', () => {
+  assert.ok(COMMON_FOODS.length >= 120, `expected >=120 foods, got ${COMMON_FOODS.length}`);
+});
+
 test('local search finds chicken breast with macros', () => {
   const hits = searchLocalFoods('chicken breast');
   assert.ok(hits.length >= 1);
@@ -34,6 +39,14 @@ test('local search finds chicken breast with macros', () => {
 
 test('local search is empty for nonsense', () => {
   assert.deepEqual(searchLocalFoods('zzzznotfood'), []);
+});
+
+test('oikos yogurt is in the local library', () => {
+  const hits = searchLocalFoods('oikos yogurt');
+  assert.ok(hits.length >= 1, 'expected Oikos hits');
+  assert.match(hits[0].name, /oikos/i);
+  assert.ok(hits[0].calories > 0);
+  assert.ok(hits[0].protein > 0);
 });
 
 test('parseFoodQuery reads 3 eggs', () => {
