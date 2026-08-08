@@ -49,6 +49,17 @@ test('oikos yogurt is in the local library', () => {
   assert.ok(hits[0].protein > 0);
 });
 
+test('del taco is in the local library', () => {
+  const brandHits = searchLocalFoods('del taco');
+  assert.ok(brandHits.length >= 5, `expected several Del Taco hits, got ${brandHits.length}`);
+  assert.ok(brandHits.every((hit) => /del taco/i.test(hit.brand)));
+  const soft = searchLocalFoods('del taco soft taco');
+  assert.ok(soft.some((hit) => /soft/i.test(hit.name)));
+  const burrito = searchLocalFoods('deltaco bean cheese burrito');
+  assert.ok(burrito.length >= 1, 'expected bean & cheese burrito');
+  assert.ok(burrito[0].calories >= 300);
+});
+
 test('parseFoodQuery reads 3 eggs', () => {
   assert.deepEqual(parseFoodQuery('3 eggs'), { quantity: 3, foodQuery: 'eggs' });
   assert.deepEqual(parseFoodQuery('2x banana'), { quantity: 2, foodQuery: 'banana' });
