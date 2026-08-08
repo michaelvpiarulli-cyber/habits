@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   }
 
   const q = String(req.query.q || '').trim();
-  const limit = Math.min(25, Math.max(1, Number(req.query.limit) || 12));
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 16));
   if (q.length < 2) {
     return res.status(200).json({ foods: [] });
   }

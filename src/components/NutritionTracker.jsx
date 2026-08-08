@@ -77,7 +77,8 @@ const cloneFoods = (foods = []) =>
 
 /**
  * Log food as meals through the day. Type a food name to pull calories/macros
- * from the built-in catalog + USDA. Day totals still roll up for Protein.
+ * from the built-in catalog + USDA + Open Food Facts (millions). Day totals
+ * still roll up for Protein.
  *
  * `standalone` is used on the Calories tab — diary is always open, meals are
  * flat sections, and food edits autosave.

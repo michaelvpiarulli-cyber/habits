@@ -5,12 +5,14 @@ import {
   searchLocalFoods,
   withSearchQuantity,
   DEFAULT_SEARCH_LIMIT,
+  FOOD_UNIVERSE,
 } from '../lib/foodSearch';
+import { rememberLibraryFoods } from '../lib/foodLibrary';
 import { recentBoost, rememberFood, suggestRecentFoods } from '../lib/recentFoods';
 
 /**
  * Type-ahead food search. Empty focus shows recent foods; typing merges
- * local catalog + USDA. Supports "3 eggs".
+ * local catalog + USDA + Open Food Facts (3.5M+). Supports "3 eggs".
  */
 export function FoodSearch({
   onPick,
@@ -91,6 +93,7 @@ export function FoodSearch({
   const pick = (food) => {
     if (!food) return;
     rememberFood(food);
+    rememberLibraryFoods([food]);
     setRecents(suggestRecentFoods());
     onPick?.(food);
     setQuery('');
@@ -179,10 +182,19 @@ export function FoodSearch({
             </li>
           ))}
           {loading && results.length === 0 && query.trim() && (
-            <li className="food-search__status">Looking up foods…</li>
+            <li className="food-search__status">
+              Searching {FOOD_UNIVERSE.label} foods…
+            </li>
           )}
           {loading && results.length > 0 && (
-            <li className="food-search__status">Searching USDA…</li>
+            <li className="food-search__status">
+              Pulling more from {FOOD_UNIVERSE.label} database…
+            </li>
+          )}
+          {!loading && query.trim() && suggestions.length > 0 && (
+            <li className="food-search__status food-search__status--quiet">
+              Local + USDA + Open Food Facts
+            </li>
           )}
         </ul>
       )}
