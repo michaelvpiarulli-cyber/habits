@@ -58,6 +58,10 @@ test('del taco is in the local library', () => {
   const burrito = searchLocalFoods('deltaco bean cheese burrito');
   assert.ok(burrito.length >= 1, 'expected bean & cheese burrito');
   assert.ok(burrito[0].calories >= 300);
+  const rollers = searchLocalFoods('del taco breakfast roller');
+  assert.ok(rollers.length >= 2, `expected breakfast rollers, got ${rollers.length}`);
+  assert.ok(rollers.some((hit) => /bacon/i.test(hit.name) && hit.calories === 290));
+  assert.ok(rollers.some((hit) => /egg & cheese/i.test(hit.name) && !/bacon/i.test(hit.name) && hit.calories === 250));
 });
 
 test('mcdonalds chipotle and chick-fil-a search', () => {

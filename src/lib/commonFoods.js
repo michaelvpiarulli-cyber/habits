@@ -238,6 +238,8 @@ export const COMMON_FOODS = [
   { id: 'dt-breakfast-burrito-bec', name: 'Breakfast Burrito (Bacon, Egg & Cheese)', brand: 'Del Taco', serving: '1 burrito', calories: 520, protein: 30, carbs: 36, fat: 26, aliases: ['del taco', 'deltaco', 'breakfast burrito', 'bacon egg cheese'] },
   { id: 'dt-breakfast-burrito-egg', name: 'Breakfast Burrito (Egg & Cheese)', brand: 'Del Taco', serving: '1 burrito', calories: 380, protein: 16, carbs: 35, fat: 16, aliases: ['del taco', 'deltaco', 'breakfast burrito'] },
   { id: 'dt-breakfast-burrito-carne', name: 'Breakfast Burrito (Carne Asada, Egg & Cheese)', brand: 'Del Taco', serving: '1 burrito', calories: 450, protein: 25, carbs: 38, fat: 19, aliases: ['del taco', 'deltaco', 'breakfast burrito', 'carne asada breakfast'] },
+  { id: 'dt-breakfast-roller-egg', name: 'Breakfast Roller (Egg & Cheese)', brand: 'Del Taco', serving: '1 roller', calories: 250, protein: 11, carbs: 24, fat: 11, aliases: ['del taco', 'deltaco', 'breakfast roller', 'egg cheese roller', 'roller'] },
+  { id: 'dt-breakfast-roller-bec', name: 'Breakfast Roller (Bacon, Egg & Cheese)', brand: 'Del Taco', serving: '1 roller', calories: 290, protein: 16, carbs: 24, fat: 14, aliases: ['del taco', 'deltaco', 'breakfast roller', 'bacon egg cheese roller', 'bacon roller', 'roller'] },
   { id: 'dt-breakfast-big-fat-bec', name: 'Breakfast Big Fat Taco (Bacon Egg & Cheese)', brand: 'Del Taco', serving: '1 taco', calories: 340, protein: 18, carbs: 29, fat: 18, aliases: ['del taco', 'deltaco', 'breakfast taco', 'big fat breakfast'] },
   { id: 'dt-hashbrown-sticks', name: 'Hashbrown Sticks (5 Pc.)', brand: 'Del Taco', serving: '5 pieces', calories: 230, protein: 0, carbs: 18, fat: 17, aliases: ['del taco', 'deltaco', 'hashbrown', 'hash browns'] },
 
