@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { dow, relativeDay, todayISO } from '../lib/dates';
+import { findTrainingHabit } from '../lib/habits';
 import {
   PROGRAM_DISCLAIMER,
   formatLoad,
@@ -259,30 +260,53 @@ function LiftRow({ lift, index, day, isDone, onMark, canMark }) {
 }
 
 export function Workout({ day }) {
-  const { activeHabits, logFor, setValue } = useData();
+  const { activeHabits, logFor, setValue, updateHabit, addHabit } = useData();
   const session = sessionFor(dow(day));
   const ahead = weekAhead(day);
   const total = session.lifts.length;
 
-  const lift = activeHabits.find((h) => h.kind === 'count' && /lift/i.test(h.name));
+  const lift = useMemo(() => findTrainingHabit(activeHabits), [activeHabits]);
   const done = lift ? Number(logFor(lift.id, day)?.amount) || 0 : 0;
   const complete = total > 0 && done >= total;
   const fraction = total ? Math.min(1, done / total) : 0;
 
   const [open, setOpen] = useState(() => !complete);
 
+  // Keep the Lift habit target equal to today's session size so checking off
+  // every move (or Mark session done) actually completes the habit. Starter
+  // target used to stay at 2 while Push/Pull/Legs have 4 moves.
+  useEffect(() => {
+    if (!lift || total <= 0 || Number(lift.target) === total) return;
+    updateHabit(lift.id, { target: total, unit: lift.unit || 'lifts', kind: 'count' });
+  }, [lift, total, updateHabit]);
+
+  const ensureLiftHabit = () => {
+    if (lift) return lift;
+    return addHabit({
+      name: 'Lift',
+      emoji: '\u{1F3CB}',
+      kind: 'count',
+      target: total || 4,
+      unit: 'lifts',
+      cadence: 'daily',
+    });
+  };
+
   const mark = (index) => {
-    if (!lift) return;
-    setValue(lift, day, done === index + 1 ? index : index + 1);
+    const habit = ensureLiftHabit();
+    if (!habit) return;
+    const current = Number(logFor(habit.id, day)?.amount) || 0;
+    setValue(habit, day, current === index + 1 ? index : index + 1);
   };
 
   const markAll = () => {
-    if (!lift || complete) return;
-    setValue(lift, day, total);
+    const habit = ensureLiftHabit();
+    if (!habit || complete) return;
+    setValue(habit, day, total);
   };
 
   const summary = !lift
-    ? session.focus
+    ? `Tap a lift to start tracking · ${session.focus}`
     : complete
       ? 'Session done'
       : done > 0
@@ -316,13 +340,10 @@ export function Workout({ day }) {
 
       {open && (
         <>
-          {lift ? (
-            <p className="workout__hint">
-              Check off each lift, then save weight × reps for every set.
-            </p>
-          ) : (
-            <p className="workout__hint">Add a Lift habit to check moves off and log weight.</p>
-          )}
+          <p className="workout__hint">
+            Check off each move when you finish
+            {session.kind === 'lift' ? ', then save weight × reps for every set' : ''}.
+          </p>
 
           <ol className="workout__lifts">
             {session.lifts.map((l, i) => (
@@ -333,12 +354,12 @@ export function Workout({ day }) {
                 day={day}
                 isDone={i < done}
                 onMark={mark}
-                canMark={!!lift}
+                canMark
               />
             ))}
           </ol>
 
-          {lift && !complete && (
+          {!complete && (
             <div className="workout__actions">
               <button type="button" className="btn" onClick={markAll}>
                 Mark session done

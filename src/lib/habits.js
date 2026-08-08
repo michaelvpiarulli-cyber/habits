@@ -138,7 +138,9 @@ export const STARTER_HABITS = [
     name: 'Lift',
     emoji: '\u{1F3CB}',
     kind: 'count',
-    target: 2,
+    // Default matches a typical Push/Pull/Legs session; Workout.jsx retargets
+    // to today's session length (1 on run day, 4 on most lift days).
+    target: 4,
     unit: 'lifts',
     cadence: 'daily',
   },
@@ -179,6 +181,24 @@ const STARTER_ALIASES = new Map([
   ['protein', STARTER_HABITS[4].id],
   ['weigh in', STARTER_HABITS[5].id],
 ]);
+
+const LIFT_STARTER_ID = STARTER_HABITS[2].id;
+
+/**
+ * Habit that owns today's training checkoffs. Matches the Lift starter by id,
+ * name (Lift / Workout), or unit so a rename cannot disable the workout UI.
+ */
+export function findTrainingHabit(habits) {
+  if (!Array.isArray(habits)) return null;
+  const active = habits.filter((habit) => habit && !habit.deleted && !habit.archived);
+  return (
+    active.find((habit) => habit.id === LIFT_STARTER_ID) ||
+    active.find((habit) => habit.kind === 'count' && /^(lift|workout)s?$/i.test(habit.name.trim())) ||
+    active.find((habit) => habit.kind === 'count' && /lift|workout/i.test(habit.name)) ||
+    active.find((habit) => habit.kind === 'count' && /^lifts?$/i.test(String(habit.unit || '').trim())) ||
+    null
+  );
+}
 
 const normalizeStarterName = (name) =>
   String(name || '')
