@@ -2445,6 +2445,151 @@ form.field {
   margin-bottom: 14px;
 }
 
+/* —— Day totals + fat-loss coach —— */
+
+.weight-coach {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.day-totals {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
+  gap: 12px;
+  align-items: end;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.day-totals__num {
+  margin-top: 2px;
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 9vw, 3.25rem);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+}
+
+.day-totals__num em {
+  font-style: normal;
+  margin-left: 0.28em;
+  font-size: 0.38em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--violet);
+  vertical-align: 0.4em;
+}
+
+.day-totals__macros {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.day-totals__macros li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.day-totals__macros span {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.day-totals__macros strong {
+  font-family: var(--mono);
+  font-size: 0.938rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.weight-coach__card {
+  padding: 12px 0 2px;
+}
+
+.weight-coach__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.weight-coach__title {
+  margin-top: 2px;
+  font-family: var(--display);
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.weight-coach__title span {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.weight-coach__strategy,
+.weight-coach__detail,
+.weight-coach__action {
+  margin-top: 8px;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  max-width: 46ch;
+}
+
+.weight-coach__action {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.weight-coach__suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+
+.weight-coach__suggest-line {
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 0.813rem;
+  color: var(--ink);
+}
+
+.weight-coach__using {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--violet);
+}
+
+@media (max-width: 380px) {
+  .day-totals {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* —— MacroFactor-style day widget —— */
 
 .macro-dash {

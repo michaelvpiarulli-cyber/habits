@@ -2,14 +2,16 @@ import { useMemo, useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { useMacroTargets } from '../hooks/useMacroTargets';
 import { addDays, formatLong, todayISO } from '../lib/dates';
+import { findWeighHabit, weighReadings } from '../lib/weightCoach';
 import { MacroDashboard } from './MacroDashboard';
 import { NutritionTracker } from './NutritionTracker';
+import { WeightCoach } from './WeightCoach';
 
 /**
- * MacroFactor-style food log: targets, remaining/consumed rings, then diary.
+ * MacroFactor-style food log: day totals, fat-loss coach, rings, diary.
  */
 export function CaloriesView() {
-  const { nutritionFor, activeHabits } = useData();
+  const { nutritionFor, activeHabits, logFor } = useData();
   const calendarToday = todayISO();
   const [day, setDay] = useState(calendarToday);
   const entry = useMemo(() => nutritionFor(day), [nutritionFor, day]);
@@ -22,6 +24,12 @@ export function CaloriesView() {
     );
     return Number(habit?.target) || 0;
   }, [activeHabits]);
+
+  const weighHabit = useMemo(() => findWeighHabit(activeHabits), [activeHabits]);
+  const readings = useMemo(
+    () => weighReadings(weighHabit, logFor, calendarToday, 56),
+    [weighHabit, logFor, calendarToday]
+  );
 
   const { targets, updateTargets, view, setView } = useMacroTargets(proteinHabitTarget);
 
@@ -59,6 +67,16 @@ export function CaloriesView() {
             ›
           </button>
         </div>
+
+        <WeightCoach
+          entry={entry}
+          targets={targets}
+          onApplyTargets={updateTargets}
+          readings={readings}
+          nutritionFor={nutritionFor}
+          proteinHabitTarget={proteinHabitTarget}
+          viewingToday={viewingToday}
+        />
 
         <MacroDashboard
           entry={entry}
