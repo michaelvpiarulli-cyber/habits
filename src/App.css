@@ -1139,7 +1139,7 @@
 .grid__gutter,
 .card__name,
 .row__name,
-.habit__name,
+.line__name,
 .habit-editor__emoji input {
   filter: grayscale(1);
 }
