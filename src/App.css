@@ -42,6 +42,13 @@
   background: var(--pink);
 }
 
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle,
 .account {
   display: inline-flex;
   align-items: center;
@@ -54,8 +61,22 @@
   background: var(--card);
 }
 
+.theme-toggle:hover,
 .account:hover {
   color: var(--ink);
+}
+
+.theme-toggle__icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.theme-toggle__label {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .account__dot {
@@ -1933,7 +1954,7 @@ form.field {
     left: 0;
     top: 0;
     width: var(--sidebar);
-    height: 106px;
+    height: 124px;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
@@ -1944,6 +1965,11 @@ form.field {
     border-right: 1px solid var(--rule);
   }
 
+  .topbar__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
   .wordmark {
     font-size: 1.5rem;
   }
@@ -1951,7 +1977,7 @@ form.field {
   .nav {
     position: fixed;
     left: 0;
-    top: 106px;
+    top: 124px;
     bottom: 0;
     right: auto;
     width: var(--sidebar);

@@ -10,6 +10,7 @@ import { HabitsView } from './components/HabitsView';
 import { IdentityView } from './components/IdentityView';
 import { BottomNav } from './components/BottomNav';
 import { AccountMenu } from './components/AccountMenu';
+import { ThemeToggle } from './components/ThemeToggle';
 import './App.css';
 
 const VIEWS = {
@@ -50,14 +51,17 @@ export default function App() {
           <span className="wordmark__rule" aria-hidden="true" />
         </h1>
 
-        <button
-          type="button"
-          className={`account ${syncState === 'error' ? 'is-error' : ''}`}
-          onClick={() => setAccountOpen(true)}
-        >
-          <span className={`account__dot account__dot--${syncAvailable && auth.user ? syncState : 'local'}`} />
-          {auth.user ? 'Account' : syncAvailable ? 'Sign in' : 'Settings'}
-        </button>
+        <div className="topbar__actions">
+          <ThemeToggle theme={theme} />
+          <button
+            type="button"
+            className={`account ${syncState === 'error' ? 'is-error' : ''}`}
+            onClick={() => setAccountOpen(true)}
+          >
+            <span className={`account__dot account__dot--${syncAvailable && auth.user ? syncState : 'local'}`} />
+            {auth.user ? 'Account' : syncAvailable ? 'Sign in' : 'Settings'}
+          </button>
+        </div>
       </header>
 
       <main className="main">
