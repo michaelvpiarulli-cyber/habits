@@ -7,6 +7,7 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { addWave2 } from './food-catalog-wave2.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const foods = [];
@@ -726,6 +727,8 @@ chain('Starbucks', 'sbux2', [
   { id: 'caramel-frap', name: 'Caramel Frappuccino', serving: 'grande', calories: 380, protein: 5, carbs: 54, fat: 16 },
   { id: 'mocha-cookie', name: 'Mocha Cookie Crumble Frappuccino', serving: 'grande', calories: 480, protein: 6, carbs: 65, fat: 21 },
 ]);
+
+addWave2({ add, chain, staple });
 
 function serialize(food) {
   const aliases = food.aliases

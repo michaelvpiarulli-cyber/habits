@@ -26,7 +26,7 @@ function test(name, fn) {
 console.log('food search');
 
 test('catalog is large enough for branded logging', () => {
-  assert.ok(COMMON_FOODS.length >= 900, `expected >=900 foods, got ${COMMON_FOODS.length}`);
+  assert.ok(COMMON_FOODS.length >= 1200, `expected >=1200 foods, got ${COMMON_FOODS.length}`);
 });
 
 test('new chains land in the local library', () => {
@@ -37,6 +37,18 @@ test('new chains land in the local library', () => {
   assert.ok(searchLocalFoods('wahoos fish taco').some((h) => /fish taco/i.test(h.name)));
   assert.ok(searchLocalFoods('raising canes').length >= 1);
   assert.ok(searchLocalFoods('doritos').length >= 1);
+  assert.ok(searchLocalFoods('jersey mikes').length >= 3);
+  assert.ok(searchLocalFoods('cava chicken').length >= 1);
+  assert.ok(searchLocalFoods('sweetgreen harvest').some((h) => /harvest/i.test(h.name)));
+  assert.ok(searchLocalFoods('culvers butterburger').length >= 1);
+  assert.ok(searchLocalFoods('gold standard').some((h) => /whey/i.test(h.name)));
+});
+
+test('search synonyms beat MFP typing friction', () => {
+  assert.ok(searchLocalFoods('pb').some((h) => /peanut butter/i.test(h.name)));
+  assert.ok(searchLocalFoods('cfa').some((h) => /chick-fil-a/i.test(h.brand)));
+  assert.ok(searchLocalFoods('bww').length >= 1);
+  assert.ok(searchLocalFoods('100g chicken').some((h) => /chicken/i.test(h.name)));
 });
 
 test('local search finds chicken breast with macros', () => {

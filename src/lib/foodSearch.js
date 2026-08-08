@@ -38,14 +38,58 @@ export function parseFoodQuery(raw) {
   return { quantity: 1, foodQuery: text };
 }
 
-function searchTerms(foodQuery) {
-  const q = foodQuery.trim();
+/** Shorthand people type in MFP-style loggers → expand into searchable terms. */
+const QUERY_SYNONYMS = {
+  pb: 'peanut butter',
+  'greek yogurt': 'greek yogurt',
+  cottage: 'cottage cheese',
+  whey: 'whey protein',
+  'protein powder': 'whey protein',
+  mcd: "mcdonald's",
+  mcdonalds: "mcdonald's",
+  chickfila: 'chick-fil-a',
+  'chick fil a': 'chick-fil-a',
+  cfa: 'chick-fil-a',
+  sbux: 'starbucks',
+  tbell: 'taco bell',
+  innout: 'in-n-out',
+  'in n out': 'in-n-out',
+  'jimmy johns': "jimmy john's",
+  bww: 'buffalo wild wings',
+  'jersey mikes': "jersey mike's",
+  'papa johns': "papa john's",
+  oj: 'orange juice',
+};
+
+function expandQuery(foodQuery) {
+  const q = foodQuery.trim().toLowerCase();
   if (!q) return [];
-  const terms = [q];
-  if (q.length > 3 && /s$/i.test(q) && !/ss$/i.test(q)) {
-    terms.push(q.replace(/s$/i, ''));
+  const expanded = new Set([foodQuery.trim()]);
+  if (QUERY_SYNONYMS[q]) expanded.add(QUERY_SYNONYMS[q]);
+  // Also expand when the synonym is a prefix/token of a longer query.
+  for (const [key, value] of Object.entries(QUERY_SYNONYMS)) {
+    if (key.length < 2) continue;
+    if (q === key || q.startsWith(`${key} `) || q.endsWith(` ${key}`) || q.includes(` ${key} `)) {
+      expanded.add(q.split(key).join(value));
+      expanded.add(value);
+    }
   }
-  return terms;
+  return [...expanded];
+}
+
+function searchTerms(foodQuery) {
+  const bases = expandQuery(foodQuery);
+  if (bases.length === 0) return [];
+  const terms = new Set();
+  for (const base of bases) {
+    const q = base.trim();
+    if (!q) continue;
+    terms.add(q);
+    if (q.length > 3 && /s$/i.test(q) && !/ss$/i.test(q)) {
+      terms.add(q.replace(/s$/i, ''));
+    }
+  }
+  return [...terms];
 }
 
 function haystack(food) {

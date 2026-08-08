@@ -141,7 +141,7 @@ const BASE_FOODS = [
   { id: 'oat-milk', name: 'Oat milk', brand: 'Generic', serving: '1 cup', calories: 120, protein: 3, carbs: 16, fat: 5 },
 
   // —— bars & packaged ——
-  { id: 'local-pb', name: 'Peanut butter', brand: 'Generic', serving: '2 tbsp', calories: 190, protein: 8, carbs: 7, fat: 16 },
+  { id: 'local-pb', name: 'Peanut butter', brand: 'Generic', serving: '2 tbsp', calories: 190, protein: 8, carbs: 7, fat: 16, aliases: ['pb', 'peanutbutter'] },
   { id: 'local-almond-butter', name: 'Almond butter', brand: 'Generic', serving: '2 tbsp', calories: 190, protein: 7, carbs: 6, fat: 18 },
   { id: 'local-almonds', name: 'Almonds', brand: 'Generic', serving: '1 oz (23 nuts)', calories: 160, protein: 6, carbs: 6, fat: 14 },
   { id: 'local-peanuts', name: 'Peanuts, roasted', brand: 'Generic', serving: '1 oz', calories: 170, protein: 7, carbs: 5, fat: 14 },
