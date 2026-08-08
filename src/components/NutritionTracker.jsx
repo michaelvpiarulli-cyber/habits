@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useData } from '../context/DataProvider';
+import { addDays } from '../lib/dates';
 import {
   MACRO_FIELDS,
+  MEAL_SLOTS,
   defaultMealsForEditor,
   mealTitle,
   macrosAreEmpty,
@@ -9,8 +11,11 @@ import {
   withFoodQuantity,
   withMealFoodTotals,
 } from '../lib/nutrition';
+import { mealSlotForHour } from '../lib/recentFoods';
 import { newId } from '../lib/mappers';
 import { FoodSearch } from './FoodSearch';
+
+const SLOT_LABEL = Object.fromEntries(MEAL_SLOTS.map((slot) => [slot.id, slot.label]));
 
 const asDraft = (meal) => {
   const normalized = withMealFoodTotals(meal);
@@ -56,12 +61,19 @@ const applyFoodsToDraft = (draft, foods) => {
   };
 };
 
-const firstOpenMealId = (drafts) => {
-  const empty = drafts.find(
-    (draft) => macrosAreEmpty(draftToMeal(draft)) && !(draft.foods && draft.foods.length)
+const mealHasContent = (meal) =>
+  !macrosAreEmpty(meal) || (meal.foods && meal.foods.length > 0) || Boolean(meal.note);
+
+const cloneFoods = (foods = []) =>
+  foods.map((food) =>
+    withFoodQuantity(
+      {
+        ...food,
+        id: newId(),
+      },
+      food.quantity ?? 1
+    )
   );
-  return (empty || drafts[0])?.id ?? null;
-};
 
 /**
  * Log food as meals through the day. Type a food name to pull calories/macros
@@ -73,14 +85,16 @@ const firstOpenMealId = (drafts) => {
 export function NutritionTracker({ day, standalone = false }) {
   const { activeHabits, nutritionFor, saveMeals, setValue } = useData();
   const entry = useMemo(() => nutritionFor(day), [nutritionFor, day]);
+  const yesterday = useMemo(() => addDays(day, -1), [day]);
+  const yesterdayEntry = useMemo(() => nutritionFor(yesterday), [nutritionFor, yesterday]);
   const hasData = entry.meals.some(
     (meal) => !macrosAreEmpty(meal) || (meal.foods && meal.foods.length)
   );
   const [open, setOpen] = useState(standalone || hasData);
   const [drafts, setDrafts] = useState(() => defaultMealsForEditor(entry.meals).map(asDraft));
-  const [activeId, setActiveId] = useState(() =>
-    standalone ? firstOpenMealId(defaultMealsForEditor(entry.meals).map(asDraft)) : null
-  );
+  const [activeId, setActiveId] = useState(null);
+  const [quickSlot, setQuickSlot] = useState(() => mealSlotForHour());
+  const [flash, setFlash] = useState(null);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
   const skipEntrySync = useRef(false);
@@ -88,6 +102,8 @@ export function NutritionTracker({ day, standalone = false }) {
 
   useEffect(() => {
     if (standalone) setOpen(true);
+    setQuickSlot(mealSlotForHour());
+    setActiveId(null);
   }, [standalone, day]);
 
   useEffect(() => {
@@ -101,9 +117,8 @@ export function NutritionTracker({ day, standalone = false }) {
       setDrafts(next);
       setSaved(false);
       setDirty(false);
-      if (standalone) setActiveId(firstOpenMealId(next));
     }
-  }, [entry, standalone]);
+  }, [entry]);
 
   useEffect(
     () => () => {
@@ -111,6 +126,17 @@ export function NutritionTracker({ day, standalone = false }) {
     },
     []
   );
+
+  const yesterdayBySlot = useMemo(() => {
+    const map = new Map();
+    for (const meal of yesterdayEntry.meals || []) {
+      if (!mealHasContent(meal)) continue;
+      if (!map.has(meal.slot)) map.set(meal.slot, meal);
+    }
+    return map;
+  }, [yesterdayEntry]);
+
+  const yesterdayHasFood = yesterdayBySlot.size > 0;
 
   const syncProtein = (meals) => {
     const proteinHabit = activeHabits.find(
@@ -183,39 +209,77 @@ export function NutritionTracker({ day, standalone = false }) {
     );
   };
 
+  const appendFoodToDraft = (draft, food) => {
+    const quantity = food.quantity ?? 1;
+    const foods = [
+      ...(draft.foods || []),
+      withFoodQuantity(
+        {
+          id: newId(),
+          name: food.name,
+          brand: food.brand || '',
+          serving: food.serving || '1 serving',
+          fdcId: food.fdcId || null,
+          source: food.source || '',
+          baseCalories: food.baseCalories ?? food.calories,
+          baseProtein: food.baseProtein ?? food.protein,
+          baseCarbs: food.baseCarbs ?? food.carbs,
+          baseFat: food.baseFat ?? food.fat,
+          calories: food.baseCalories ?? food.calories,
+          protein: food.baseProtein ?? food.protein,
+          carbs: food.baseCarbs ?? food.carbs,
+          fat: food.baseFat ?? food.fat,
+        },
+        quantity
+      ),
+    ];
+    return applyFoodsToDraft(draft, foods);
+  };
+
+  const pingFlash = (message) => {
+    setFlash(message);
+    window.setTimeout(() => setFlash(null), 1200);
+  };
+
   const addFood = (mealId, food) => {
+    const slot = drafts.find((draft) => draft.id === mealId)?.slot;
     commitDrafts(
       (current) =>
-        current.map((draft) => {
-          if (draft.id !== mealId) return draft;
-          const quantity = food.quantity ?? 1;
-          const foods = [
-            ...(draft.foods || []),
-            withFoodQuantity(
-              {
-                id: newId(),
-                name: food.name,
-                brand: food.brand || '',
-                serving: food.serving || '1 serving',
-                fdcId: food.fdcId || null,
-                source: food.source || '',
-                baseCalories: food.baseCalories ?? food.calories,
-                baseProtein: food.baseProtein ?? food.protein,
-                baseCarbs: food.baseCarbs ?? food.carbs,
-                baseFat: food.baseFat ?? food.fat,
-                calories: food.baseCalories ?? food.calories,
-                protein: food.baseProtein ?? food.protein,
-                carbs: food.baseCarbs ?? food.carbs,
-                fat: food.baseFat ?? food.fat,
-              },
-              quantity
-            ),
-          ];
-          return applyFoodsToDraft(draft, foods);
-        }),
+        current.map((draft) =>
+          draft.id === mealId ? appendFoodToDraft(draft, food) : draft
+        ),
       { immediate: true }
     );
     setActiveId(mealId);
+    pingFlash(`Added to ${SLOT_LABEL[slot] || 'meal'}`);
+  };
+
+  const addFoodToSlot = (slot, food) => {
+    let targetId = null;
+    commitDrafts((current) => {
+      let target = current.find((draft) => draft.slot === slot);
+      let next = current;
+      if (!target) {
+        target = asDraft({
+          id: newId(),
+          slot,
+          label: '',
+          note: '',
+          foods: [],
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+        });
+        next = [...current, target];
+      }
+      targetId = target.id;
+      return next.map((draft) =>
+        draft.id === target.id ? appendFoodToDraft(draft, food) : draft
+      );
+    }, { immediate: true });
+    if (targetId) setActiveId(targetId);
+    pingFlash(`Added to ${SLOT_LABEL[slot] || 'meal'}`);
   };
 
   const setFoodQuantity = (mealId, foodId, quantity) => {
@@ -244,6 +308,61 @@ export function NutritionTracker({ day, standalone = false }) {
     );
   };
 
+  const copyMealFromYesterday = (slot) => {
+    const source = yesterdayBySlot.get(slot);
+    if (!source) return;
+    commitDrafts((current) => {
+      const target = current.find((draft) => draft.slot === slot);
+      if (!target) return current;
+      if (source.foods?.length) {
+        return current.map((draft) =>
+          draft.id === target.id ? applyFoodsToDraft(draft, cloneFoods(source.foods)) : draft
+        );
+      }
+      return current.map((draft) =>
+        draft.id === target.id
+          ? {
+              ...draft,
+              note: source.note || source.label || draft.note,
+              label: source.label || draft.label,
+              ...Object.fromEntries(
+                MACRO_FIELDS.map(({ id }) => [
+                  id,
+                  source[id] > 0 ? String(source[id]) : '',
+                ])
+              ),
+              foods: [],
+            }
+          : draft
+      );
+    }, { immediate: true });
+    setFlash(`Copied ${SLOT_LABEL[slot] || 'meal'}`);
+    window.setTimeout(() => setFlash(null), 1400);
+  };
+
+  const copyYesterdayDay = () => {
+    commitDrafts((current) => {
+      return current.map((draft) => {
+        const source = yesterdayBySlot.get(draft.slot);
+        if (!source) return draft;
+        if (source.foods?.length) {
+          return applyFoodsToDraft(draft, cloneFoods(source.foods));
+        }
+        return {
+          ...draft,
+          note: source.note || source.label || draft.note,
+          label: source.label || draft.label,
+          ...Object.fromEntries(
+            MACRO_FIELDS.map(({ id }) => [id, source[id] > 0 ? String(source[id]) : ''])
+          ),
+          foods: [],
+        };
+      });
+    }, { immediate: true });
+    setFlash('Copied yesterday');
+    window.setTimeout(() => setFlash(null), 1400);
+  };
+
   const addSnack = () => {
     const snack = asDraft({
       id: newId(),
@@ -266,7 +385,7 @@ export function NutritionTracker({ day, standalone = false }) {
     syncProtein([]);
     const next = defaultMealsForEditor([]).map(asDraft);
     setDrafts(next);
-    setActiveId(standalone ? firstOpenMealId(next) : null);
+    setActiveId(null);
     setSaved(false);
     setDirty(false);
   };
@@ -277,7 +396,7 @@ export function NutritionTracker({ day, standalone = false }) {
   const mealLine = hasData ? summarizeMeals(entry.meals) : null;
 
   const showForm = standalone || open;
-  const statusLabel = saved ? 'Saved' : dirty ? 'Saving…' : null;
+  const statusLabel = flash || (saved ? 'Saved' : dirty ? 'Saving…' : null);
 
   return (
     <section
@@ -318,20 +437,55 @@ export function NutritionTracker({ day, standalone = false }) {
             </div>
           )}
 
+          {standalone && (
+            <div className="quick-log">
+              <div className="quick-log__slots" role="group" aria-label="Log to meal">
+                {MEAL_SLOTS.map((slot) => (
+                  <button
+                    key={slot.id}
+                    type="button"
+                    className={`quick-log__slot ${quickSlot === slot.id ? 'is-active' : ''}`}
+                    onClick={() => setQuickSlot(slot.id)}
+                  >
+                    {slot.label}
+                  </button>
+                ))}
+              </div>
+              <FoodSearch
+                compact
+                autoFocus
+                showRecents
+                placeholder={`Add to ${SLOT_LABEL[quickSlot] || 'meal'}…`}
+                onPick={(food) => addFoodToSlot(quickSlot, food)}
+              />
+              {yesterdayHasFood && (
+                <div className="quick-log__actions">
+                  <button type="button" className="btn" onClick={copyYesterdayDay}>
+                    Copy yesterday
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <ul className={`meals ${standalone ? 'meals--diary' : ''}`}>
             {drafts.map((draft) => {
               const meal = draftToMeal(draft);
               const title = mealTitle(meal, drafts.map(draftToMeal));
               const filled = !macrosAreEmpty(meal) || (meal.foods && meal.foods.length > 0);
-              const expanded = standalone || activeId === draft.id;
               const hasFoods = (draft.foods || []).length > 0;
+              const isActive = activeId === draft.id;
+              const expanded = standalone
+                ? hasFoods || isActive
+                : isActive;
+              const yMeal = yesterdayBySlot.get(draft.slot);
 
               return (
                 <li
                   key={draft.id}
                   className={`meal ${filled ? 'has-data' : ''} ${expanded ? 'is-open' : ''} ${
                     standalone ? 'meal--diary' : ''
-                  }`}
+                  } ${standalone && !filled && !isActive ? 'meal--collapsed' : ''}`}
                 >
                   {standalone ? (
                     <div className="meal__head meal__head--static">
@@ -340,15 +494,47 @@ export function NutritionTracker({ day, standalone = false }) {
                         <span className="meal__summary">
                           {filled
                             ? `${meal.protein || 0}P · ${meal.carbs || 0}C · ${meal.fat || 0}F`
-                            : 'Add food'}
+                            : 'Empty'}
                         </span>
                       </span>
-                      {filled && (
-                        <span className="meal__kcal" aria-label={`${meal.calories || 0} calories`}>
-                          {meal.calories || 0}
-                          <small>kcal</small>
-                        </span>
-                      )}
+                      <span className="meal__head-actions">
+                        {filled && (
+                          <span className="meal__kcal" aria-label={`${meal.calories || 0} calories`}>
+                            {meal.calories || 0}
+                            <small>kcal</small>
+                          </span>
+                        )}
+                        {!filled && yMeal && (
+                          <button
+                            type="button"
+                            className="btn meal__copy"
+                            onClick={() => copyMealFromYesterday(draft.slot)}
+                          >
+                            Copy
+                          </button>
+                        )}
+                        {!isActive && (
+                          <button
+                            type="button"
+                            className="btn meal__add"
+                            onClick={() => {
+                              setActiveId(draft.id);
+                              setQuickSlot(draft.slot === 'day' ? 'snack' : draft.slot);
+                            }}
+                          >
+                            {filled ? 'Add' : '+ Add'}
+                          </button>
+                        )}
+                        {isActive && (
+                          <button
+                            type="button"
+                            className="btn meal__add"
+                            onClick={() => setActiveId(null)}
+                          >
+                            Done
+                          </button>
+                        )}
+                      </span>
                     </div>
                   ) : (
                     <button
@@ -390,12 +576,17 @@ export function NutritionTracker({ day, standalone = false }) {
                         </label>
                       )}
 
-                      <FoodSearch
-                        placeholder={
-                          standalone ? 'Search foods…' : 'e.g. 3 eggs, chicken breast…'
-                        }
-                        onPick={(food) => addFood(draft.id, food)}
-                      />
+                      {/* Standalone: search only when this meal is the active add target
+                          (quick-add at top handles the common path). */}
+                      {(!standalone || isActive) && (
+                        <FoodSearch
+                          showRecents={!standalone || isActive}
+                          placeholder={
+                            standalone ? 'Search foods…' : 'e.g. 3 eggs, chicken breast…'
+                          }
+                          onPick={(food) => addFood(draft.id, food)}
+                        />
+                      )}
 
                       {hasFoods && (
                         <ul className={`food-lines ${standalone ? 'food-lines--mf' : ''}`}>
@@ -471,8 +662,6 @@ export function NutritionTracker({ day, standalone = false }) {
                         </ul>
                       )}
 
-                      {/* On the Calories tab, keep empty meals light — search only.
-                          Manual note/macros stay available on the Today embed, or once food is in. */}
                       {!hasFoods && !standalone && (
                         <label className="nutrition__field">
                           <span className="nutrition__label">Or note what you ate</span>
@@ -490,8 +679,6 @@ export function NutritionTracker({ day, standalone = false }) {
                         </label>
                       )}
 
-                      {/* Standalone diary: meal macros live in the header; hide the
-                          editable grid once foods are driving the totals. */}
                       {(!standalone || (filled && !hasFoods)) && (
                         <div className="nutrition__grid">
                           {MACRO_FIELDS.map(({ id, label, unit, step }) => (
@@ -549,16 +736,6 @@ export function NutritionTracker({ day, standalone = false }) {
               </button>
             )}
           </div>
-          {!standalone && (
-            <p className="field__hint">
-              Type a food to pull calories. Totals still feed the Protein habit.
-            </p>
-          )}
-          {standalone && (
-            <p className="field__hint">
-              Autosaves as you log. Totals still feed the Protein habit.
-            </p>
-          )}
         </form>
       )}
     </section>
