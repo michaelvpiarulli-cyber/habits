@@ -26,7 +26,17 @@ function test(name, fn) {
 console.log('food search');
 
 test('catalog is large enough for branded logging', () => {
-  assert.ok(COMMON_FOODS.length >= 350, `expected >=350 foods, got ${COMMON_FOODS.length}`);
+  assert.ok(COMMON_FOODS.length >= 900, `expected >=900 foods, got ${COMMON_FOODS.length}`);
+});
+
+test('new chains land in the local library', () => {
+  assert.ok(searchLocalFoods('wendys baconator').some((h) => /baconator/i.test(h.name)));
+  assert.ok(searchLocalFoods('whopper').some((h) => /whopper/i.test(h.name)));
+  assert.ok(searchLocalFoods('popeyes sandwich').length >= 1);
+  assert.ok(searchLocalFoods('panda orange chicken').some((h) => /orange chicken/i.test(h.name)));
+  assert.ok(searchLocalFoods('wahoos fish taco').some((h) => /fish taco/i.test(h.name)));
+  assert.ok(searchLocalFoods('raising canes').length >= 1);
+  assert.ok(searchLocalFoods('doritos').length >= 1);
 });
 
 test('local search finds chicken breast with macros', () => {

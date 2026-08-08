@@ -3,9 +3,12 @@
  * works offline / when USDA is rate-limited. Macros are for one serving.
  *
  * Brand rows include `aliases` so “oikos” hits Dannon Oikos yogurts.
+ * Chain / grocery expansion lives in foodCatalogExtra.js (generated).
  */
 
-export const COMMON_FOODS = [
+import { EXTRA_FOODS } from './foodCatalogExtra.js';
+
+const BASE_FOODS = [
   // —— eggs & breakfast ——
   { id: 'local-egg-large', name: 'Egg, large', brand: 'Generic', serving: '1 large', calories: 72, protein: 6.3, carbs: 0.4, fat: 4.8, aliases: ['eggs'] },
   { id: 'local-egg-white', name: 'Egg white, large', brand: 'Generic', serving: '1 large', calories: 17, protein: 3.6, carbs: 0.2, fat: 0.1 },
@@ -457,3 +460,5 @@ export const COMMON_FOODS = [
   { id: 'kirkland-protein-bar', name: 'Kirkland Protein Bar Chocolate Chip Cookie Dough', brand: 'Kirkland', serving: '1 bar', calories: 180, protein: 21, carbs: 22, fat: 6, aliases: ['kirkland', 'costco protein bar'] },
   { id: 'kirkland-greek-yogurt', name: 'Kirkland Greek Yogurt Plain Nonfat', brand: 'Kirkland', serving: '1 cup (227 g)', calories: 120, protein: 23, carbs: 8, fat: 0, aliases: ['kirkland', 'costco yogurt'] },
 ];
+
+export const COMMON_FOODS = [...BASE_FOODS, ...EXTRA_FOODS];
