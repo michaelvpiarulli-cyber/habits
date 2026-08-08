@@ -2422,6 +2422,139 @@ form.field {
    Today's meals / calorie diary
    ========================================================================= */
 
+.calories-view {
+  padding-top: 18px;
+}
+
+.calories-hero {
+  margin-bottom: 22px;
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--rule);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--blue-wash) 55%, transparent) 0%, transparent 72%),
+    linear-gradient(135deg, color-mix(in srgb, var(--pink-wash) 40%, transparent) 0%, transparent 48%);
+  animation: calories-hero-in 420ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.calories-hero .day-nav {
+  margin-bottom: 14px;
+}
+
+.calories-hero__total {
+  margin-bottom: 16px;
+}
+
+.calories-hero__kcal {
+  margin-top: 4px;
+  font-family: var(--display);
+  font-size: clamp(2.4rem, 9vw, 3.25rem);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+}
+
+.calories-hero__num {
+  display: inline-block;
+  animation: calories-num-in 480ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.calories-hero__kcal em {
+  font-style: normal;
+  margin-left: 0.28em;
+  font-size: 0.42em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--violet);
+  vertical-align: 0.35em;
+}
+
+.calories-hero__cue {
+  margin-top: 8px;
+  max-width: 34ch;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.macro-meters {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.macro-meter__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.macro-meter__label {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.macro-meter__value {
+  font-family: var(--mono);
+  font-size: 0.813rem;
+  color: var(--ink);
+}
+
+.macro-meter__track {
+  display: block;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--sunk);
+  overflow: hidden;
+}
+
+.macro-meter__ink {
+  display: block;
+  height: 100%;
+  width: var(--fill, 0%);
+  border-radius: inherit;
+  transition: width 360ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.macro-meter--blue .macro-meter__ink {
+  background: var(--blue);
+}
+
+.macro-meter--pink .macro-meter__ink {
+  background: var(--pink);
+}
+
+.macro-meter--violet .macro-meter__ink {
+  background: var(--violet);
+}
+
+@keyframes calories-hero-in {
+  from {
+    opacity: 0.35;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes calories-num-in {
+  from {
+    opacity: 0.2;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .nutrition {
   margin: 0 0 12px;
   border: 1px solid var(--rule);
@@ -2431,20 +2564,54 @@ form.field {
   overflow: hidden;
 }
 
+/* Calories tab: drop the nested shell — meals are the page. */
 .nutrition--page {
   margin: 0;
-  border-left-width: 3px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
 }
 
 .nutrition--page .nutrition__form {
-  padding: 12px 14px 14px;
+  padding: 0;
   border-top: none;
 }
 
-.calories-view__sub {
-  margin: 4px 0 16px;
-  font-size: 0.875rem;
-  color: var(--ink-soft);
+.nutrition__page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.nutrition__page-title {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.nutrition__status {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--violet);
+  animation: calories-status-in 220ms ease-out;
+}
+
+@keyframes calories-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .nutrition__head {
@@ -2509,6 +2676,11 @@ form.field {
   gap: 6px;
 }
 
+.meals--diary {
+  margin-top: 8px;
+  gap: 0;
+}
+
 .meal {
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -2520,6 +2692,23 @@ form.field {
   border-color: var(--violet);
 }
 
+/* Flat diary rows on the Calories tab — no nested card stack. */
+.meal--diary {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  border-top: 1px solid var(--rule);
+  overflow: visible;
+}
+
+.meal--diary.has-data {
+  border-color: var(--rule);
+}
+
+.meal--diary:first-child {
+  border-top: 0;
+}
+
 .meal__head {
   display: flex;
   align-items: center;
@@ -2528,6 +2717,18 @@ form.field {
   width: 100%;
   padding: 10px 11px;
   text-align: left;
+}
+
+.meal__head--static {
+  padding: 16px 0 10px;
+}
+
+.meal--diary .meal__name {
+  font-family: var(--display);
+  font-size: 1.125rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .meal__name {
@@ -2549,6 +2750,10 @@ form.field {
   color: var(--violet);
 }
 
+.meal--diary.has-data .meal__summary {
+  color: var(--blue);
+}
+
 .meal__toggle {
   flex: none;
   width: 24px;
@@ -2567,6 +2772,11 @@ form.field {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.meal--diary .meal__body {
+  padding: 0 0 18px;
+  border-top: 0;
 }
 
 .meal__body .nutrition__grid {
@@ -2616,6 +2826,10 @@ form.field {
   color: var(--ink-soft);
 }
 
+.nutrition--page .nutrition__control {
+  background: var(--card);
+}
+
 .nutrition__control:focus-within {
   border-color: var(--violet);
   box-shadow: 0 0 0 2px var(--blue-wash);
@@ -2637,6 +2851,12 @@ form.field {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+
+.nutrition__actions--page {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
 }
 
 .nutrition__form .field__hint {
@@ -2732,6 +2952,11 @@ form.field {
   background: var(--card);
 }
 
+.meal--diary .food-line {
+  background: var(--card);
+  border-color: color-mix(in srgb, var(--rule) 80%, transparent);
+}
+
 .food-line__main {
   flex: 1;
   min-width: 0;
@@ -2815,6 +3040,20 @@ form.field {
 .nutrition__control input:read-only {
   opacity: 0.75;
   cursor: default;
+}
+
+@media (max-width: 420px) {
+  .food-line {
+    flex-wrap: wrap;
+  }
+
+  .food-line__qty {
+    order: 3;
+  }
+
+  .food-line__remove {
+    margin-left: auto;
+  }
 }
 
 /* =========================================================================

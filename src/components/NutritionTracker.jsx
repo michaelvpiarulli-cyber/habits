@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useData } from '../context/DataProvider';
 import {
   MACRO_FIELDS,
@@ -56,11 +56,19 @@ const applyFoodsToDraft = (draft, foods) => {
   };
 };
 
+const firstOpenMealId = (drafts) => {
+  const empty = drafts.find(
+    (draft) => macrosAreEmpty(draftToMeal(draft)) && !(draft.foods && draft.foods.length)
+  );
+  return (empty || drafts[0])?.id ?? null;
+};
+
 /**
  * Log food as meals through the day. Type a food name to pull calories/macros
  * from the built-in catalog + USDA. Day totals still roll up for Protein.
  *
- * `standalone` is used on the Calories tab — diary is always open, no collapse.
+ * `standalone` is used on the Calories tab — diary is always open, meals are
+ * flat sections, and food edits autosave.
  */
 export function NutritionTracker({ day, standalone = false }) {
   const { activeHabits, nutritionFor, saveMeals, setValue } = useData();
@@ -70,20 +78,39 @@ export function NutritionTracker({ day, standalone = false }) {
   );
   const [open, setOpen] = useState(standalone || hasData);
   const [drafts, setDrafts] = useState(() => defaultMealsForEditor(entry.meals).map(asDraft));
-  const [activeId, setActiveId] = useState(null);
+  const [activeId, setActiveId] = useState(() =>
+    standalone ? firstOpenMealId(defaultMealsForEditor(entry.meals).map(asDraft)) : null
+  );
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const skipEntrySync = useRef(false);
+  const autosaveTimer = useRef(null);
 
   useEffect(() => {
     if (standalone) setOpen(true);
   }, [standalone, day]);
 
   useEffect(() => {
+    if (skipEntrySync.current) {
+      skipEntrySync.current = false;
+      return;
+    }
     const formHasFocus = document.activeElement?.closest('.nutrition__form');
     if (!formHasFocus) {
-      setDrafts(defaultMealsForEditor(entry.meals).map(asDraft));
+      const next = defaultMealsForEditor(entry.meals).map(asDraft);
+      setDrafts(next);
       setSaved(false);
+      setDirty(false);
+      if (standalone) setActiveId(firstOpenMealId(next));
     }
-  }, [entry]);
+  }, [entry, standalone]);
+
+  useEffect(
+    () => () => {
+      if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+    },
+    []
+  );
 
   const syncProtein = (meals) => {
     const proteinHabit = activeHabits.find(
@@ -94,16 +121,46 @@ export function NutritionTracker({ day, standalone = false }) {
     setValue(proteinHabit, day, protein);
   };
 
-  const persist = (nextDrafts) => {
+  const persist = (nextDrafts, { fromAutosave = false } = {}) => {
     const meals = nextDrafts.map(draftToMeal);
+    skipEntrySync.current = true;
     const savedDay = saveMeals(day, meals);
     syncProtein(savedDay.meals);
     setDrafts(defaultMealsForEditor(savedDay.meals).map(asDraft));
     setSaved(true);
+    setDirty(false);
+    if (fromAutosave) {
+      window.setTimeout(() => setSaved(false), 1400);
+    }
+  };
+
+  const queueAutosave = (nextDrafts) => {
+    if (!standalone) return;
+    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = window.setTimeout(() => {
+      persist(nextDrafts, { fromAutosave: true });
+    }, 380);
+  };
+
+  const commitDrafts = (updater, { immediate = false } = {}) => {
+    setDrafts((current) => {
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      if (standalone) {
+        if (immediate) {
+          if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+          queueMicrotask(() => persist(next, { fromAutosave: true }));
+        } else {
+          queueAutosave(next);
+        }
+      }
+      return next;
+    });
+    setDirty(true);
+    setSaved(false);
   };
 
   const updateDraft = (id, patch) => {
-    setDrafts((current) =>
+    commitDrafts((current) =>
       current.map((draft) => {
         if (draft.id !== id) return draft;
         const next = { ...draft, ...patch };
@@ -124,64 +181,67 @@ export function NutritionTracker({ day, standalone = false }) {
         return next;
       })
     );
-    setSaved(false);
   };
 
   const addFood = (mealId, food) => {
-    setDrafts((current) =>
-      current.map((draft) => {
-        if (draft.id !== mealId) return draft;
-        const quantity = food.quantity ?? 1;
-        const foods = [
-          ...(draft.foods || []),
-          withFoodQuantity(
-            {
-              id: newId(),
-              name: food.name,
-              brand: food.brand || '',
-              serving: food.serving || '1 serving',
-              fdcId: food.fdcId || null,
-              source: food.source || '',
-              baseCalories: food.baseCalories ?? food.calories,
-              baseProtein: food.baseProtein ?? food.protein,
-              baseCarbs: food.baseCarbs ?? food.carbs,
-              baseFat: food.baseFat ?? food.fat,
-              calories: food.baseCalories ?? food.calories,
-              protein: food.baseProtein ?? food.protein,
-              carbs: food.baseCarbs ?? food.carbs,
-              fat: food.baseFat ?? food.fat,
-            },
-            quantity
-          ),
-        ];
-        return applyFoodsToDraft(draft, foods);
-      })
+    commitDrafts(
+      (current) =>
+        current.map((draft) => {
+          if (draft.id !== mealId) return draft;
+          const quantity = food.quantity ?? 1;
+          const foods = [
+            ...(draft.foods || []),
+            withFoodQuantity(
+              {
+                id: newId(),
+                name: food.name,
+                brand: food.brand || '',
+                serving: food.serving || '1 serving',
+                fdcId: food.fdcId || null,
+                source: food.source || '',
+                baseCalories: food.baseCalories ?? food.calories,
+                baseProtein: food.baseProtein ?? food.protein,
+                baseCarbs: food.baseCarbs ?? food.carbs,
+                baseFat: food.baseFat ?? food.fat,
+                calories: food.baseCalories ?? food.calories,
+                protein: food.baseProtein ?? food.protein,
+                carbs: food.baseCarbs ?? food.carbs,
+                fat: food.baseFat ?? food.fat,
+              },
+              quantity
+            ),
+          ];
+          return applyFoodsToDraft(draft, foods);
+        }),
+      { immediate: true }
     );
-    setSaved(false);
+    setActiveId(mealId);
   };
 
   const setFoodQuantity = (mealId, foodId, quantity) => {
-    setDrafts((current) =>
-      current.map((draft) => {
-        if (draft.id !== mealId) return draft;
-        const foods = (draft.foods || []).map((food) =>
-          food.id === foodId ? withFoodQuantity(food, quantity) : food
-        );
-        return applyFoodsToDraft(draft, foods);
-      })
+    commitDrafts(
+      (current) =>
+        current.map((draft) => {
+          if (draft.id !== mealId) return draft;
+          const foods = (draft.foods || []).map((food) =>
+            food.id === foodId ? withFoodQuantity(food, quantity) : food
+          );
+          return applyFoodsToDraft(draft, foods);
+        }),
+      { immediate: true }
     );
-    setSaved(false);
   };
 
   const removeFood = (mealId, foodId) => {
-    setDrafts((current) =>
-      current.map((draft) => {
-        if (draft.id !== mealId) return draft;
-        const foods = (draft.foods || []).filter((food) => food.id !== foodId);
-        return applyFoodsToDraft(draft, foods);
-      })
+    commitDrafts(
+      (current) =>
+        current.map((draft) => {
+          if (draft.id !== mealId) return draft;
+          const foods = (draft.foods || []).filter((food) => food.id !== foodId);
+          return applyFoodsToDraft(draft, foods);
+        }),
+      { immediate: true }
     );
-    setSaved(false);
   };
 
   const addSnack = () => {
@@ -196,17 +256,19 @@ export function NutritionTracker({ day, standalone = false }) {
       carbs: 0,
       fat: 0,
     });
-    setDrafts((current) => [...current, snack]);
+    commitDrafts((current) => [...current, snack], { immediate: false });
     setActiveId(snack.id);
-    setSaved(false);
   };
 
   const clearDay = () => {
+    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
     saveMeals(day, []);
     syncProtein([]);
-    setDrafts(defaultMealsForEditor([]).map(asDraft));
-    setActiveId(null);
+    const next = defaultMealsForEditor([]).map(asDraft);
+    setDrafts(next);
+    setActiveId(standalone ? firstOpenMealId(next) : null);
     setSaved(false);
+    setDirty(false);
   };
 
   const summary = hasData
@@ -215,6 +277,7 @@ export function NutritionTracker({ day, standalone = false }) {
   const mealLine = hasData ? summarizeMeals(entry.meals) : null;
 
   const showForm = standalone || open;
+  const statusLabel = saved ? 'Saved' : dirty ? 'Saving…' : null;
 
   return (
     <section
@@ -244,40 +307,63 @@ export function NutritionTracker({ day, standalone = false }) {
           className="nutrition__form"
           onSubmit={(event) => {
             event.preventDefault();
+            if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
             persist(drafts);
           }}
         >
-          <ul className="meals">
+          {standalone && (
+            <div className="nutrition__page-head">
+              <h2 className="nutrition__page-title">Meals</h2>
+              {statusLabel && <p className="nutrition__status">{statusLabel}</p>}
+            </div>
+          )}
+
+          <ul className={`meals ${standalone ? 'meals--diary' : ''}`}>
             {drafts.map((draft) => {
               const meal = draftToMeal(draft);
               const title = mealTitle(meal, drafts.map(draftToMeal));
               const filled = !macrosAreEmpty(meal) || (meal.foods && meal.foods.length > 0);
-              const expanded = activeId === draft.id;
+              const expanded = standalone || activeId === draft.id;
               const hasFoods = (draft.foods || []).length > 0;
 
               return (
                 <li
                   key={draft.id}
-                  className={`meal ${filled ? 'has-data' : ''} ${expanded ? 'is-open' : ''}`}
+                  className={`meal ${filled ? 'has-data' : ''} ${expanded ? 'is-open' : ''} ${
+                    standalone ? 'meal--diary' : ''
+                  }`}
                 >
-                  <button
-                    type="button"
-                    className="meal__head"
-                    onClick={() => setActiveId((id) => (id === draft.id ? null : draft.id))}
-                    aria-expanded={expanded}
-                  >
-                    <span>
-                      <span className="meal__name">{title}</span>
-                      <span className="meal__summary">
-                        {filled
-                          ? `${meal.calories || 0} kcal · ${meal.protein || 0}g protein`
-                          : 'Not logged'}
+                  {standalone ? (
+                    <div className="meal__head meal__head--static">
+                      <span>
+                        <span className="meal__name">{title}</span>
+                        <span className="meal__summary">
+                          {filled
+                            ? `${meal.calories || 0} kcal · ${meal.protein || 0}g protein`
+                            : 'Nothing logged yet'}
+                        </span>
                       </span>
-                    </span>
-                    <span className="meal__toggle" aria-hidden="true">
-                      {expanded ? '−' : '+'}
-                    </span>
-                  </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="meal__head"
+                      onClick={() => setActiveId((id) => (id === draft.id ? null : draft.id))}
+                      aria-expanded={expanded}
+                    >
+                      <span>
+                        <span className="meal__name">{title}</span>
+                        <span className="meal__summary">
+                          {filled
+                            ? `${meal.calories || 0} kcal · ${meal.protein || 0}g protein`
+                            : 'Not logged'}
+                        </span>
+                      </span>
+                      <span className="meal__toggle" aria-hidden="true">
+                        {expanded ? '−' : '+'}
+                      </span>
+                    </button>
+                  )}
 
                   {expanded && (
                     <div className="meal__body">
@@ -426,10 +512,17 @@ export function NutritionTracker({ day, standalone = false }) {
             })}
           </ul>
 
-          <div className="nutrition__actions">
-            <button type="submit" className="btn btn--primary">
-              {saved ? 'Saved' : 'Save meals'}
-            </button>
+          <div className={`nutrition__actions ${standalone ? 'nutrition__actions--page' : ''}`}>
+            {!standalone && (
+              <button type="submit" className="btn btn--primary">
+                {saved ? 'Saved' : 'Save meals'}
+              </button>
+            )}
+            {standalone && dirty && !saved && (
+              <button type="submit" className="btn btn--primary">
+                Save now
+              </button>
+            )}
             <button type="button" className="btn" onClick={addSnack}>
               Add snack
             </button>
@@ -439,9 +532,16 @@ export function NutritionTracker({ day, standalone = false }) {
               </button>
             )}
           </div>
-          <p className="field__hint">
-            Type a food to pull calories. Totals still feed the Protein habit.
-          </p>
+          {!standalone && (
+            <p className="field__hint">
+              Type a food to pull calories. Totals still feed the Protein habit.
+            </p>
+          )}
+          {standalone && (
+            <p className="field__hint">
+              Changes save as you go. Day totals still feed the Protein habit.
+            </p>
+          )}
         </form>
       )}
     </section>
