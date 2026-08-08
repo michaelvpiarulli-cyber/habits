@@ -1,40 +1,38 @@
 /**
- * Tally — a risograph identity.
+ * Tally — black & white edition.
  *
- * Two spot inks on newsprint. Blue is the record of what you did; pink is the
- * call to act today. Where a whole day comes in complete the two overprint to
- * violet — a colour the interface cannot produce any other way, so it always
- * means one thing.
+ * Near-monochrome UI: ink on paper, gray for soft structure. Former spot
+ * inks (blue / pink / violet) resolve to black and gray so the whole app
+ * stays one palette in both light and dark.
  */
 
 :root {
   color-scheme: light;
 
-  /* Paper: a cool grey-white newsprint, deliberately not a warm cream. */
-  --paper: #ecede7;
-  --card: #f7f8f4;
-  --sunk: #e1e3db;
-  --rule: #cfd2c8;
+  --paper: #f5f5f5;
+  --card: #ffffff;
+  --sunk: #ebebeb;
+  --rule: #d0d0d0;
 
-  --ink: #14161a;
-  --ink-soft: #6c7178;
+  --ink: #111111;
+  --ink-soft: #6a6a6a;
 
-  /* The two spot inks, and the colour they make together. */
-  --blue: #1f4fd8;
-  --blue-deep: #163ba5;
-  --blue-wash: #d6dffa;
-  --pink: #ff4fa3;
-  --pink-wash: #ffdcee;
-  --violet: #6b3fc4;
+  /* Accents collapse to ink / graphite — same tokens, no hue. */
+  --blue: #1a1a1a;
+  --blue-deep: #000000;
+  --blue-wash: #ececec;
+  --pink: #111111;
+  --pink-wash: #f0f0f0;
+  --violet: #3a3a3a;
 
-  --on-ink: #f7f8f4; /* text on a blue or violet fill */
-  --on-pink: #14161a; /* pink is bright in both themes — its text stays dark */
-  --scrim: rgba(20, 22, 26, 0.42);
-  --shadow: rgba(20, 22, 26, 0.14);
+  --on-ink: #fafafa;
+  --on-pink: #fafafa;
+  --scrim: rgba(0, 0, 0, 0.45);
+  --shadow: rgba(0, 0, 0, 0.12);
 
   --nav-height: 62px;
   --gutter: 18px;
-  --radius: 4px; /* print, not app-store: corners stay nearly square */
+  --radius: 4px;
 
   --sans: 'IBM Plex Sans', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -52,26 +50,25 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  /* Off the press and onto the plate: the inks stay vivid, the paper goes dark. */
-  --paper: #0f1216;
-  --card: #171b21;
-  --sunk: #1f242c;
-  --rule: #2b313a;
+  --paper: #0a0a0a;
+  --card: #141414;
+  --sunk: #1c1c1c;
+  --rule: #2e2e2e;
 
-  --ink: #e9ebe6;
-  --ink-soft: #8d949e;
+  --ink: #f2f2f2;
+  --ink-soft: #9a9a9a;
 
-  --blue: #5b8cff;
-  --blue-deep: #7ba3ff;
-  --blue-wash: #1c2740;
-  --pink: #ff6fb4;
-  --pink-wash: #3a1f30;
-  --violet: #a07cf0;
+  --blue: #f2f2f2;
+  --blue-deep: #ffffff;
+  --blue-wash: #222222;
+  --pink: #f2f2f2;
+  --pink-wash: #1f1f1f;
+  --violet: #c8c8c8;
 
-  --on-ink: #0f1216;
-  --on-pink: #0f1216;
-  --scrim: rgba(0, 0, 0, 0.6);
-  --shadow: rgba(0, 0, 0, 0.5);
+  --on-ink: #0a0a0a;
+  --on-pink: #0a0a0a;
+  --scrim: rgba(0, 0, 0, 0.7);
+  --shadow: rgba(0, 0, 0, 0.55);
 }
 
 * {
@@ -118,7 +115,7 @@ textarea {
 }
 
 :focus-visible {
-  outline: 2px solid var(--pink);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 

@@ -1135,6 +1135,15 @@
   align-items: center;
 }
 
+/* Habit emojis stay present but drop hue so the chrome stays monochrome. */
+.grid__gutter,
+.card__name,
+.row__name,
+.habit__name,
+.habit-editor__emoji input {
+  filter: grayscale(1);
+}
+
 .grid__gutter {
   position: sticky;
   left: 0;
