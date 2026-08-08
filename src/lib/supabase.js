@@ -1,15 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Both values are public by design: the publishable key is meant to ship in the
- * browser bundle, and row-level security (see supabase/schema.sql) is what
- * actually protects each user's data — not secrecy of this key.
+ * Habits / Tally Supabase project. The publishable key is public by design —
+ * row-level security (see supabase/schema.sql) protects each user's data.
  *
- * Copy .env.example to .env.local to fill them in, and add the same two
- * variables in Vercel under Project Settings → Environment Variables.
+ * These defaults win over stale Vercel env that still pointed at the Bible app
+ * project. Env vars are only used when they already target this Habits project.
  */
-const url = import.meta.env.VITE_SUPABASE_URL;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const HABITS_URL = 'https://amrqzdnsbgoqkckcytjq.supabase.co';
+const HABITS_ANON_KEY = 'sb_publishable__NKtri3G-26DlHkv-ZmQ7g_BP0rX698';
+
+const envUrl = import.meta.env.VITE_SUPABASE_URL;
+const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const envIsHabits = typeof envUrl === 'string' && envUrl.includes('amrqzdnsbgoqkckcytjq');
+
+const url = envIsHabits && envUrl ? envUrl : HABITS_URL;
+const anonKey = envIsHabits && envKey ? envKey : HABITS_ANON_KEY;
 
 /**
  * With no keys the app still runs — it just stays on the device: no login, no
