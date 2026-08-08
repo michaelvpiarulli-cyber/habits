@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node scripts/test-workouts.js && node scripts/test-habit-migrations.js && node scripts/test-nutrition.js && node scripts/test-food-search.js"
+    "test": "node scripts/test-workouts.js && node scripts/test-habit-migrations.js && node scripts/test-nutrition.js && node scripts/test-food-search.js && node scripts/test-macro-targets.js"
   },
   "dependencies": {
     "@fontsource/anton": "^5.2.5",

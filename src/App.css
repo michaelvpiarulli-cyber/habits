@@ -2436,118 +2436,288 @@ form.field {
   animation: calories-hero-in 420ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
+.calories-hero--mf {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+}
+
 .calories-hero .day-nav {
   margin-bottom: 14px;
 }
 
-.calories-hero__total {
-  margin-bottom: 16px;
+/* —— MacroFactor-style day widget —— */
+
+.macro-dash {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.calories-hero__kcal {
-  margin-top: 4px;
+.macro-dash__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.macro-dash__toggle {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.macro-dash__toggle button {
+  padding: 7px 12px;
+  border-radius: calc(var(--radius) - 1px);
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.macro-dash__toggle button.is-on {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.macro-dash__targets-btn {
+  padding: 7px 11px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.macro-dash__targets-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+
+.macro-dash__hero {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.macro-dash__hero-copy {
+  min-width: 0;
+}
+
+.macro-dash__hero-num {
+  margin-top: 2px;
   font-family: var(--display);
-  font-size: clamp(2.4rem, 9vw, 3.25rem);
+  font-size: clamp(2.2rem, 8vw, 3rem);
   font-weight: 400;
   line-height: 0.95;
   letter-spacing: 0.01em;
 }
 
-.calories-hero__num {
-  display: inline-block;
-  animation: calories-num-in 480ms cubic-bezier(0.2, 0.7, 0.3, 1);
-}
-
-.calories-hero__kcal em {
+.macro-dash__hero-num em {
   font-style: normal;
   margin-left: 0.28em;
-  font-size: 0.42em;
-  letter-spacing: 0.06em;
+  font-size: 0.38em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--violet);
-  vertical-align: 0.35em;
+  vertical-align: 0.4em;
 }
 
-.calories-hero__cue {
-  margin-top: 8px;
-  max-width: 34ch;
-  font-size: 0.875rem;
+.macro-dash__hero-cue {
+  margin-top: 6px;
+  max-width: 28ch;
+  font-size: 0.813rem;
   color: var(--ink-soft);
 }
 
-.macro-meters {
+.macro-dash__macros {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.macro-meter__row {
+.macro-dash__macros > li {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 4px;
+  justify-content: center;
 }
 
-.macro-meter__label {
+.macro-ring {
+  position: relative;
+  width: max-content;
+  color: var(--blue);
+}
+
+.macro-ring--pink {
+  color: var(--pink);
+}
+
+.macro-ring--violet {
+  color: var(--violet);
+}
+
+.macro-ring__svg {
+  display: block;
+}
+
+.macro-ring__track {
+  stroke: var(--sunk);
+}
+
+.macro-ring__ink {
+  stroke: currentColor;
+  transition: stroke-dasharray 420ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.macro-ring__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  padding: 8px;
+}
+
+.macro-ring__value {
   font-family: var(--mono);
-  font-size: 0.688rem;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.macro-dash__hero .macro-ring__value {
+  font-size: 1.375rem;
+}
+
+.macro-ring__value small {
+  margin-left: 1px;
+  font-size: 0.65em;
+  color: var(--ink-soft);
+}
+
+.macro-ring__label {
+  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 0.563rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
 
-.macro-meter__value {
-  font-family: var(--mono);
+.macro-ring__sub {
+  display: none;
+}
+
+.macro-dash__sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: end center;
+  padding: 18px;
+  background: var(--scrim);
+}
+
+.macro-dash__editor {
+  width: min(100%, 420px);
+  padding: 18px 16px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  animation: calories-hero-in 280ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.macro-dash__editor-head h2 {
+  font-family: var(--display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.macro-dash__editor-head p {
+  margin-top: 4px;
   font-size: 0.813rem;
+  color: var(--ink-soft);
+}
+
+.macro-dash__editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.macro-dash__editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.meal__kcal {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1;
   color: var(--ink);
 }
 
-.macro-meter__track {
-  display: block;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--sunk);
-  overflow: hidden;
+.meal__kcal small {
+  margin-left: 3px;
+  font-size: 0.6em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
-.macro-meter__ink {
-  display: block;
-  height: 100%;
-  width: var(--fill, 0%);
-  border-radius: inherit;
-  transition: width 360ms cubic-bezier(0.2, 0.7, 0.3, 1);
+.food-lines--mf .food-line {
+  align-items: center;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
 }
 
-.macro-meter--blue .macro-meter__ink {
-  background: var(--blue);
+.food-lines--mf .food-line:last-child {
+  border-bottom: 0;
 }
 
-.macro-meter--pink .macro-meter__ink {
-  background: var(--pink);
+.food-line__kcal {
+  flex: none;
+  min-width: 2.5rem;
+  font-family: var(--mono);
+  font-size: 0.938rem;
+  font-weight: 500;
+  text-align: right;
+  color: var(--ink);
 }
 
-.macro-meter--violet .macro-meter__ink {
-  background: var(--violet);
+.meal--diary .food-lines--mf .food-line {
+  background: transparent;
+  border-color: var(--rule);
 }
 
 @keyframes calories-hero-in {
   from {
     opacity: 0.35;
     transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes calories-num-in {
-  from {
-    opacity: 0.2;
-    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -2721,6 +2891,7 @@ form.field {
 
 .meal__head--static {
   padding: 14px 0 8px;
+  align-items: flex-start;
 }
 
 .meal--diary:not(.has-data) .meal__body {

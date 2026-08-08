@@ -95,7 +95,7 @@ export function FoodSearch({ onPick, placeholder = 'e.g. oikos yogurt, 3 eggs…
   return (
     <div className="food-search" ref={wrapRef}>
       <label className="nutrition__field">
-        <span className="nutrition__label">Add food</span>
+        <span className="nutrition__label">Search</span>
         <span className="nutrition__control nutrition__control--wide">
           <input
             type="search"

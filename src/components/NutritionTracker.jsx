@@ -313,7 +313,7 @@ export function NutritionTracker({ day, standalone = false }) {
         >
           {standalone && (
             <div className="nutrition__page-head">
-              <h2 className="nutrition__page-title">Meals</h2>
+              <h2 className="nutrition__page-title">Food log</h2>
               {statusLabel && <p className="nutrition__status">{statusLabel}</p>}
             </div>
           )}
@@ -339,10 +339,16 @@ export function NutritionTracker({ day, standalone = false }) {
                         <span className="meal__name">{title}</span>
                         <span className="meal__summary">
                           {filled
-                            ? `${meal.calories || 0} kcal · ${meal.protein || 0}g protein`
-                            : 'Nothing logged yet'}
+                            ? `${meal.protein || 0}P · ${meal.carbs || 0}C · ${meal.fat || 0}F`
+                            : 'Add food'}
                         </span>
                       </span>
+                      {filled && (
+                        <span className="meal__kcal" aria-label={`${meal.calories || 0} calories`}>
+                          {meal.calories || 0}
+                          <small>kcal</small>
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <button
@@ -385,12 +391,14 @@ export function NutritionTracker({ day, standalone = false }) {
                       )}
 
                       <FoodSearch
-                        placeholder="e.g. 3 eggs, chicken breast…"
+                        placeholder={
+                          standalone ? 'Search foods…' : 'e.g. 3 eggs, chicken breast…'
+                        }
                         onPick={(food) => addFood(draft.id, food)}
                       />
 
                       {hasFoods && (
-                        <ul className="food-lines">
+                        <ul className={`food-lines ${standalone ? 'food-lines--mf' : ''}`}>
                           {draft.foods.map((food) => (
                             <li key={food.id} className="food-line">
                               <span className="food-line__main">
@@ -398,10 +406,13 @@ export function NutritionTracker({ day, standalone = false }) {
                                 <span className="food-line__meta">
                                   {(food.quantity ?? 1) !== 1
                                     ? `${food.quantity} × ${food.serving || 'serving'}`
-                                    : food.serving || '1 serving'}{' '}
-                                  · {food.calories || 0} kcal
+                                    : food.serving || '1 serving'}
+                                  {!standalone && ` · ${food.calories || 0} kcal`}
                                 </span>
                               </span>
+                              {standalone && (
+                                <span className="food-line__kcal">{food.calories || 0}</span>
+                              )}
                               <div className="food-line__qty">
                                 <button
                                   type="button"
@@ -479,7 +490,9 @@ export function NutritionTracker({ day, standalone = false }) {
                         </label>
                       )}
 
-                      {(!standalone || filled) && (
+                      {/* Standalone diary: meal macros live in the header; hide the
+                          editable grid once foods are driving the totals. */}
+                      {(!standalone || (filled && !hasFoods)) && (
                         <div className="nutrition__grid">
                           {MACRO_FIELDS.map(({ id, label, unit, step }) => (
                             <label className="nutrition__field" key={id}>
@@ -503,7 +516,7 @@ export function NutritionTracker({ day, standalone = false }) {
                           ))}
                         </div>
                       )}
-                      {hasFoods && (
+                      {hasFoods && !standalone && (
                         <p className="field__hint">
                           Type “3 eggs” or tap + / − to change how many. Calories scale with the
                           count.
@@ -543,7 +556,7 @@ export function NutritionTracker({ day, standalone = false }) {
           )}
           {standalone && (
             <p className="field__hint">
-              Changes save as you go. Day totals still feed the Protein habit.
+              Autosaves as you log. Totals still feed the Protein habit.
             </p>
           )}
         </form>
