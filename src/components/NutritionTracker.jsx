@@ -460,7 +460,9 @@ export function NutritionTracker({ day, standalone = false }) {
                         </ul>
                       )}
 
-                      {!hasFoods && (
+                      {/* On the Calories tab, keep empty meals light — search only.
+                          Manual note/macros stay available on the Today embed, or once food is in. */}
+                      {!hasFoods && !standalone && (
                         <label className="nutrition__field">
                           <span className="nutrition__label">Or note what you ate</span>
                           <span className="nutrition__control nutrition__control--wide">
@@ -477,28 +479,30 @@ export function NutritionTracker({ day, standalone = false }) {
                         </label>
                       )}
 
-                      <div className="nutrition__grid">
-                        {MACRO_FIELDS.map(({ id, label, unit, step }) => (
-                          <label className="nutrition__field" key={id}>
-                            <span className="nutrition__label">{label}</span>
-                            <span className="nutrition__control">
-                              <input
-                                type="number"
-                                inputMode="decimal"
-                                min="0"
-                                step={step}
-                                value={draft[id]}
-                                placeholder="0"
-                                readOnly={hasFoods}
-                                onChange={(event) =>
-                                  updateDraft(draft.id, { [id]: event.target.value })
-                                }
-                              />
-                              <span>{unit}</span>
-                            </span>
-                          </label>
-                        ))}
-                      </div>
+                      {(!standalone || filled) && (
+                        <div className="nutrition__grid">
+                          {MACRO_FIELDS.map(({ id, label, unit, step }) => (
+                            <label className="nutrition__field" key={id}>
+                              <span className="nutrition__label">{label}</span>
+                              <span className="nutrition__control">
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  min="0"
+                                  step={step}
+                                  value={draft[id]}
+                                  placeholder="0"
+                                  readOnly={hasFoods}
+                                  onChange={(event) =>
+                                    updateDraft(draft.id, { [id]: event.target.value })
+                                  }
+                                />
+                                <span>{unit}</span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                       {hasFoods && (
                         <p className="field__hint">
                           Type “3 eggs” or tap + / − to change how many. Calories scale with the

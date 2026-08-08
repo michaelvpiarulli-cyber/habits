@@ -70,7 +70,9 @@ export function CaloriesView() {
         </div>
 
         <div className="calories-hero__total">
-          <p className="eyebrow">{viewingToday ? 'Today' : relativeDay(day, calendarToday)}</p>
+          <p className="eyebrow">
+            {viewingToday ? 'Calories today' : `Calories · ${relativeDay(day, calendarToday)}`}
+          </p>
           <h1 className="calories-hero__kcal">
             {hasData ? (
               <>
@@ -86,7 +88,7 @@ export function CaloriesView() {
           <p className="calories-hero__cue">
             {hasData
               ? 'Totals update as you add foods'
-              : 'Type a food name — calories and macros fill in'}
+              : 'Search under a meal — calories and macros fill in'}
           </p>
         </div>
 

@@ -2720,7 +2720,12 @@ form.field {
 }
 
 .meal__head--static {
-  padding: 16px 0 10px;
+  padding: 14px 0 8px;
+}
+
+.meal--diary:not(.has-data) .meal__body {
+  padding-bottom: 12px;
+  gap: 8px;
 }
 
 .meal--diary .meal__name {
