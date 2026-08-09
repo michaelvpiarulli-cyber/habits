@@ -8,12 +8,14 @@ import { NutritionTracker } from './NutritionTracker';
 import { WeightCoach } from './WeightCoach';
 
 /**
- * MacroFactor-style food log: day totals, fat-loss coach, rings, diary.
+ * Calories tab: log food first, details second.
+ * Search sits above the fold; coach/rings stay available but collapsed.
  */
 export function CaloriesView() {
   const { nutritionFor, activeHabits, logFor } = useData();
   const calendarToday = todayISO();
   const [day, setDay] = useState(calendarToday);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const entry = useMemo(() => nutritionFor(day), [nutritionFor, day]);
   const viewingToday = day === calendarToday;
   const canGoForward = day < calendarToday;
@@ -39,8 +41,8 @@ export function CaloriesView() {
   };
 
   return (
-    <section className="view calories-view calories-view--mf">
-      <header className="calories-hero calories-hero--mf">
+    <section className="view calories-view calories-view--mf calories-view--easy">
+      <header className="calories-hero calories-hero--mf calories-hero--easy">
         <div className="day-nav">
           <button type="button" className="day-nav__btn" onClick={goPrev} aria-label="Previous day">
             ‹
@@ -68,26 +70,49 @@ export function CaloriesView() {
           </button>
         </div>
 
-        <WeightCoach
-          entry={entry}
-          targets={targets}
-          onApplyTargets={updateTargets}
-          readings={readings}
-          nutritionFor={nutritionFor}
-          proteinHabitTarget={proteinHabitTarget}
-          viewingToday={viewingToday}
-        />
-
         <MacroDashboard
           entry={entry}
           targets={targets}
           view={view}
           onViewChange={setView}
           onSaveTargets={updateTargets}
+          compact
         />
       </header>
 
       <NutritionTracker day={day} standalone />
+
+      <div className="calories-details">
+        <button
+          type="button"
+          className="calories-details__toggle"
+          aria-expanded={detailsOpen}
+          onClick={() => setDetailsOpen((value) => !value)}
+        >
+          {detailsOpen ? 'Hide rings & coach' : 'Rings & coach'}
+        </button>
+        {detailsOpen && (
+          <div className="calories-details__body">
+            <MacroDashboard
+              entry={entry}
+              targets={targets}
+              view={view}
+              onViewChange={setView}
+              onSaveTargets={updateTargets}
+            />
+            <WeightCoach
+              entry={entry}
+              targets={targets}
+              onApplyTargets={updateTargets}
+              readings={readings}
+              nutritionFor={nutritionFor}
+              proteinHabitTarget={proteinHabitTarget}
+              viewingToday={viewingToday}
+              hideTotals
+            />
+          </div>
+        )}
+      </div>
     </section>
   );
 }

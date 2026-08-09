@@ -67,7 +67,14 @@ function Ring({ value, target, tone, size, label, display, unit, sub }) {
  * MacroFactor-inspired day widget: Consumed / Remaining toggle, rings vs
  * targets, and a quiet target editor. No shame colors when you go over.
  */
-export function MacroDashboard({ entry, targets, view, onViewChange, onSaveTargets }) {
+export function MacroDashboard({
+  entry,
+  targets,
+  view,
+  onViewChange,
+  onSaveTargets,
+  compact = false,
+}) {
   const intake = intakeOf(entry);
   const remaining = remainingOf(intake, targets);
   const [editing, setEditing] = useState(false);
@@ -87,6 +94,66 @@ export function MacroDashboard({ entry, targets, view, onViewChange, onSaveTarge
   const shown = view === 'consumed' ? intake : remaining;
   const hero = RINGS[0];
   const macros = RINGS.slice(1);
+
+  if (compact) {
+    return (
+      <section className="macro-dash macro-dash--compact" aria-label="Daily nutrition">
+        <button
+          type="button"
+          className="macro-dash__compact-main"
+          onClick={() => onViewChange?.(view === 'remaining' ? 'consumed' : 'remaining')}
+        >
+          <span className="macro-dash__compact-kcal">
+            <strong>{formatMacro(shown.calories)}</strong>
+            <em>kcal {view === 'remaining' ? 'left' : 'eaten'}</em>
+          </span>
+          <span className="macro-dash__compact-macros">
+            {formatMacro(shown.protein)}P · {formatMacro(shown.carbs)}C · {formatMacro(shown.fat)}F
+          </span>
+        </button>
+        <button type="button" className="macro-dash__targets-btn" onClick={openEditor}>
+          Targets
+        </button>
+        {editing && (
+          <div className="macro-dash__sheet" role="dialog" aria-label="Edit nutrition targets">
+            <form className="macro-dash__editor" onSubmit={saveEditor}>
+              <header className="macro-dash__editor-head">
+                <h2>Daily targets</h2>
+                <p>Used for remaining calories. Change anytime.</p>
+              </header>
+              <div className="macro-dash__editor-grid">
+                {TARGET_FIELDS.map(({ id, label, unit, step }) => (
+                  <label key={id} className="nutrition__field">
+                    <span className="nutrition__label">{label}</span>
+                    <span className="nutrition__control">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        step={step}
+                        value={draft[id]}
+                        onChange={(event) =>
+                          setDraft((current) => ({ ...current, [id]: event.target.value }))
+                        }
+                      />
+                      <span>{unit}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div className="macro-dash__editor-actions">
+                <button type="submit" className="btn btn--primary">
+                  Save targets
+                </button>
+                <button type="button" className="btn" onClick={() => setEditing(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="macro-dash" aria-label="Daily nutrition">

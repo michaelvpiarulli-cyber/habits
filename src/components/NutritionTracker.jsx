@@ -95,6 +95,7 @@ export function NutritionTracker({ day, standalone = false }) {
   const [drafts, setDrafts] = useState(() => defaultMealsForEditor(entry.meals).map(asDraft));
   const [activeId, setActiveId] = useState(null);
   const [quickSlot, setQuickSlot] = useState(() => mealSlotForHour());
+  const [slotsOpen, setSlotsOpen] = useState(false);
   const [flash, setFlash] = useState(null);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -309,38 +310,6 @@ export function NutritionTracker({ day, standalone = false }) {
     );
   };
 
-  const copyMealFromYesterday = (slot) => {
-    const source = yesterdayBySlot.get(slot);
-    if (!source) return;
-    commitDrafts((current) => {
-      const target = current.find((draft) => draft.slot === slot);
-      if (!target) return current;
-      if (source.foods?.length) {
-        return current.map((draft) =>
-          draft.id === target.id ? applyFoodsToDraft(draft, cloneFoods(source.foods)) : draft
-        );
-      }
-      return current.map((draft) =>
-        draft.id === target.id
-          ? {
-              ...draft,
-              note: source.note || source.label || draft.note,
-              label: source.label || draft.label,
-              ...Object.fromEntries(
-                MACRO_FIELDS.map(({ id }) => [
-                  id,
-                  source[id] > 0 ? String(source[id]) : '',
-                ])
-              ),
-              foods: [],
-            }
-          : draft
-      );
-    }, { immediate: true });
-    setFlash(`Copied ${SLOT_LABEL[slot] || 'meal'}`);
-    window.setTimeout(() => setFlash(null), 1400);
-  };
-
   const copyYesterdayDay = () => {
     commitDrafts((current) => {
       return current.map((draft) => {
@@ -433,108 +402,103 @@ export function NutritionTracker({ day, standalone = false }) {
         >
           {standalone && (
             <div className="nutrition__page-head">
-              <h2 className="nutrition__page-title">Food log</h2>
+              <h2 className="nutrition__page-title">What did you eat?</h2>
               {statusLabel && <p className="nutrition__status">{statusLabel}</p>}
             </div>
           )}
 
           {standalone && (
             <div className="quick-log">
-              <div className="quick-log__slots" role="group" aria-label="Log to meal">
-                {MEAL_SLOTS.map((slot) => (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    className={`quick-log__slot ${quickSlot === slot.id ? 'is-active' : ''}`}
-                    onClick={() => setQuickSlot(slot.id)}
-                  >
-                    {slot.label}
+              <div className="quick-log__route">
+                <button
+                  type="button"
+                  className="quick-log__meal-btn"
+                  aria-expanded={slotsOpen}
+                  onClick={() => setSlotsOpen((value) => !value)}
+                >
+                  Logging to {SLOT_LABEL[quickSlot] || 'meal'}
+                </button>
+                {yesterdayHasFood && (
+                  <button type="button" className="btn quick-log__copy" onClick={copyYesterdayDay}>
+                    Copy yesterday
                   </button>
-                ))}
+                )}
               </div>
+              {slotsOpen && (
+                <div className="quick-log__slots" role="group" aria-label="Log to meal">
+                  {MEAL_SLOTS.map((slot) => (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      className={`quick-log__slot ${quickSlot === slot.id ? 'is-active' : ''}`}
+                      onClick={() => {
+                        setQuickSlot(slot.id);
+                        setSlotsOpen(false);
+                      }}
+                    >
+                      {slot.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               <FoodSearch
                 compact
                 autoFocus
                 showRecents
-                placeholder={`Add to ${SLOT_LABEL[quickSlot] || 'meal'}…`}
-                onPick={(food) => addFoodToSlot(quickSlot, food)}
+                placeholder={`Type a food…`}
+                onPick={(food) => {
+                  addFoodToSlot(quickSlot, food);
+                  setSlotsOpen(false);
+                }}
               />
-              {yesterdayHasFood && (
-                <div className="quick-log__actions">
-                  <button type="button" className="btn" onClick={copyYesterdayDay}>
-                    Copy yesterday
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
-          <ul className={`meals ${standalone ? 'meals--diary' : ''}`}>
+          <ul className={`meals ${standalone ? 'meals--diary meals--logged-only' : ''}`}>
             {drafts.map((draft) => {
               const meal = draftToMeal(draft);
               const title = mealTitle(meal, drafts.map(draftToMeal));
               const filled = !macrosAreEmpty(meal) || (meal.foods && meal.foods.length > 0);
               const hasFoods = (draft.foods || []).length > 0;
               const isActive = activeId === draft.id;
-              const expanded = standalone
-                ? hasFoods || isActive
-                : isActive;
-              const yMeal = yesterdayBySlot.get(draft.slot);
+              // Standalone: only show meals that have food (edit qty/remove).
+              // Empty meals stay out of the way — quick-log handles adding.
+              if (standalone && !filled) return null;
+              const expanded = standalone ? hasFoods : isActive;
 
               return (
                 <li
                   key={draft.id}
                   className={`meal ${filled ? 'has-data' : ''} ${expanded ? 'is-open' : ''} ${
                     standalone ? 'meal--diary' : ''
-                  } ${standalone && !filled && !isActive ? 'meal--collapsed' : ''}`}
+                  }`}
                 >
                   {standalone ? (
                     <div className="meal__head meal__head--static">
                       <span>
                         <span className="meal__name">{title}</span>
                         <span className="meal__summary">
-                          {filled
-                            ? `${meal.protein || 0}P · ${meal.carbs || 0}C · ${meal.fat || 0}F`
-                            : 'Empty'}
+                          {`${meal.protein || 0}P · ${meal.carbs || 0}C · ${meal.fat || 0}F`}
                         </span>
                       </span>
                       <span className="meal__head-actions">
-                        {filled && (
-                          <span className="meal__kcal" aria-label={`${meal.calories || 0} calories`}>
-                            {meal.calories || 0}
-                            <small>kcal</small>
-                          </span>
-                        )}
-                        {!filled && yMeal && (
-                          <button
-                            type="button"
-                            className="btn meal__copy"
-                            onClick={() => copyMealFromYesterday(draft.slot)}
-                          >
-                            Copy
-                          </button>
-                        )}
-                        {!isActive && (
-                          <button
-                            type="button"
-                            className="btn meal__add"
-                            onClick={() => {
-                              setActiveId(draft.id);
-                              setQuickSlot(draft.slot === 'day' ? 'snack' : draft.slot);
-                            }}
-                          >
-                            {filled ? 'Add' : '+ Add'}
-                          </button>
-                        )}
-                        {isActive && (
-                          <button
-                            type="button"
-                            className="btn meal__add"
-                            onClick={() => setActiveId(null)}
-                          >
-                            Done
-                          </button>
-                        )}
+                        <span className="meal__kcal" aria-label={`${meal.calories || 0} calories`}>
+                          {meal.calories || 0}
+                          <small>kcal</small>
+                        </span>
+                        <button
+                          type="button"
+                          className="btn meal__add"
+                          onClick={() => {
+                            setQuickSlot(draft.slot === 'day' ? 'snack' : draft.slot);
+                            setSlotsOpen(false);
+                            document
+                              .querySelector('.quick-log input[type="search"]')
+                              ?.focus();
+                          }}
+                        >
+                          Add more
+                        </button>
                       </span>
                     </div>
                   ) : (
@@ -577,14 +541,10 @@ export function NutritionTracker({ day, standalone = false }) {
                         </label>
                       )}
 
-                      {/* Standalone: search only when this meal is the active add target
-                          (quick-add at top handles the common path). */}
-                      {(!standalone || isActive) && (
+                      {!standalone && (
                         <FoodSearch
-                          showRecents={!standalone || isActive}
-                          placeholder={
-                            standalone ? 'Search foods…' : 'e.g. 3 eggs, chicken breast…'
-                          }
+                          showRecents
+                          placeholder="e.g. 3 eggs, chicken breast…"
                           onPick={(food) => addFood(draft.id, food)}
                         />
                       )}
@@ -728,9 +688,11 @@ export function NutritionTracker({ day, standalone = false }) {
                 Save now
               </button>
             )}
-            <button type="button" className="btn" onClick={addSnack}>
-              Add snack
-            </button>
+            {!standalone && (
+              <button type="button" className="btn" onClick={addSnack}>
+                Add snack
+              </button>
+            )}
             {hasData && (
               <button type="button" className="btn" onClick={clearDay}>
                 Clear day

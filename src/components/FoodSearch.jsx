@@ -9,10 +9,11 @@ import {
 } from '../lib/foodSearch';
 import { rememberLibraryFoods } from '../lib/foodLibrary';
 import { recentBoost, rememberFood, suggestRecentFoods } from '../lib/recentFoods';
+import { starterFoods } from '../lib/starterFoods';
 
 /**
- * Type-ahead food search. Empty focus shows recent foods; typing merges
- * local catalog + USDA + Open Food Facts (3.5M+). Supports "3 eggs".
+ * Type-ahead food search. Empty focus shows recents (or starters), typing
+ * merges local catalog + USDA + Open Food Facts. Supports "3 eggs".
  */
 export function FoodSearch({
   onPick,
@@ -25,6 +26,7 @@ export function FoodSearch({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [recents, setRecents] = useState(() => suggestRecentFoods());
+  const [starters] = useState(() => starterFoods());
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [active, setActive] = useState(0);
@@ -102,8 +104,15 @@ export function FoodSearch({
     setLoading(false);
   };
 
-  const suggestions = query.trim() ? results : showRecents ? recents : [];
+  const emptySuggestions = showRecents
+    ? recents.length > 0
+      ? recents
+      : starters
+    : [];
+  const suggestions = query.trim() ? results : emptySuggestions;
   const showingRecents = !query.trim() && showRecents && recents.length > 0;
+  const showingStarters = !query.trim() && showRecents && recents.length === 0 && starters.length > 0;
+  const chipFoods = (recents.length > 0 ? recents : starters).slice(0, 6);
 
   const onKeyDown = (event) => {
     if (!open || suggestions.length === 0) return;
@@ -123,6 +132,22 @@ export function FoodSearch({
 
   return (
     <div className={`food-search ${compact ? 'food-search--compact' : ''}`} ref={wrapRef}>
+      {compact && chipFoods.length > 0 && (
+        <div className="food-search__chips" role="list" aria-label="Quick foods">
+          {chipFoods.map((food) => (
+            <button
+              key={food.id}
+              type="button"
+              className="food-search__chip"
+              role="listitem"
+              onClick={() => pick(food)}
+            >
+              {food.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       <label className="nutrition__field">
         <span className="nutrition__label">{compact ? 'Quick add' : 'Search'}</span>
         <span className="nutrition__control nutrition__control--wide">
@@ -150,10 +175,13 @@ export function FoodSearch({
         </span>
       </label>
 
-      {open && (suggestions.length > 0 || loading) && (
+      {open && (suggestions.length > 0 || loading || (query.trim() && !loading)) && (
         <ul className="food-search__list" id={listId} role="listbox">
           {showingRecents && (
             <li className="food-search__status">Recent — tap to log again</li>
+          )}
+          {showingStarters && (
+            <li className="food-search__status">Popular — tap to log</li>
           )}
           {suggestions.map((food, index) => (
             <li key={`${food.id}-${index}`} role="option" aria-selected={index === active}>
@@ -191,10 +219,8 @@ export function FoodSearch({
               Pulling more from {FOOD_UNIVERSE.label} database…
             </li>
           )}
-          {!loading && query.trim() && suggestions.length > 0 && (
-            <li className="food-search__status food-search__status--quiet">
-              Local + USDA + Open Food Facts
-            </li>
+          {!loading && query.trim() && suggestions.length === 0 && (
+            <li className="food-search__status">No matches — try a brand or simpler name</li>
           )}
         </ul>
       )}

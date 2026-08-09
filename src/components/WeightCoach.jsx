@@ -21,6 +21,7 @@ export function WeightCoach({
   nutritionFor,
   proteinHabitTarget,
   viewingToday = true,
+  hideTotals = false,
 }) {
   const [coach, setCoach] = useState(() => loadCoach());
   const [editing, setEditing] = useState(false);
@@ -69,29 +70,31 @@ export function WeightCoach({
 
   return (
     <section className="weight-coach" aria-label="Day total and weight-loss coach">
-      <div className="day-totals" aria-label="Day totals">
-        <div className="day-totals__kcal">
-          <p className="eyebrow">{advice.headline}</p>
-          <p className="day-totals__num">
-            {formatMacro(totals.calories)}
-            <em>kcal</em>
-          </p>
+      {!hideTotals && (
+        <div className="day-totals" aria-label="Day totals">
+          <div className="day-totals__kcal">
+            <p className="eyebrow">{advice.headline}</p>
+            <p className="day-totals__num">
+              {formatMacro(totals.calories)}
+              <em>kcal</em>
+            </p>
+          </div>
+          <ul className="day-totals__macros">
+            <li>
+              <span>Protein</span>
+              <strong>{formatMacro(totals.protein)}g</strong>
+            </li>
+            <li>
+              <span>Carbs</span>
+              <strong>{formatMacro(totals.carbs)}g</strong>
+            </li>
+            <li>
+              <span>Fat</span>
+              <strong>{formatMacro(totals.fat)}g</strong>
+            </li>
+          </ul>
         </div>
-        <ul className="day-totals__macros">
-          <li>
-            <span>Protein</span>
-            <strong>{formatMacro(totals.protein)}g</strong>
-          </li>
-          <li>
-            <span>Carbs</span>
-            <strong>{formatMacro(totals.carbs)}g</strong>
-          </li>
-          <li>
-            <span>Fat</span>
-            <strong>{formatMacro(totals.fat)}g</strong>
-          </li>
-        </ul>
-      </div>
+      )}
 
       <div className="weight-coach__card">
         <header className="weight-coach__head">
