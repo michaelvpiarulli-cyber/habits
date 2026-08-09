@@ -51,6 +51,28 @@ test('search synonyms beat MFP typing friction', () => {
   assert.ok(searchLocalFoods('100g chicken').some((h) => /chicken/i.test(h.name)));
 });
 
+test('ranking prefers the food you meant', () => {
+  const chicken = searchLocalFoods('chicken');
+  assert.ok(chicken.length >= 1);
+  assert.match(chicken[0].name, /chicken breast/i);
+
+  const fries = searchLocalFoods('mcd fries');
+  assert.ok(fries.some((h) => /fries/i.test(h.name) && /mcdonald/i.test(h.brand)));
+  assert.match(fries[0].name, /fries/i);
+
+  const yogurt = searchLocalFoods('greek yogurt');
+  assert.ok(yogurt.length >= 1);
+  assert.match(yogurt[0].name, /yogurt/i);
+
+  const toast = searchLocalFoods('avocado toast');
+  assert.ok(toast.length >= 1);
+  assert.match(toast[0].name, /avocado toast/i);
+
+  const banana = searchLocalFoods('banana');
+  assert.ok(banana.length >= 1);
+  assert.match(banana[0].name, /^banana$/i);
+});
+
 test('local search finds chicken breast with macros', () => {
   const hits = searchLocalFoods('chicken breast');
   assert.ok(hits.length >= 1);

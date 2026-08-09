@@ -69,6 +69,7 @@ const BASE_FOODS = [
   { id: 'local-blueberries', name: 'Blueberries', brand: 'Generic', serving: '1 cup', calories: 85, protein: 1.1, carbs: 21, fat: 0.5 },
   { id: 'local-raspberries', name: 'Raspberries', brand: 'Generic', serving: '1 cup', calories: 65, protein: 1.5, carbs: 15, fat: 0.8 },
   { id: 'local-avocado', name: 'Avocado', brand: 'Generic', serving: '1/2 fruit', calories: 120, protein: 1.5, carbs: 6, fat: 11 },
+  { id: 'local-avocado-toast', name: 'Avocado toast', brand: 'Generic', serving: '1 slice', calories: 220, protein: 5, carbs: 20, fat: 14, aliases: ['avo toast', 'avocado on toast'] },
   { id: 'local-grapes', name: 'Grapes', brand: 'Generic', serving: '1 cup', calories: 104, protein: 1, carbs: 27, fat: 0.2 },
   { id: 'local-mango', name: 'Mango', brand: 'Generic', serving: '1 cup sliced', calories: 100, protein: 1.4, carbs: 25, fat: 0.6 },
   { id: 'local-pineapple', name: 'Pineapple', brand: 'Generic', serving: '1 cup chunks', calories: 80, protein: 0.9, carbs: 22, fat: 0.2 },
