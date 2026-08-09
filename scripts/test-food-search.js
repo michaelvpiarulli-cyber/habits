@@ -35,6 +35,7 @@ test('new chains land in the local library', () => {
   assert.ok(searchLocalFoods('popeyes sandwich').length >= 1);
   assert.ok(searchLocalFoods('panda orange chicken').some((h) => /orange chicken/i.test(h.name)));
   assert.ok(searchLocalFoods('wahoos fish taco').some((h) => /fish taco/i.test(h.name)));
+  assert.ok(searchLocalFoods('luna grill').some((h) => /luna grill/i.test(h.brand)));
   assert.ok(searchLocalFoods('raising canes').length >= 1);
   assert.ok(searchLocalFoods('doritos').length >= 1);
   assert.ok(searchLocalFoods('jersey mikes').length >= 3);
@@ -80,6 +81,29 @@ test('del taco is in the local library', () => {
   const burrito = searchLocalFoods('deltaco bean cheese burrito');
   assert.ok(burrito.length >= 1, 'expected bean & cheese burrito');
   assert.ok(burrito[0].calories >= 300);
+});
+
+test('wahoos fish taco is in the local library', () => {
+  const brandHits = searchLocalFoods("wahoo's");
+  assert.ok(brandHits.length >= 10, `expected several Wahoo's hits, got ${brandHits.length}`);
+  assert.ok(brandHits.every((hit) => /wahoo/i.test(hit.brand)));
+  const fishTaco = searchLocalFoods('wahoos charbroiled fish taco');
+  assert.ok(fishTaco.some((hit) => /charbroiled fish taco/i.test(hit.name)));
+  const bowl = searchLocalFoods('wahoos skinny burrito bowl');
+  assert.ok(bowl.length >= 1, 'expected skinny burrito bowl');
+  assert.ok(bowl[0].calories > 0 && bowl[0].protein > 0);
+});
+
+test('luna grill is in the local library', () => {
+  const brandHits = searchLocalFoods('luna grill');
+  assert.ok(brandHits.length >= 10, `expected several Luna Grill hits, got ${brandHits.length}`);
+  assert.ok(brandHits.every((hit) => /luna grill/i.test(hit.brand)));
+  const kabob = searchLocalFoods('luna grill chicken kabob');
+  assert.ok(kabob.some((hit) => /chicken kabob/i.test(hit.name)));
+  const santorini = searchLocalFoods('luna grill santorini');
+  assert.ok(santorini.some((hit) => /santorini/i.test(hit.name)));
+  assert.ok(santorini[0].calories >= 600);
+  assert.ok(searchLocalFoods('lunagrill chicken kabob').some((hit) => /luna grill/i.test(hit.brand)));
 });
 
 test('mcdonalds chipotle and chick-fil-a search', () => {
