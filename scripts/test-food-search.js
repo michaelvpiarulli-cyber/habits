@@ -104,6 +104,9 @@ test('luna grill is in the local library', () => {
   assert.ok(santorini.some((hit) => /santorini/i.test(hit.name)));
   assert.ok(santorini[0].calories >= 600);
   assert.ok(searchLocalFoods('lunagrill chicken kabob').some((hit) => /luna grill/i.test(hit.brand)));
+  const mediMacro = searchLocalFoods('luna grill medi macro');
+  assert.ok(mediMacro.some((hit) => /medi macro bowl/i.test(hit.name)));
+  assert.ok(mediMacro[0].calories >= 800);
 });
 
 test('mcdonalds chipotle and chick-fil-a search', () => {
