@@ -27,6 +27,16 @@ export function useMacroTargets(proteinHabitTarget) {
     });
   }, [proteinHabitTarget]);
 
+  useEffect(() => {
+    const sync = () => setTargets(loadMacroTargets());
+    window.addEventListener('storage', sync);
+    window.addEventListener('tally-macro-targets', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('tally-macro-targets', sync);
+    };
+  }, []);
+
   const updateTargets = (patch) => {
     setTargets((current) => saveMacroTargets({ ...current, ...patch }));
   };

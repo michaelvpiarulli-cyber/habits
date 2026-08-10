@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useData } from '../context/DataProvider';
+import { parseMacroFactorFile } from '../lib/macroFactorImport';
+import { loadMacroTargets, saveMacroTargets } from '../lib/macroTargets';
 
 const THEMES = [
   ['light', 'Light'],
@@ -22,12 +24,17 @@ export function AccountMenu({ auth, theme, onClose }) {
     countdown,
     setCountdown,
     exportAll,
+    importMacroFactor,
   } = useData();
   const [mode, setMode] = useState('in'); // 'in' | 'up'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
+  const [mfBusy, setMfBusy] = useState(false);
+  const [mfMessage, setMfMessage] = useState(null);
+  const [mfReplace, setMfReplace] = useState(false);
+  const mfInputRef = useRef(null);
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -49,6 +56,40 @@ export function AccountMenu({ auth, theme, onClose }) {
         text: 'This project still requires email confirmation, which a username account can’t receive. Turn off “Confirm email” in Supabase → Authentication → Providers → Email, then sign in.',
       });
     else onClose();
+  };
+
+  const onMacroFactorFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setMfBusy(true);
+    setMfMessage(null);
+    try {
+      const parsed = await parseMacroFactorFile(file);
+      const result = importMacroFactor(parsed, { replace: mfReplace });
+      if (result.targets) {
+        const current = loadMacroTargets();
+        saveMacroTargets({
+          calories: result.targets.calories ?? current.calories,
+          protein: result.targets.protein ?? current.protein,
+          carbs: result.targets.carbs ?? current.carbs,
+          fat: result.targets.fat ?? current.fat,
+        });
+        window.dispatchEvent(new Event('tally-macro-targets'));
+      }
+      const bits = [`Imported ${result.imported} day${result.imported === 1 ? '' : 's'}`];
+      if (result.skipped) bits.push(`skipped ${result.skipped} already logged`);
+      if (result.replaced) bits.push(`replaced ${result.replaced}`);
+      if (result.targets?.calories) bits.push(`targets set to ${result.targets.calories} kcal`);
+      setMfMessage({ tone: 'good', text: `${bits.join(' · ')}. Open Calories to see them.` });
+    } catch (err) {
+      setMfMessage({
+        tone: 'bad',
+        text: err?.message || 'Could not read that MacroFactor export.',
+      });
+    } finally {
+      setMfBusy(false);
+    }
   };
 
   const status = !syncAvailable
@@ -208,6 +249,36 @@ export function AccountMenu({ auth, theme, onClose }) {
               Every habit, log, goal, value, note, meal log, and review as one JSON file. Worth
               doing now and then regardless of sync — a file on your own disk is the copy nobody
               else can lose.
+            </p>
+
+            <input
+              ref={mfInputRef}
+              type="file"
+              accept=".xlsx,.xlsm,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+              hidden
+              onChange={onMacroFactorFile}
+            />
+            <button
+              type="button"
+              className="btn"
+              disabled={mfBusy}
+              onClick={() => mfInputRef.current?.click()}
+            >
+              {mfBusy ? 'Importing…' : 'Import MacroFactor export'}
+            </button>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={mfReplace}
+                onChange={(e) => setMfReplace(e.target.checked)}
+              />
+              <span>Replace days that already have food logs</span>
+            </label>
+            {mfMessage && <p className={`note note--${mfMessage.tone}`}>{mfMessage.text}</p>}
+            <p className="field__hint">
+              MacroFactor has no live API. In the app: More → Data Export → Quick Export (or
+              Granular → Food Log). Upload the .xlsx here to show those days on the Calories tab
+              instead of re-logging them.
             </p>
           </fieldset>
 

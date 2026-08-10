@@ -10,6 +10,11 @@ name to pull calories and macros from a built-in list plus USDA FoodData Central
 Day totals still roll up for the Protein habit. If you already use sync, re-run
 [`supabase/schema.sql`](supabase/schema.sql) once so `nutrition_logs.meals` exists.
 
+Already track food in MacroFactor? There is no live MacroFactor API (and community
+MCPs only read manual exports). In Tally: **Account → Import MacroFactor export**
+and upload a Quick Export or Food Log `.xlsx` — those days show on Calories instead
+of re-logging.
+
 On Today’s training you can check off each lift and log **weight × reps per set**.
 Next session’s target follows what you logged (reps-first once a barbell hits 135 lb
 or dumbbells hit 15 lb). Sync needs the `lift_logs` table from
