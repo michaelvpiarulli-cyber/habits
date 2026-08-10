@@ -8,13 +8,14 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node scripts/test-workouts.js && node scripts/test-habit-migrations.js && node scripts/test-nutrition.js && node scripts/test-food-search.js && node scripts/test-macro-targets.js && node scripts/test-weight-coach.js && node scripts/test-recent-foods.js && node scripts/test-food-library.js && node scripts/test-starter-foods.js"
+    "test": "node scripts/test-workouts.js && node scripts/test-habit-migrations.js && node scripts/test-nutrition.js && node scripts/test-food-search.js && node scripts/test-macro-targets.js && node scripts/test-weight-coach.js && node scripts/test-recent-foods.js && node scripts/test-food-library.js && node scripts/test-starter-foods.js && node scripts/test-macrofactor-import.js"
   },
   "dependencies": {
     "@fontsource/anton": "^5.2.5",
     "@fontsource/ibm-plex-mono": "^5.2.5",
     "@fontsource/ibm-plex-sans": "^5.2.5",
     "@supabase/supabase-js": "^2.110.7",
+    "fflate": "^0.8.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

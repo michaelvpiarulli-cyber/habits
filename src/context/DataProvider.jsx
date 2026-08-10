@@ -48,6 +48,8 @@ import {
   normalizeNutritionEntry,
   sumMacros,
 } from '../lib/nutrition';
+import { findWeighHabit } from '../lib/weightCoach';
+import { kgToLb } from '../lib/macroFactorImport';
 
 /**
  * Single owner of habits, logs, and goals.
@@ -1757,6 +1759,73 @@ export function DataProvider({ children }) {
   );
 
   /**
+   * Apply a parsed MacroFactor export to nutrition (+ protein / weigh habits).
+   * By default skips days that already have non-import food logs.
+   */
+  const importMacroFactor = useCallback(
+    (parsed, { replace = false } = {}) => {
+      const days = Array.isArray(parsed?.days) ? parsed.days : [];
+      let imported = 0;
+      let skipped = 0;
+      let replaced = 0;
+
+      const proteinHabit = activeHabits.find(
+        (habit) => habit.kind === 'amount' && /protein/i.test(habit.name)
+      );
+      const weighHabit = findWeighHabit(activeHabits);
+      const weighUsesKg = weighHabit && /kg/i.test(String(weighHabit.unit || ''));
+
+      const isImportOnly = (entry) => {
+        if (!entry || entry.deleted) return true;
+        const meals = Array.isArray(entry.meals) ? entry.meals : [];
+        if (!meals.length) {
+          const empty =
+            !(Number(entry.calories) > 0) &&
+            !(Number(entry.protein) > 0) &&
+            !(Number(entry.carbs) > 0) &&
+            !(Number(entry.fat) > 0);
+          return empty;
+        }
+        return meals.every(
+          (meal) =>
+            /macrofactor/i.test(meal.note || '') || /macrofactor/i.test(meal.label || '')
+        );
+      };
+
+      for (const dayRow of days) {
+        const existing = nutrition.find((entry) => entry.day === dayRow.day && !entry.deleted);
+        const canWrite = replace || isImportOnly(existing);
+        if (!canWrite) {
+          skipped += 1;
+          continue;
+        }
+        if (existing && !isImportOnly(existing) && replace) replaced += 1;
+        writeNutritionDay(dayRow.day, dayRow.meals);
+        imported += 1;
+
+        if (proteinHabit) {
+          setValue(proteinHabit, dayRow.day, dayRow.protein || 0);
+        }
+        if (weighHabit && dayRow.weightKg != null) {
+          const weight = weighUsesKg
+            ? Math.round(Number(dayRow.weightKg) * 10) / 10
+            : kgToLb(dayRow.weightKg);
+          if (weight != null && weight > 0) setValue(weighHabit, dayRow.day, weight);
+        }
+      }
+
+      return {
+        imported,
+        skipped,
+        replaced,
+        targets: parsed?.targets || null,
+        dayCount: days.length,
+      };
+    },
+    [activeHabits, nutrition, writeNutritionDay, setValue]
+  );
+
+  /**
    * Everything, as one JSON file. Deliberately the raw records rather than a
    * prettied report: the point is that a copy exists off the device and can be
    * read back, not that it looks nice.
@@ -1810,6 +1879,7 @@ export function DataProvider({ children }) {
     nutritionFor,
     saveNutrition,
     saveMeals,
+    importMacroFactor,
     liftLogFor,
     lastLiftLog,
     saveLiftLog,
