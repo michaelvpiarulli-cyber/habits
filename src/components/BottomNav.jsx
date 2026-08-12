@@ -6,10 +6,10 @@ const TABS = [
     path: 'M5 5h14v14H5z',
   },
   {
-    id: 'calories',
-    label: 'Calories',
-    // A bowl / plate — the food diary.
-    path: 'M4 13c0-4.4 3.6-8 8-8s8 3.6 8 8v2H4v-2zM7 17h10v2H7z',
+    id: 'workout',
+    label: 'Workout',
+    // A barbell: today’s training session.
+    path: 'M2 10h2v4H2zm3-2h2v8H5zm3 3h8v2H8zm8-3h2v8h-2zm3 2h2v4h-2z',
   },
   {
     id: 'record',

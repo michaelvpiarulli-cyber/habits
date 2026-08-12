@@ -14,7 +14,6 @@ import { HabitMark } from './HabitMark';
 import { AmountEntry } from './AmountEntry';
 import { Countdown } from './Countdown';
 import { DayNote } from './DayNote';
-import { Workout } from './Workout';
 import {
   PerfectDayOverlay,
   PerfectDaySeal,
@@ -318,8 +317,6 @@ export function TodayView() {
         </aside>
 
         <div className="today__main">
-          <Workout day={day} />
-
           {activeHabits.length === 0 ? (
             <div className="empty">
               <p className="empty__title">No habits yet.</p>
