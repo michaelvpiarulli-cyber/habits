@@ -12,7 +12,7 @@ import {
 } from '../lib/workouts';
 
 /**
- * Today's session on the daily tab.
+ * Today's session on the Workout tab.
  *
  * Completion still rides the Lift count habit. Each lift also logs weight ×
  * reps per set so next week's target can move when you top the rep range.

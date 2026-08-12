@@ -3,7 +3,7 @@ import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { useData } from './context/DataProvider';
 import { TodayView } from './components/TodayView';
-import { CaloriesView } from './components/CaloriesView';
+import { WorkoutView } from './components/WorkoutView';
 import { ProgressView } from './components/ProgressView';
 import { GoalsView } from './components/GoalsView';
 import { HabitsView } from './components/HabitsView';
@@ -14,7 +14,7 @@ import './App.css';
 
 const VIEWS = {
   today: TodayView,
-  calories: CaloriesView,
+  workout: WorkoutView,
   record: ProgressView,
   goals: GoalsView,
   habits: HabitsView,
