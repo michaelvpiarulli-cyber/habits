@@ -3864,3 +3864,299 @@ form.field {
     opacity: 0;
   }
 }
+
+/* =========================================================================
+   Life dashboard
+   ========================================================================= */
+
+.section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.quick-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.quick-add .field__input {
+  flex: 1;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.dash-card {
+  text-align: left;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.dash-card__num {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  line-height: 1.05;
+  margin-top: 6px;
+}
+
+.dash-card__meta,
+.dash-inline {
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+.agenda,
+.task-list,
+.mail-list,
+.more-grid {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.agenda__row,
+.task {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.agenda__when,
+.agenda__src,
+.task__meta {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.agenda__title,
+.task__title {
+  font-weight: 600;
+}
+
+.agenda__row.is-done .agenda__title,
+.task.is-done .task__title {
+  text-decoration: line-through;
+  color: var(--ink-soft);
+}
+
+.agenda__title a {
+  color: inherit;
+}
+
+.agenda__actions {
+  display: flex;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+
+.task {
+  grid-template-columns: 28px 1fr auto;
+}
+
+.task.is-overdue .task__meta,
+.card__meta.is-overdue,
+.goal__due.is-overdue {
+  color: var(--ink);
+}
+
+.task__check {
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  background: transparent;
+}
+
+.task__check.is-on {
+  background: var(--ink);
+}
+
+.task__body {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card--row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card__right {
+  text-align: right;
+}
+
+.card__name.is-in {
+  color: var(--ink);
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 0 14px;
+}
+
+.cal__weekdays,
+.cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+}
+
+.cal__weekdays {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+.cal__day {
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  font-size: 0.813rem;
+  background: transparent;
+}
+
+.cal__day.is-pad {
+  visibility: hidden;
+}
+
+.cal__day.is-today {
+  font-weight: 600;
+}
+
+.cal__day.is-selected {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.cal__day.has-items:not(.is-selected)::after {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 4px;
+  margin: 2px auto 0;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.chip.is-on {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.google-bar {
+  margin: 8px 0 16px;
+}
+
+.google-bar.is-compact {
+  margin: 8px 0;
+}
+
+.google-bar .btn {
+  margin-bottom: 8px;
+}
+
+.subpage {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 0 0;
+}
+
+.subpage__back {
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+}
+
+.more-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.more-card {
+  width: 100%;
+  text-align: left;
+  padding: 16px 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.more-card__name {
+  font-weight: 600;
+}
+
+.more-card__meta {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.mail a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+  color: inherit;
+  text-decoration: none;
+}
+
+.mail__from,
+.mail__snippet {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.mail__subject {
+  font-weight: 500;
+}
+
+.mail.is-unread .mail__subject {
+  font-weight: 600;
+}
+
+.sheet__body .btn--primary {
+  width: 100%;
+  margin-top: 12px;
+}

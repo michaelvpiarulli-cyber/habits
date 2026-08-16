@@ -1761,11 +1761,8 @@ export function DataProvider({ children }) {
    * prettied report: the point is that a copy exists off the device and can be
    * read back, not that it looks nice.
    */
-  const exportAll = useCallback(() => {
-    const payload = {
-      app: 'tally',
-      version: 1,
-      exportedAt: nowISO(),
+  const snapshot = useCallback(
+    () => ({
       habits,
       logs,
       goals,
@@ -1775,6 +1772,16 @@ export function DataProvider({ children }) {
       nutrition,
       liftLogs,
       countdown,
+    }),
+    [habits, logs, goals, identity, dayNotes, reviews, nutrition, liftLogs, countdown]
+  );
+
+  const exportAll = useCallback(() => {
+    const payload = {
+      app: 'tally',
+      version: 2,
+      exportedAt: nowISO(),
+      ...snapshot(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1783,7 +1790,7 @@ export function DataProvider({ children }) {
     a.download = `tally-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [habits, logs, goals, identity, dayNotes, reviews, nutrition, liftLogs, countdown]);
+  }, [snapshot]);
 
   const statementOfDay = useMemo(() => {
     if (activeIdentity.length === 0) return null;
@@ -1814,6 +1821,7 @@ export function DataProvider({ children }) {
     lastLiftLog,
     saveLiftLog,
     exportAll,
+    snapshot,
     countdown,
     setCountdown,
     doneSets,

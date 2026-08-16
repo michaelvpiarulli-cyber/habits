@@ -82,3 +82,67 @@ export function rangeOfDays(from, to) {
   for (let d = from; daysBetween(d, to) >= 0; d = addDays(d, 1)) out.push(d);
   return out;
 }
+
+export function startOfMonth(iso) {
+  const d = parseISO(iso);
+  return isoOf(new Date(d.getFullYear(), d.getMonth(), 1, 12, 0, 0, 0));
+}
+
+export function addMonths(iso, n) {
+  const d = parseISO(iso);
+  d.setMonth(d.getMonth() + n);
+  return isoOf(d);
+}
+
+export function daysInMonth(iso) {
+  const d = parseISO(startOfMonth(iso));
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+}
+
+export function endOfMonth(iso) {
+  const start = startOfMonth(iso);
+  return addDays(start, daysInMonth(start) - 1);
+}
+
+/** 'Aug 2026' */
+export function monthTitle(iso) {
+  const d = parseISO(iso);
+  return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/**
+ * Cells for a Monday-first month grid. Leading/trailing slots are null so the
+ * weekday columns stay lined up.
+ */
+export function monthCells(iso) {
+  const start = startOfMonth(iso);
+  const lead = dow(start);
+  const count = daysInMonth(start);
+  const cells = Array.from({ length: lead }, () => null);
+  for (let i = 0; i < count; i++) cells.push(addDays(start, i));
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
+/** '09:00' → '9:00 am' */
+export function formatClock(hhmm) {
+  if (!hhmm) return '';
+  const [h, m] = String(hhmm)
+    .split(':')
+    .map((part) => Number(part));
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return '';
+  const am = h < 12;
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${am ? 'am' : 'pm'}`;
+}
+
+/** Add minutes to an 'HH:MM' clock, wrapping within the day. */
+export function addMinutes(hhmm, minutes) {
+  const [h, m] = String(hhmm || '09:00')
+    .split(':')
+    .map((part) => Number(part));
+  const total = Math.max(0, h * 60 + m + minutes) % (24 * 60);
+  const hour = Math.floor(total / 60);
+  const min = total % 60;
+  return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
