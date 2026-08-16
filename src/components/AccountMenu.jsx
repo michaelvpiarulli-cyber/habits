@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useData } from '../context/DataProvider';
+import { useLife } from '../context/LifeProvider';
+import { GoogleConnect } from './GoogleConnect';
+import { nowISO } from '../lib/mappers';
+import { todayISO } from '../lib/dates';
 
 const THEMES = [
   ['light', 'Light'],
@@ -21,8 +25,9 @@ export function AccountMenu({ auth, theme, onClose }) {
     syncAvailable,
     countdown,
     setCountdown,
-    exportAll,
+    snapshot,
   } = useData();
+  const life = useLife();
   const [mode, setMode] = useState('in'); // 'in' | 'up'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -200,14 +205,40 @@ export function AccountMenu({ auth, theme, onClose }) {
           </fieldset>
 
           <fieldset className="field">
+            <legend className="field__label">Google</legend>
+            <GoogleConnect />
+          </fieldset>
+
+          <fieldset className="field">
             <legend className="field__label">Your data</legend>
-            <button type="button" className="btn" onClick={exportAll}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                const payload = {
+                  app: 'tally',
+                  version: 2,
+                  exportedAt: nowISO(),
+                  ...snapshot(),
+                  ...life.snapshot(),
+                };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], {
+                  type: 'application/json',
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tally-${todayISO()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
               Download a backup
             </button>
             <p className="field__hint">
-              Every habit, log, goal, value, note, meal log, and review as one JSON file. Worth
-              doing now and then regardless of sync — a file on your own disk is the copy nobody
-              else can lose.
+              Habits, meals, workouts, tasks, calendar, books, jobs, and money as one JSON file.
+              Worth doing now and then regardless of sync — a file on your own disk is the copy
+              nobody else can lose.
             </p>
           </fieldset>
 

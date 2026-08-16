@@ -1,39 +1,28 @@
 const TABS = [
   {
+    id: 'home',
+    label: 'Home',
+    path: 'M4 11l8-7 8 7v9H4z',
+  },
+  {
     id: 'today',
     label: 'Today',
-    // A single filled square: the day's mark.
     path: 'M5 5h14v14H5z',
   },
   {
-    id: 'calories',
-    label: 'Calories',
-    // A bowl / plate — the food diary.
-    path: 'M4 13c0-4.4 3.6-8 8-8s8 3.6 8 8v2H4v-2zM7 17h10v2H7z',
+    id: 'tasks',
+    label: 'Tasks',
+    path: 'M5 6h14v2H5zM5 11h14v2H5zM5 16h10v2H5z',
   },
   {
-    id: 'record',
-    label: 'Record',
-    // A run of days, one short — the grid in miniature.
-    path: 'M4 5h5v5H4zM11 5h5v5h-5zM4 12h5v5H4zM11 12h5v5h-5zM18 5h2v5h-2z',
+    id: 'calendar',
+    label: 'Calendar',
+    path: 'M6 5h12v3H6zM6 10h3v3H6zM10.5 10h3v3h-3zM15 10h3v3h-3zM6 15h3v3H6zM10.5 15h3v3h-3zM15 15h3v3h-3z',
   },
   {
-    id: 'goals',
-    label: 'Goals',
-    // A bar filling toward a line.
-    path: 'M4 9h11v6H4zM18 5h2v14h-2z',
-  },
-  {
-    id: 'habits',
-    label: 'Habits',
-    // Stacked rows: the list itself.
-    path: 'M4 5h16v3H4zM4 10.5h16v3H4zM4 16h16v3H4z',
-  },
-  {
-    id: 'identity',
-    label: 'Identity',
-    // A plumb line: the thing you measure true against.
-    path: 'M11 3h2v13h-2zM12 17l4 4H8z',
+    id: 'more',
+    label: 'More',
+    path: 'M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z',
   },
 ];
 
