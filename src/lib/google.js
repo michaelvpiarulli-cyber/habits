@@ -13,9 +13,17 @@ const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 export const GOOGLE_SCOPES = `${CALENDAR_SCOPE} ${GMAIL_SCOPE}`;
 
+/**
+ * OAuth Web client id. Public by design (the browser has to send it). Google
+ * still only accepts requests from the JavaScript origins listed on the client.
+ * VITE_GOOGLE_CLIENT_ID overrides this when set.
+ */
+const TALLY_GOOGLE_CLIENT_ID =
+  '510058798821-lqoil90ssdlbhrv6n68cbc22qg7mn4lq.apps.googleusercontent.com';
+
 export function googleClientId() {
   const id = import.meta.env?.VITE_GOOGLE_CLIENT_ID;
-  return typeof id === 'string' && id.trim() ? id.trim() : '';
+  return typeof id === 'string' && id.trim() ? id.trim() : TALLY_GOOGLE_CLIENT_ID;
 }
 
 export function isGoogleConfigured() {
