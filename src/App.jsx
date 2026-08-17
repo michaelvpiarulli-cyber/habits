@@ -4,6 +4,8 @@ import { useTheme } from './hooks/useTheme';
 import { useData } from './context/DataProvider';
 import { useLife } from './context/LifeProvider';
 import { TodayView } from './components/TodayView';
+import { HomeView } from './components/HomeView';
+import { WorkoutView } from './components/WorkoutView';
 import { CaloriesView } from './components/CaloriesView';
 import { ProgressView } from './components/ProgressView';
 import { GoalsView } from './components/GoalsView';
@@ -31,6 +33,7 @@ const MORE_PAGES = {
   jobs: { View: JobsView, title: 'Jobs' },
   money: { View: MoneyView, title: 'Money' },
   mail: { View: MailView, title: 'Mail' },
+  tasks: { View: TasksView, title: 'Tasks' },
 };
 
 export default function App() {
@@ -38,7 +41,7 @@ export default function App() {
   const theme = useTheme();
   const { syncState, syncAvailable, dataReady } = useData();
   const life = useLife();
-  const [tab, setTab] = useState('today');
+  const [tab, setTab] = useState('home');
   const [morePage, setMorePage] = useState(null);
   const [accountOpen, setAccountOpen] = useState(false);
 
@@ -83,8 +86,9 @@ export default function App() {
 
       <main className="main">
         {tab === 'more' && more && <SubpageBar title={more.title} onBack={() => setMorePage(null)} />}
+        {tab === 'home' && <HomeView onOpen={onOpen} />}
         {tab === 'today' && <TodayView onOpen={onOpen} />}
-        {tab === 'tasks' && <TasksView />}
+        {tab === 'workout' && <WorkoutView />}
         {tab === 'calendar' && <CalendarView />}
         {tab === 'more' && !more && <MoreView onOpen={onOpen} />}
         {tab === 'more' && MoreViewComp && <MoreViewComp />}

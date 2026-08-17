@@ -12,7 +12,7 @@ import {
 } from '../lib/workouts';
 
 /**
- * Today's session on the daily tab.
+ * Today's session. On the Lift tab it is always open; elsewhere it can fold.
  *
  * Completion still rides the Lift count habit. Each lift also logs weight ×
  * reps per set so next week's target can move when you top the rep range.
@@ -259,7 +259,8 @@ function LiftRow({ lift, index, day, isDone, onMark, canMark }) {
   );
 }
 
-export function Workout({ day }) {
+export function Workout({ day, layout = 'card' }) {
+  const page = layout === 'page';
   const { activeHabits, logFor, setValue, updateHabit, addHabit } = useData();
   const session = sessionFor(dow(day));
   const ahead = weekAhead(day);
@@ -270,7 +271,7 @@ export function Workout({ day }) {
   const complete = total > 0 && done >= total;
   const fraction = total ? Math.min(1, done / total) : 0;
 
-  const [open, setOpen] = useState(() => !complete);
+  const [open, setOpen] = useState(() => page || !complete);
 
   // Keep the Lift habit target equal to today's session size so checking off
   // every move (or Mark session done) actually completes the habit. Starter
@@ -318,27 +319,31 @@ export function Workout({ day }) {
     dayLabel === 'today' ? 'Today’s training' : dayLabel === 'yesterday' ? 'Yesterday’s training' : 'Training';
 
   return (
-    <section className={`workout workout--${session.kind} ${complete ? 'is-complete' : ''}`}>
-      <button
-        type="button"
-        className="workout__head"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-      >
-        <span>
-          <span className="eyebrow">{trainingLabel}</span>
-          <span className="workout__name">{session.name}</span>
-          <span className="workout__focus">{summary}</span>
-        </span>
-        <span className="workout__meta" aria-hidden="true">
-          {lift && total > 0 && (
-            <span className="workout__fill" style={{ '--fill': `${Math.round(fraction * 100)}%` }} />
-          )}
-          <span className="workout__toggle">{open ? '−' : '+'}</span>
-        </span>
-      </button>
+    <section
+      className={`workout workout--${session.kind} ${complete ? 'is-complete' : ''} ${page ? 'workout--page' : ''}`}
+    >
+      {!page && (
+        <button
+          type="button"
+          className="workout__head"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+        >
+          <span>
+            <span className="eyebrow">{trainingLabel}</span>
+            <span className="workout__name">{session.name}</span>
+            <span className="workout__focus">{summary}</span>
+          </span>
+          <span className="workout__meta" aria-hidden="true">
+            {lift && total > 0 && (
+              <span className="workout__fill" style={{ '--fill': `${Math.round(fraction * 100)}%` }} />
+            )}
+            <span className="workout__toggle">{open ? '−' : '+'}</span>
+          </span>
+        </button>
+      )}
 
-      {open && (
+      {(page || open) && (
         <>
           <p className="workout__hint">
             Check off each move when you finish

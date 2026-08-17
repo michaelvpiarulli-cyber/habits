@@ -8,14 +8,11 @@ import {
   todayISO,
   WEEKDAY_INITIALS,
 } from '../lib/dates';
-import { describeCadence, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
+import { describeCadence, findTrainingHabit, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
 import { atRiskToday, countInWeek, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
 import { AmountEntry } from './AmountEntry';
-import { Countdown } from './Countdown';
 import { DayNote } from './DayNote';
-import { Workout } from './Workout';
-import { TodayBoard } from './TodayBoard';
 import {
   PerfectDayOverlay,
   PerfectDaySeal,
@@ -195,10 +192,12 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
 }
 
 export function TodayView({ onOpen }) {
-  const { activeHabits, doneSets, statementOfDay, keptSetFor } = useData();
+  const { activeHabits, doneSets, keptSetFor } = useData();
   const [editing, setEditing] = useState(null);
   const calendarToday = todayISO();
   const [day, setDay] = useState(calendarToday);
+  const training = findTrainingHabit(activeHabits);
+  const habits = activeHabits.filter((habit) => habit.id !== training?.id);
 
   // Never leave the picker on a future date if the calendar rolls over.
   useEffect(() => {
@@ -211,18 +210,18 @@ export function TodayView({ onOpen }) {
   // A habit one miss from breaking its chain goes to the top — the whole point
   // of the rule is that the second miss is the one that matters, so it has to
   // be the thing you see first.
-  const dueToday = activeHabits
+  const dueToday = habits
     .filter((h) => isDue(h, day))
     .sort((a, b) => {
       const risk = (h) =>
         viewingToday && atRiskToday(h, keptSetFor(h.id), day) ? 0 : 1;
       return risk(a) - risk(b);
     });
-  const restToday = activeHabits.filter((h) => !isDue(h, day));
+  const restToday = habits.filter((h) => !isDue(h, day));
 
   const doneCount = dueToday.filter((h) => doneSets.get(h.id)?.has(day)).length;
   const allDone = dueToday.length > 0 && doneCount === dueToday.length;
-  const perfectStreak = usePerfectStreak(activeHabits, doneSets, day);
+  const perfectStreak = usePerfectStreak(habits, doneSets, day);
   const [celebrate, dismissCelebrate] = usePerfectCelebration(viewingToday && allDone);
 
   const goPrev = () => {
@@ -284,46 +283,19 @@ export function TodayView({ onOpen }) {
         {allDone && <PerfectDaySeal streak={perfectStreak} />}
       </header>
 
-      {viewingToday && onOpen && <TodayBoard onOpen={onOpen} />}
-
-      {/*
-        Two zones: what you act on, and what you read. On a phone they stack
-        in reading order; on a wide screen the context moves into a rail so the
-        habits stay a comfortable column instead of stretching to the window.
-      */}
       <div className="today">
         <aside className="today__rail">
           <WeekStrip
-            habits={activeHabits}
+            habits={habits}
             doneSets={doneSets}
             calendarToday={calendarToday}
             selected={day}
             onSelect={selectDay}
           />
-          {viewingToday && <Countdown />}
-          {viewingToday && statementOfDay && (
-            <div className="today-statement">
-              <p className="eyebrow">Today’s value</p>
-              <p className="today-statement__name">{statementOfDay.name}</p>
-              {statementOfDay.note && (
-                <p className="today-statement__note">{statementOfDay.note}</p>
-              )}
-              {statementOfDay.verseText && (
-                <blockquote className="verse verse--today">
-                  <p className="verse__text">{statementOfDay.verseText}</p>
-                  {statementOfDay.verseRef && (
-                    <cite className="verse__ref">{statementOfDay.verseRef}</cite>
-                  )}
-                </blockquote>
-              )}
-            </div>
-          )}
         </aside>
 
         <div className="today__main">
-          <Workout day={day} />
-
-          {activeHabits.length === 0 ? (
+          {habits.length === 0 ? (
             <div className="empty">
               <p className="empty__title">No habits yet.</p>
               <p className="empty__body">

@@ -3881,6 +3881,86 @@ form.field {
   margin: 8px 0 0;
 }
 
+.home__lede {
+  margin-top: 8px;
+  font-size: 0.938rem;
+  color: var(--ink-soft);
+}
+
+.home-jumps {
+  margin: 4px 0 8px;
+}
+
+.home-jump {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+}
+
+.home-jump__name {
+  display: block;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.home-jump__meta {
+  display: block;
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+}
+
+.home-jump__go {
+  flex: none;
+  color: var(--ink-soft);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.quick-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.quick-add .field__input {
+  flex: 1;
+}
+
+.home-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+
+.workout--page {
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.workout--page .workout__hint,
+.workout--page .workout__disclaimer,
+.workout--page .workout__ahead,
+.workout--page .workout__actions {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.workout--page .workout__lifts {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.workout--page .workout__ahead {
+  border-top-color: var(--rule);
+}
+
 .section__head {
   display: flex;
   align-items: baseline;
