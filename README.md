@@ -3,9 +3,9 @@
 A life dashboard: habits, training, tasks, calendar, books, job applications,
 and money — same stack as before, Vite + React + Supabase + Vercel.
 
-Home is the briefing: training, habits left, due tasks, and the calendar. Lift is
-the session. Today’s habits sit on their own tab. Plan is the month. Everything
-else lives under More.
+Home is the briefing: weight trend, tasks, and this week’s events. Lift is the
+session. Today’s habits sit on their own tab. Plan is the month. Everything else
+lives under More.
 
 Six habits ship as the starting set: whole foods, walk after meals, lift, sleep, protein, weigh in.
 Edit or delete any of them on **More → Habits**.

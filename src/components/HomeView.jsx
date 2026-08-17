@@ -1,34 +1,35 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
+import { useGoogle } from '../context/GoogleProvider';
 import {
   addDays,
   dow,
-  endOfMonth,
   formatClock,
+  formatLong,
   parseISO,
   relativeDay,
-  startOfMonth,
   todayISO,
 } from '../lib/dates';
 import { findTrainingHabit } from '../lib/habits';
 import { isDue } from '../lib/streaks';
-import {
-  agendaForDay,
-  bookProgress,
-  formatMoney,
-  groupTasks,
-  JOB_ACTIVE,
-  moneyForMonth,
-} from '../lib/life';
+import { agendaRange, groupTasks } from '../lib/life';
 import { sessionFor } from '../lib/workouts';
+import { findWeighHabit, weeklyWeightRate, weighReadings } from '../lib/weightCoach';
 import { Countdown } from './Countdown';
+import { TrendChart } from './TrendChart';
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 function homeDate(iso) {
   const d = parseISO(iso);
   return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+}
+
+function dayHeading(day, today) {
+  if (day === today) return 'Today';
+  if (day === addDays(today, 1)) return 'Tomorrow';
+  return formatLong(day);
 }
 
 function Jump({ label, title, meta, onClick }) {
@@ -46,11 +47,44 @@ function Jump({ label, title, meta, onClick }) {
   );
 }
 
+function TaskList({ tasks, today, onToggle, onOpen }) {
+  if (tasks.length === 0) return <p className="quiet">Nothing dated. Add one above.</p>;
+  return (
+    <ul className="board__list">
+      {tasks.map((task) => (
+        <li key={task.id} className={`board__item ${task.dueDate < today ? 'is-overdue' : ''}`}>
+          <button
+            type="button"
+            className={`task__check ${task.done ? 'is-on' : ''}`}
+            aria-label="Mark done"
+            onClick={() => onToggle(task.id)}
+          />
+          <button type="button" className="board__label" onClick={() => onOpen('more', 'tasks')}>
+            <span>{task.title}</span>
+            <span className="board__meta">
+              {task.dueDate < today
+                ? 'Overdue'
+                : task.dueDate === today
+                  ? task.dueTime
+                    ? formatClock(task.dueTime)
+                    : 'Today'
+                  : relativeDay(task.dueDate, today)}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function HomeView({ onOpen }) {
-  const { activeHabits, doneSets, goals, statementOfDay, logFor, nutritionFor } = useData();
-  const { tasks, events, books, jobs, entries, addTask, toggleTask } = useLife();
+  const { activeHabits, doneSets, goals, statementOfDay, logFor } = useData();
+  const { tasks, events, addTask, toggleTask } = useLife();
+  const google = useGoogle();
   const [quick, setQuick] = useState('');
+  const [googleEvents, setGoogleEvents] = useState([]);
   const today = todayISO();
+  const weekEnd = addDays(today, 7);
 
   const training = findTrainingHabit(activeHabits);
   const habits = activeHabits.filter((habit) => habit.id !== training?.id);
@@ -63,26 +97,70 @@ export function HomeView({ onOpen }) {
   const liftTotal = session.lifts.length;
   const sessionDone = liftTotal > 0 && liftDone >= liftTotal;
 
+  const weighHabit = useMemo(() => findWeighHabit(activeHabits), [activeHabits]);
+  const readings = useMemo(
+    () => weighReadings(weighHabit, logFor, today, 56),
+    [weighHabit, logFor, today]
+  );
+  const trendPoints = useMemo(
+    () => readings.map((row) => ({ day: row.day, value: row.weight })),
+    [readings]
+  );
+  const weekRate = weeklyWeightRate(readings);
+
   const grouped = useMemo(() => groupTasks(tasks, today), [tasks, today]);
-  const due = [...grouped.overdue, ...grouped.dueToday];
-  const nextUp = due.length ? [] : grouped.upcoming.slice(0, 3);
+  const homeTasks = [...grouped.overdue, ...grouped.dueToday, ...grouped.upcoming].slice(0, 8);
+
+  const listEvents = google.listEvents;
+  const googleConnected = google.connected;
+
+  useEffect(() => {
+    if (!googleConnected) {
+      setGoogleEvents([]);
+      return undefined;
+    }
+    let cancelled = false;
+    listEvents(today, weekEnd)
+      .then((items) => {
+        if (!cancelled) setGoogleEvents(items);
+      })
+      .catch(() => {
+        if (!cancelled) setGoogleEvents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [googleConnected, listEvents, today, weekEnd]);
+
   const agenda = useMemo(
-    () => agendaForDay({ events, tasks, goals }, today).filter((item) => item.source !== 'task' && !item.done),
-    [events, tasks, goals, today]
+    () =>
+      agendaRange({ events, goals, googleEvents }, today, weekEnd).filter(
+        (item) => item.source !== 'task' && !item.done
+      ),
+    [events, goals, googleEvents, today, weekEnd]
   );
+  const agendaByDay = useMemo(() => {
+    const map = new Map();
+    for (const item of agenda) {
+      const list = map.get(item.day);
+      if (list) list.push(item);
+      else map.set(item.day, [item]);
+    }
+    return [...map.entries()];
+  }, [agenda]);
 
-  const reading = books.filter((book) => book.status === 'reading');
-  const followUps = jobs.filter(
-    (job) => JOB_ACTIVE.has(job.status) && job.dueDate && job.dueDate <= addDays(today, 7)
-  );
-  const food = nutritionFor(today);
-  const month = moneyForMonth(entries, startOfMonth(today), endOfMonth(today));
-
+  const todayEvents = agenda.filter((item) => item.day === today);
   const ledeBits = [];
-  if (habitLeft) ledeBits.push(`${habitLeft} habit${habitLeft === 1 ? '' : 's'}`);
-  if (!sessionDone) ledeBits.push(session.name);
+  if (weekRate != null && weekRate !== 0) {
+    ledeBits.push(`${weekRate > 0 ? '+' : ''}${weekRate} lb/wk`);
+  }
   if (grouped.overdue.length) ledeBits.push(`${grouped.overdue.length} overdue`);
   else if (grouped.dueToday.length) ledeBits.push(`${grouped.dueToday.length} due`);
+  if (todayEvents.length) {
+    ledeBits.push(`${todayEvents.length} event${todayEvents.length === 1 ? '' : 's'}`);
+  }
+  if (habitLeft) ledeBits.push(`${habitLeft} habit${habitLeft === 1 ? '' : 's'}`);
+  if (!sessionDone) ledeBits.push(session.name);
   const lede = ledeBits.length ? ledeBits.join(' · ') : 'Caught up.';
 
   const submitQuick = (e) => {
@@ -102,40 +180,23 @@ export function HomeView({ onOpen }) {
 
       <Countdown />
 
-      {statementOfDay && (
-        <div className="today-statement">
-          <p className="eyebrow">Today’s value</p>
-          <p className="today-statement__name">{statementOfDay.name}</p>
-          {statementOfDay.note && <p className="today-statement__note">{statementOfDay.note}</p>}
-          {statementOfDay.verseText && (
-            <blockquote className="verse verse--today">
-              <p className="verse__text">{statementOfDay.verseText}</p>
-              {statementOfDay.verseRef && (
-                <cite className="verse__ref">{statementOfDay.verseRef}</cite>
-              )}
-            </blockquote>
-          )}
+      <section className="section">
+        <div className="section__head">
+          <h2 className="eyebrow">Weight</h2>
+          <button type="button" className="text-btn" onClick={() => onOpen('more', 'calories')}>
+            Calories
+          </button>
         </div>
-      )}
-
-      <section className="home-jumps">
-        <Jump
-          label="Training"
-          title={session.name}
-          meta={
-            sessionDone
-              ? 'Session done'
-              : liftDone > 0
-                ? `${liftDone} of ${liftTotal} · ${session.focus}`
-                : session.focus
-          }
-          onClick={() => onOpen('workout')}
-        />
-        <Jump
-          label="Habits"
-          title={dueHabits.length ? `${habitsDone} of ${dueHabits.length} done` : 'None due'}
-          meta={habitLeft ? `${habitLeft} left` : dueHabits.length ? 'All in' : 'Add one under More'}
-          onClick={() => onOpen('today')}
+        {weekRate != null && (
+          <p className={`home-rate ${weekRate < 0 ? 'is-down' : weekRate > 0 ? 'is-up' : ''}`}>
+            {weekRate > 0 ? '+' : ''}
+            {weekRate} lb / week
+          </p>
+        )}
+        <TrendChart
+          points={trendPoints}
+          target={weighHabit?.target || 0}
+          unit={weighHabit?.unit || 'lb'}
         />
       </section>
 
@@ -161,125 +222,72 @@ export function HomeView({ onOpen }) {
             Add
           </button>
         </form>
-        {due.length === 0 && nextUp.length === 0 ? (
-          <p className="quiet">Nothing dated. Add one above.</p>
+        <TaskList tasks={homeTasks} today={today} onToggle={toggleTask} onOpen={onOpen} />
+      </section>
+
+      <section className="section">
+        <div className="section__head">
+          <h2 className="eyebrow">Events</h2>
+          <button type="button" className="text-btn" onClick={() => onOpen('calendar')}>
+            Plan
+          </button>
+        </div>
+        {agendaByDay.length === 0 ? (
+          <p className="quiet">Nothing on the calendar this week.</p>
         ) : (
-          <ul className="board__list">
-            {(due.length ? due : nextUp).slice(0, 6).map((task) => (
-              <li key={task.id} className="board__item">
-                <button
-                  type="button"
-                  className={`task__check ${task.done ? 'is-on' : ''}`}
-                  aria-label="Mark done"
-                  onClick={() => toggleTask(task.id)}
-                />
-                <button type="button" className="board__label" onClick={() => onOpen('more', 'tasks')}>
-                  <span>{task.title}</span>
-                  <span className="board__meta">
-                    {task.dueDate < today
-                      ? 'Overdue'
-                      : task.dueDate === today
-                        ? task.dueTime
-                          ? formatClock(task.dueTime)
-                          : 'Today'
-                        : relativeDay(task.dueDate, today)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          agendaByDay.map(([day, items]) => (
+            <div key={day} className="home-day">
+              <h3 className="eyebrow">{dayHeading(day, today)}</h3>
+              <ul className="board__list">
+                {items.map((item) => (
+                  <li key={item.id} className="board__item">
+                    <span className="board__time">
+                      {item.allDay ? 'All day' : formatClock(item.startTime) || 'All day'}
+                    </span>
+                    {item.href ? (
+                      <a className="board__label" href={item.href} target="_blank" rel="noreferrer">
+                        {item.title}
+                      </a>
+                    ) : (
+                      <button type="button" className="board__label" onClick={() => onOpen('calendar')}>
+                        {item.title}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
         )}
       </section>
 
-      {agenda.length > 0 && (
-        <section className="section">
-          <div className="section__head">
-            <h2 className="eyebrow">Schedule</h2>
-            <button type="button" className="text-btn" onClick={() => onOpen('calendar')}>
-              Plan
-            </button>
-          </div>
-          <ul className="board__list">
-            {agenda.slice(0, 5).map((item) => (
-              <li key={item.id} className="board__item">
-                <span className="board__time">
-                  {item.allDay ? 'All day' : formatClock(item.startTime)}
-                </span>
-                <button type="button" className="board__label" onClick={() => onOpen('calendar')}>
-                  {item.title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <section className="home-jumps">
+        <Jump
+          label="Training"
+          title={session.name}
+          meta={
+            sessionDone
+              ? 'Session done'
+              : liftDone > 0
+                ? `${liftDone} of ${liftTotal} · ${session.focus}`
+                : session.focus
+          }
+          onClick={() => onOpen('workout')}
+        />
+        <Jump
+          label="Habits"
+          title={dueHabits.length ? `${habitsDone} of ${dueHabits.length} done` : 'None due'}
+          meta={habitLeft ? `${habitLeft} left` : dueHabits.length ? 'All in' : 'Add one under More'}
+          onClick={() => onOpen('today')}
+        />
+      </section>
 
-      {followUps.length > 0 && (
-        <section className="section">
-          <div className="section__head">
-            <h2 className="eyebrow">Follow up</h2>
-            <button type="button" className="text-btn" onClick={() => onOpen('more', 'jobs')}>
-              Jobs
-            </button>
-          </div>
-          <ul className="board__list">
-            {followUps.slice(0, 3).map((job) => (
-              <li key={job.id} className="board__item">
-                <button type="button" className="board__label" onClick={() => onOpen('more', 'jobs')}>
-                  <span>
-                    {job.role} · {job.company}
-                  </span>
-                  <span className="board__meta">{relativeDay(job.dueDate, today)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {reading.length > 0 && (
-        <section className="section">
-          <div className="section__head">
-            <h2 className="eyebrow">Reading</h2>
-            <button type="button" className="text-btn" onClick={() => onOpen('more', 'books')}>
-              Books
-            </button>
-          </div>
-          {reading.slice(0, 2).map((book) => {
-            const pct = Math.round(bookProgress(book) * 100);
-            return (
-              <button
-                key={book.id}
-                type="button"
-                className="home-jump"
-                onClick={() => onOpen('more', 'books')}
-              >
-                <span>
-                  <span className="home-jump__name">{book.title}</span>
-                  <span className="home-jump__meta">
-                    {book.currentPage}
-                    {book.totalPages ? ` of ${book.totalPages}` : ''} · {pct}%
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </section>
-      )}
-
-      {(food?.calories > 0 || month.spend > 0 || month.income > 0) && (
-        <section className="section home-foot">
-          {food?.calories > 0 && (
-            <button type="button" className="text-btn" onClick={() => onOpen('more', 'calories')}>
-              {Math.round(food.calories)} kcal
-            </button>
-          )}
-          {(month.spend > 0 || month.income > 0) && (
-            <button type="button" className="text-btn" onClick={() => onOpen('more', 'money')}>
-              {formatMoney(month.net)} this month
-            </button>
-          )}
-        </section>
+      {statementOfDay && (
+        <div className="today-statement">
+          <p className="eyebrow">Today’s value</p>
+          <p className="today-statement__name">{statementOfDay.name}</p>
+          {statementOfDay.note && <p className="today-statement__note">{statementOfDay.note}</p>}
+        </div>
       )}
     </div>
   );

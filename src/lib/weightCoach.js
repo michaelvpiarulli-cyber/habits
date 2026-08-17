@@ -62,10 +62,24 @@ export function weighReadings(habit, logFor, through = todayISO(), days = 42) {
   const rows = [];
   for (let d = start; d <= through; d = addDays(d, 1)) {
     const log = logFor(habit.id, d);
-    const value = Number(log?.value);
+    const value = Number(log?.amount ?? log?.value);
     if (Number.isFinite(value) && value > 0) rows.push({ day: d, weight: value });
   }
   return rows;
+}
+
+/** Pounds per week from the latest reading vs ~7 days earlier. Negative is loss. */
+export function weeklyWeightRate(readings) {
+  if (!Array.isArray(readings) || readings.length < 2) return null;
+  const last = readings[readings.length - 1];
+  const cutoff = addDays(last.day, -7);
+  let prior = readings[0];
+  for (const row of readings) {
+    if (row.day <= cutoff) prior = row;
+  }
+  const span = daysBetween(prior.day, last.day);
+  if (span < 3) return null;
+  return Math.round(((last.weight - prior.weight) / span) * 7 * 10) / 10;
 }
 
 /** Rough maintenance from bodyweight (lb). ~14 kcal/lb for moderately active. */
