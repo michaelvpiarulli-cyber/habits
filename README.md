@@ -3,9 +3,9 @@
 A life dashboard: habits, training, tasks, calendar, books, job applications,
 and money — same stack as before, Vite + React + Supabase + Vercel.
 
-Today is the daily list: habits, lifts, and anything due. Tasks carry due dates
-and can be sent to Google Calendar. Plan is the month. Everything else lives
-under More.
+Home is the briefing: training, habits left, due tasks, and the calendar. Lift is
+the session. Today’s habits sit on their own tab. Plan is the month. Everything
+else lives under More.
 
 Six habits ship as the starting set: whole foods, walk after meals, lift, sleep, protein, weigh in.
 Edit or delete any of them on **More → Habits**.
@@ -14,7 +14,7 @@ Food is logged on **More → Calories** (breakfast, lunch, dinner, snacks). Type
 name to pull calories and macros from a built-in list plus USDA FoodData Central.
 Day totals still roll up for the Protein habit.
 
-On Today’s training you can check off each lift and log **weight × reps per set**.
+On **Lift** you can check off each move and log **weight × reps per set**.
 Next session’s target follows what you logged (reps-first once a barbell hits 135 lb
 or dumbbells hit 15 lb).
 

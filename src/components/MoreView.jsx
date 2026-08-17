@@ -11,6 +11,7 @@ const GROUPS = [
     label: 'Work',
     pages: [
       { id: 'jobs', label: 'Jobs' },
+      { id: 'tasks', label: 'Tasks' },
       { id: 'mail', label: 'Mail' },
     ],
   },
