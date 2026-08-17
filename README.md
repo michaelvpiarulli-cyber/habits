@@ -3,9 +3,9 @@
 A life dashboard: habits, training, tasks, calendar, books, job applications,
 and money — same stack as before, Vite + React + Supabase + Vercel.
 
-Home is the overview. Today still holds the daily habits and lifts. Tasks carry
-due dates and can be sent to Google Calendar. Mail and Calendar can connect to
-the Google account you already use.
+Today is the daily list: habits, lifts, and anything due. Tasks carry due dates
+and can be sent to Google Calendar. Plan is the month. Everything else lives
+under More.
 
 Six habits ship as the starting set: whole foods, walk after meals, lift, sleep, protein, weigh in.
 Edit or delete any of them on **More → Habits**.
@@ -82,7 +82,7 @@ Optional. The dashboard keeps its own tasks, events, and due dates without Googl
 5. In the app: **Account → Connect Google**, or the same button on Calendar / Mail.
 
 Connecting asks for calendar.events (so a due date can be written onto your calendar) and
-gmail.readonly (so Home / Mail can list the inbox). Tokens stay in this browser tab only.
+gmail.readonly (so Mail can list the inbox). Tokens stay in this browser tab only.
 
 ## How sync works
 

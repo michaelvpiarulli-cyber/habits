@@ -291,37 +291,37 @@ export function MoneyView() {
 
   return (
     <div className="view">
-      <header className="view__head">
-        <p className="eyebrow">Money</p>
-        <h1 className="view__title">{monthTitle(month)}</h1>
-      </header>
-
       <div className="cal-nav">
         <button type="button" className="day-nav__btn" onClick={() => setMonth(addMonths(month, -1))} aria-label="Previous month">
           ‹
         </button>
-        <button type="button" className="chip" onClick={() => setMonth(startOfMonth(today))}>
-          This month
-        </button>
+        <div className="cal-nav__center">
+          <h1 className="cal-nav__label">{monthTitle(month)}</h1>
+          {month !== startOfMonth(today) && (
+            <button type="button" className="text-btn" onClick={() => setMonth(startOfMonth(today))}>
+              This month
+            </button>
+          )}
+        </div>
         <button type="button" className="day-nav__btn" onClick={() => setMonth(addMonths(month, 1))} aria-label="Next month">
           ›
         </button>
       </div>
 
-      <section className="dash-grid">
-        <div className="dash-card">
-          <p className="eyebrow">In</p>
-          <p className="dash-card__num">{formatMoney(summary.income)}</p>
-        </div>
-        <div className="dash-card">
-          <p className="eyebrow">Out</p>
-          <p className="dash-card__num">{formatMoney(summary.spend)}</p>
-        </div>
-        <div className="dash-card">
-          <p className="eyebrow">Net</p>
-          <p className="dash-card__num">{formatMoney(summary.net)}</p>
-        </div>
-      </section>
+      <p className="money-sum">
+        <span>
+          <span className="eyebrow">In</span>
+          {formatMoney(summary.income)}
+        </span>
+        <span>
+          <span className="eyebrow">Out</span>
+          {formatMoney(summary.spend)}
+        </span>
+        <span>
+          <span className="eyebrow">Net</span>
+          {formatMoney(summary.net)}
+        </span>
+      </p>
 
       <section className="section">
         <div className="section__head">

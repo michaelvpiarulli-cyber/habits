@@ -6,7 +6,7 @@ import { groupTasks, TASK_LISTS, TASK_PRIORITIES } from '../lib/life';
 import { FormSheet } from './FormSheet';
 import { GoogleConnect } from './GoogleConnect';
 
-function TaskForm({ task, onSave, onClose }) {
+function TaskForm({ task, onSave, onDelete, onClose }) {
   const google = useGoogle();
   const [form, setForm] = useState(() => ({
     title: task?.title || '',
@@ -122,12 +122,24 @@ function TaskForm({ task, onSave, onClose }) {
         <button type="submit" className="btn btn--primary" disabled={!canSave}>
           Save
         </button>
+        {task && onDelete && (
+          <button
+            type="button"
+            className="btn btn--danger"
+            onClick={() => {
+              onDelete(task.id);
+              onClose();
+            }}
+          >
+            Delete
+          </button>
+        )}
       </form>
     </FormSheet>
   );
 }
 
-function TaskRow({ task, today, onToggle, onEdit, onDelete }) {
+function TaskRow({ task, today, onToggle, onEdit }) {
   const overdue = task.dueDate && !task.done && task.dueDate < today;
   return (
     <li className={`task ${task.done ? 'is-done' : ''} ${overdue ? 'is-overdue' : ''}`}>
@@ -144,11 +156,7 @@ function TaskRow({ task, today, onToggle, onEdit, onDelete }) {
           {task.dueDate
             ? `${overdue ? 'Due ' : ''}${relativeDay(task.dueDate)}${task.dueTime ? ` · ${formatClock(task.dueTime)}` : ''}`
             : 'No date'}
-          {task.priority !== 'none' ? ` · ${task.priority}` : ''}
         </span>
-      </button>
-      <button type="button" className="chip chip--danger" onClick={() => onDelete(task.id)}>
-        Delete
       </button>
     </li>
   );
@@ -208,11 +216,8 @@ export function TasksView() {
   return (
     <div className="view">
       <header className="view__head view__head--row">
-        <div>
-          <p className="eyebrow">{grouped.open.length} open</p>
-          <h1 className="view__title">Tasks</h1>
-        </div>
-        <button type="button" className="btn btn--primary" onClick={() => setEditing({})}>
+        <h1 className="view__title">Tasks</h1>
+        <button type="button" className="text-btn" onClick={() => setEditing({})}>
           New
         </button>
       </header>
@@ -231,7 +236,6 @@ export function TasksView() {
                   today={today}
                   onToggle={toggleTask}
                   onEdit={() => setEditing(task)}
-                  onDelete={deleteTask}
                 />
               ))}
             </ul>
@@ -260,7 +264,6 @@ export function TasksView() {
                   today={today}
                   onToggle={toggleTask}
                   onEdit={() => setEditing(task)}
-                  onDelete={deleteTask}
                 />
               ))}
             </ul>
@@ -272,6 +275,7 @@ export function TasksView() {
         <TaskForm
           task={editing.id ? editing : null}
           onSave={save}
+          onDelete={deleteTask}
           onClose={() => setEditing(null)}
         />
       )}

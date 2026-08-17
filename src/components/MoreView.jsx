@@ -1,32 +1,49 @@
-const PAGES = [
-  { id: 'calories', label: 'Calories', detail: 'Meals and macros' },
-  { id: 'record', label: 'Record', detail: 'Habit grid and streaks' },
-  { id: 'habits', label: 'Habits', detail: 'Edit the daily set' },
-  { id: 'goals', label: 'Goals', detail: 'Longer horizon' },
-  { id: 'identity', label: 'Identity', detail: 'Who you are becoming' },
-  { id: 'books', label: 'Books', detail: 'Pages and currently reading' },
-  { id: 'jobs', label: 'Jobs', detail: 'Applications and follow-ups' },
-  { id: 'money', label: 'Money', detail: 'Accounts, budget, spend' },
-  { id: 'mail', label: 'Mail', detail: 'Gmail inbox' },
+const GROUPS = [
+  {
+    label: 'Body',
+    pages: [
+      { id: 'calories', label: 'Calories' },
+      { id: 'record', label: 'Record' },
+      { id: 'habits', label: 'Habits' },
+    ],
+  },
+  {
+    label: 'Work',
+    pages: [
+      { id: 'jobs', label: 'Jobs' },
+      { id: 'mail', label: 'Mail' },
+    ],
+  },
+  {
+    label: 'Life',
+    pages: [
+      { id: 'books', label: 'Books' },
+      { id: 'money', label: 'Money' },
+      { id: 'goals', label: 'Goals' },
+      { id: 'identity', label: 'Identity' },
+    ],
+  },
 ];
 
 export function MoreView({ onOpen }) {
   return (
     <div className="view">
-      <header className="view__head">
-        <p className="eyebrow">Everything else</p>
-        <h1 className="view__title">More</h1>
-      </header>
-      <ul className="more-grid">
-        {PAGES.map((page) => (
-          <li key={page.id}>
-            <button type="button" className="more-card" onClick={() => onOpen('more', page.id)}>
-              <span className="more-card__name">{page.label}</span>
-              <span className="more-card__meta">{page.detail}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <h1 className="visually-hidden">More</h1>
+      {GROUPS.map((group) => (
+        <section key={group.label} className="more-group">
+          <h2 className="eyebrow">{group.label}</h2>
+          <ul className="more-list">
+            {group.pages.map((page) => (
+              <li key={page.id}>
+                <button type="button" className="more-row" onClick={() => onOpen('more', page.id)}>
+                  {page.label}
+                  <span aria-hidden="true">›</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

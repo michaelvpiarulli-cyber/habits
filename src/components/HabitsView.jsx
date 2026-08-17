@@ -51,8 +51,8 @@ export function HabitsView() {
           <p className="eyebrow">{activeHabits.length} active</p>
           <h1 className="view__title">Habits</h1>
         </div>
-        <button type="button" className="btn btn--primary" onClick={() => setEditing('new')}>
-          Add habit
+        <button type="button" className="text-btn" onClick={() => setEditing('new')}>
+          New
         </button>
       </header>
 
