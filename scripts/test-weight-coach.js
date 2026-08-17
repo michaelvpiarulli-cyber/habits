@@ -8,6 +8,7 @@ import {
   expectedWeeklyLossLb,
   maintenanceFromWeight,
   suggestTargets,
+  weeklyWeightRate,
 } from '../src/lib/weightCoach.js';
 
 let failed = 0;
@@ -76,6 +77,17 @@ test('buildCoachAdvice surfaces day totals', () => {
   assert.equal(advice.totals.calories, 900);
   assert.match(advice.detail, /1300/);
   assert.equal(advice.targetsDiffer, false);
+});
+
+test('weeklyWeightRate is lb per week vs ~7 days earlier', () => {
+  assert.equal(weeklyWeightRate([{ day: '2026-08-01', weight: 200 }]), null);
+  assert.equal(
+    weeklyWeightRate([
+      { day: '2026-08-01', weight: 200 },
+      { day: '2026-08-08', weight: 199.3 },
+    ]),
+    -0.7
+  );
 });
 
 if (failed) {
