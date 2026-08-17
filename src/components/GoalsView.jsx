@@ -209,8 +209,8 @@ export function GoalsView() {
           <p className="eyebrow">{open.length} in progress</p>
           <h1 className="view__title">Goals</h1>
         </div>
-        <button type="button" className="btn btn--primary" onClick={() => setEditing('new')}>
-          Add goal
+        <button type="button" className="text-btn" onClick={() => setEditing('new')}>
+          New
         </button>
       </header>
 

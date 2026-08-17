@@ -170,8 +170,8 @@ export function JobsView() {
 
   const visible = jobs.filter((job) => {
     if (filter === 'active') return JOB_ACTIVE.has(job.status);
-    if (filter === 'all') return true;
-    return job.status === filter;
+    if (filter === 'closed') return !JOB_ACTIVE.has(job.status);
+    return true;
   });
 
   const save = async (form) => {
@@ -211,35 +211,25 @@ export function JobsView() {
   return (
     <div className="view">
       <header className="view__head view__head--row">
-        <div>
-          <p className="eyebrow">Applications</p>
-          <h1 className="view__title">Jobs</h1>
-        </div>
-        <button type="button" className="btn btn--primary" onClick={() => setEditing({})}>
+        <h1 className="view__title">Jobs</h1>
+        <button type="button" className="text-btn" onClick={() => setEditing({})}>
           New
         </button>
       </header>
 
       {googleNote && <p className="note note--bad">{googleNote}</p>}
 
-      <div className="filter-row">
-        {[['active', 'Active'], ['all', 'All'], ...JOB_STATUSES].map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={`chip ${filter === id ? 'is-on' : ''}`}
-            onClick={() => setFilter(id)}
-          >
+      <div className="segmented">
+        {[['active', 'Active'], ['closed', 'Closed'], ['all', 'All']].map(([id, label]) => (
+          <label key={id} className={`segmented__item ${filter === id ? 'is-on' : ''}`}>
+            <input type="radio" checked={filter === id} onChange={() => setFilter(id)} />
             {label}
-          </button>
+          </label>
         ))}
       </div>
 
       {visible.length === 0 ? (
-        <div className="empty">
-          <p className="empty__title">No applications here</p>
-          <p className="empty__body">Track the role, the status, and a follow-up date.</p>
-        </div>
+        <p className="quiet">No applications in this list.</p>
       ) : (
         <ul className="cards">
           {visible.map((job) => (

@@ -15,6 +15,7 @@ import { AmountEntry } from './AmountEntry';
 import { Countdown } from './Countdown';
 import { DayNote } from './DayNote';
 import { Workout } from './Workout';
+import { TodayBoard } from './TodayBoard';
 import {
   PerfectDayOverlay,
   PerfectDaySeal,
@@ -193,7 +194,7 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
   );
 }
 
-export function TodayView() {
+export function TodayView({ onOpen }) {
   const { activeHabits, doneSets, statementOfDay, keptSetFor } = useData();
   const [editing, setEditing] = useState(null);
   const calendarToday = todayISO();
@@ -283,6 +284,8 @@ export function TodayView() {
         {allDone && <PerfectDaySeal streak={perfectStreak} />}
       </header>
 
+      {viewingToday && onOpen && <TodayBoard onOpen={onOpen} />}
+
       {/*
         Two zones: what you act on, and what you read. On a phone they stack
         in reading order; on a wide screen the context moves into a rail so the
@@ -324,7 +327,7 @@ export function TodayView() {
             <div className="empty">
               <p className="empty__title">No habits yet.</p>
               <p className="empty__body">
-                Add one on the Habits tab and it shows up here every day it’s due.
+                Add one under More → Habits and it shows up here every day it’s due.
               </p>
             </div>
           ) : (

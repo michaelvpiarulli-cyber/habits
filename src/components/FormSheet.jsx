@@ -26,10 +26,10 @@ export function FormSheet({ title, onClose, children }) {
 export function SubpageBar({ title, onBack }) {
   return (
     <div className="subpage">
-      <button type="button" className="subpage__back" onClick={onBack}>
-        ‹ More
+      <button type="button" className="subpage__back" onClick={onBack} aria-label="Back">
+        ‹
       </button>
-      <p className="eyebrow">{title}</p>
+      <h1 className="subpage__title">{title}</h1>
     </div>
   );
 }

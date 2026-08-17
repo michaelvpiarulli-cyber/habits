@@ -9,7 +9,6 @@ import { ProgressView } from './components/ProgressView';
 import { GoalsView } from './components/GoalsView';
 import { HabitsView } from './components/HabitsView';
 import { IdentityView } from './components/IdentityView';
-import { DashboardView } from './components/DashboardView';
 import { TasksView } from './components/TasksView';
 import { CalendarView } from './components/CalendarView';
 import { BooksView } from './components/BooksView';
@@ -39,7 +38,7 @@ export default function App() {
   const theme = useTheme();
   const { syncState, syncAvailable, dataReady } = useData();
   const life = useLife();
-  const [tab, setTab] = useState('home');
+  const [tab, setTab] = useState('today');
   const [morePage, setMorePage] = useState(null);
   const [accountOpen, setAccountOpen] = useState(false);
 
@@ -57,9 +56,7 @@ export default function App() {
     return (
       <div className="app">
         <main className="main">
-          <div className="empty">
-            <p className="empty__title">Loading your account…</p>
-          </div>
+          <p className="status">Loading…</p>
         </main>
       </div>
     );
@@ -71,11 +68,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1 className="wordmark">
-          Tally
-          <span className="wordmark__rule" aria-hidden="true" />
-        </h1>
-
+        <h1 className="wordmark">Tally</h1>
         <button
           type="button"
           className={`account ${syncState === 'error' || life.syncState === 'error' ? 'is-error' : ''}`}
@@ -89,11 +82,8 @@ export default function App() {
       </header>
 
       <main className="main">
-        {tab === 'more' && more && (
-          <SubpageBar title={more.title} onBack={() => setMorePage(null)} />
-        )}
-        {tab === 'home' && <DashboardView onOpen={onOpen} />}
-        {tab === 'today' && <TodayView />}
+        {tab === 'more' && more && <SubpageBar title={more.title} onBack={() => setMorePage(null)} />}
+        {tab === 'today' && <TodayView onOpen={onOpen} />}
         {tab === 'tasks' && <TasksView />}
         {tab === 'calendar' && <CalendarView />}
         {tab === 'more' && !more && <MoreView onOpen={onOpen} />}

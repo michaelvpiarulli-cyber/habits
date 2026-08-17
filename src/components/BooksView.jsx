@@ -157,21 +157,13 @@ export function BooksView() {
   return (
     <div className="view">
       <header className="view__head view__head--row">
-        <div>
-          <p className="eyebrow">Reading</p>
-          <h1 className="view__title">Books</h1>
-        </div>
-        <button type="button" className="btn btn--primary" onClick={() => setEditing({})}>
+        <h1 className="view__title">Books</h1>
+        <button type="button" className="text-btn" onClick={() => setEditing({})}>
           New
         </button>
       </header>
 
-      {books.length === 0 && (
-        <div className="empty">
-          <p className="empty__title">Nothing on the nightstand</p>
-          <p className="empty__body">Add a book and tick pages as you go. Progress lives on Home.</p>
-        </div>
-      )}
+      {books.length === 0 && <p className="quiet">No books yet.</p>}
 
       {reading.length > 0 && (
         <section className="section">

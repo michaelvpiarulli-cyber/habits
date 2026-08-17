@@ -37,7 +37,6 @@ export function MailView() {
   return (
     <div className="view">
       <header className="view__head">
-        <p className="eyebrow">Inbox</p>
         <h1 className="view__title">Mail</h1>
       </header>
 
@@ -46,10 +45,7 @@ export function MailView() {
       {google.connected && loading && <p className="status">Loading inbox…</p>}
 
       {google.connected && !loading && messages.length === 0 && !error && (
-        <div className="empty">
-          <p className="empty__title">Inbox is quiet</p>
-          <p className="empty__body">Recent Gmail messages will land here. Open one to reply in Gmail.</p>
-        </div>
+        <p className="quiet">Inbox is empty.</p>
       )}
 
       {messages.length > 0 && (

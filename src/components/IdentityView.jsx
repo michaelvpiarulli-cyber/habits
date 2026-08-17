@@ -145,8 +145,8 @@ export function IdentityView() {
           <p className="eyebrow">{identity.length ? `${identity.length} written down` : 'Not yet written'}</p>
           <h1 className="view__title">My identity</h1>
         </div>
-        <button type="button" className="btn btn--primary" onClick={() => setEditing('new')}>
-          Add
+        <button type="button" className="text-btn" onClick={() => setEditing('new')}>
+          New
         </button>
       </header>
 

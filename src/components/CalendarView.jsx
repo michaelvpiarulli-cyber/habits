@@ -127,7 +127,7 @@ function EventForm({ event, day, onSave, onClose }) {
 
 export function CalendarView() {
   const { goals } = useData();
-  const { events, tasks, addEvent, updateEvent, deleteEvent } = useLife();
+  const { events, tasks, addEvent, updateEvent } = useLife();
   const google = useGoogle();
   const today = todayISO();
   const [month, setMonth] = useState(today);
@@ -204,11 +204,8 @@ export function CalendarView() {
   return (
     <div className="view">
       <header className="view__head view__head--row">
-        <div>
-          <p className="eyebrow">Calendar</p>
-          <h1 className="view__title">{monthTitle(month)}</h1>
-        </div>
-        <button type="button" className="btn btn--primary" onClick={() => setEditing({ day: selected })}>
+        <h1 className="view__title">{monthTitle(month)}</h1>
+        <button type="button" className="text-btn" onClick={() => setEditing({ day: selected })}>
           New
         </button>
       </header>
@@ -262,7 +259,7 @@ export function CalendarView() {
       <section className="section">
         <h2 className="eyebrow">{formatLong(selected)}</h2>
         {agenda.length === 0 ? (
-          <p className="empty__body">Free. Tasks with this due date, local events, and Google events show here.</p>
+          <p className="quiet">Nothing this day.</p>
         ) : (
           <ul className="agenda">
             {agenda.map((item) => (
@@ -279,16 +276,14 @@ export function CalendarView() {
                     item.title
                   )}
                 </span>
-                <span className="agenda__src">{item.source}</span>
                 {item.source === 'event' && (
-                  <span className="agenda__actions">
-                    <button type="button" className="chip" onClick={() => setEditing(events.find((e) => e.id === item.recordId))}>
-                      Edit
-                    </button>
-                    <button type="button" className="chip chip--danger" onClick={() => deleteEvent(item.recordId)}>
-                      Delete
-                    </button>
-                  </span>
+                  <button
+                    type="button"
+                    className="text-btn"
+                    onClick={() => setEditing(events.find((e) => e.id === item.recordId))}
+                  >
+                    Edit
+                  </button>
                 )}
               </li>
             ))}
