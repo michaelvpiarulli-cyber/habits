@@ -301,6 +301,11 @@ export function TodayView({ onOpen }) {
               <p className="empty__body">
                 Add one under More → Habits and it shows up here every day it’s due.
               </p>
+              {onOpen && (
+                <button type="button" className="text-btn" onClick={() => onOpen('more', 'habits')}>
+                  Add a habit
+                </button>
+              )}
             </div>
           ) : (
             <ul className="rows">
