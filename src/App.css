@@ -3944,6 +3944,44 @@ form.field {
   background: transparent;
 }
 
+.session-picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 0 18px;
+}
+
+.session-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  text-align: left;
+}
+
+.session-pick__name {
+  font-weight: 600;
+}
+
+.session-pick__detail {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.session-pick.is-on {
+  background: var(--ink);
+  color: var(--on-ink);
+  border-color: var(--ink);
+}
+
+.session-pick.is-on .session-pick__detail {
+  color: inherit;
+  opacity: 0.7;
+}
+
 .workout--page .workout__hint,
 .workout--page .workout__disclaimer,
 .workout--page .workout__ahead,

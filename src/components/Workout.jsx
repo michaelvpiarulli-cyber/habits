@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../context/DataProvider';
-import { dow, relativeDay, todayISO } from '../lib/dates';
+import { relativeDay, todayISO } from '../lib/dates';
 import { findTrainingHabit } from '../lib/habits';
 import {
   PROGRAM_DISCLAIMER,
   formatLoad,
   parseSets,
   prescribeNext,
-  sessionFor,
+  sessionForDay,
   weekAhead,
 } from '../lib/workouts';
 
@@ -259,11 +259,11 @@ function LiftRow({ lift, index, day, isDone, onMark, canMark }) {
   );
 }
 
-export function Workout({ day, layout = 'card' }) {
+export function Workout({ day, layout = 'card', session: sessionProp, picks }) {
   const page = layout === 'page';
   const { activeHabits, logFor, setValue, updateHabit, addHabit } = useData();
-  const session = sessionFor(dow(day));
-  const ahead = weekAhead(day);
+  const session = sessionProp || sessionForDay(day, picks);
+  const ahead = weekAhead(day, picks);
   const total = session.lifts.length;
 
   const lift = useMemo(() => findTrainingHabit(activeHabits), [activeHabits]);

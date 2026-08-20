@@ -21,7 +21,7 @@ import {
   JOB_ACTIVE,
   moneyForMonth,
 } from '../lib/life';
-import { sessionFor } from '../lib/workouts';
+import { sessionForDay } from '../lib/workouts';
 import { Countdown } from './Countdown';
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -58,7 +58,7 @@ export function HomeView({ onOpen }) {
   const habitsDone = dueHabits.filter((habit) => doneSets.get(habit.id)?.has(today)).length;
   const habitLeft = Math.max(0, dueHabits.length - habitsDone);
 
-  const session = sessionFor(dow(today));
+  const session = sessionForDay(today);
   const liftDone = training ? Number(logFor(training.id, today)?.amount) || 0 : 0;
   const liftTotal = session.lifts.length;
   const sessionDone = liftTotal > 0 && liftDone >= liftTotal;
