@@ -18,6 +18,9 @@ import {
   formatSets,
   prescribeNext,
   sessionFor,
+  sessionForDay,
+  sessionIdFor,
+  SESSION_OPTIONS,
   weekAhead,
 } from '../src/lib/workouts.js';
 
@@ -333,6 +336,21 @@ test('prescribeNext leaves cardio alone', () => {
   const next = prescribeNext(run, { loadLb: null, sets: 1, reps: 30 });
   assert.equal(next.source, 'program');
   assert.equal(next.sets, run.sets);
+});
+
+test('the week has six unique sessions you can pick', () => {
+  assert.equal(SESSION_OPTIONS.length, 6);
+  const ids = SESSION_OPTIONS.map((row) => row.id);
+  assert.deepEqual(ids, ['push', 'pull', 'legs', 'push2', 'pull2', 'run']);
+  assert.equal(new Set(ids).size, 6);
+});
+
+test('sessionForDay uses the weekday default unless a pick is set', () => {
+  assert.equal(sessionIdFor(0), 'push');
+  assert.equal(sessionForDay('2026-08-17', {}).id, 'push');
+  assert.equal(sessionForDay('2026-08-17', { '2026-08-17': 'legs' }).id, 'legs');
+  assert.equal(sessionForDay('2026-08-17', { '2026-08-17': 'push2' }).lifts[0].move, 'Incline bench press');
+  assert.equal(sessionForDay('2026-08-17', { '2026-08-17': 'run' }).kind, 'run');
 });
 
 if (failed) {

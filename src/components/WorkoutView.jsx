@@ -2,13 +2,20 @@ import { useEffect, useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { addDays, dow, formatLong, todayISO } from '../lib/dates';
 import { findTrainingHabit } from '../lib/habits';
-import { sessionFor } from '../lib/workouts';
+import {
+  loadSessionPicks,
+  saveSessionPick,
+  SESSION_OPTIONS,
+  sessionById,
+  sessionIdFor,
+} from '../lib/workouts';
 import { Workout } from './Workout';
 
 export function WorkoutView() {
   const { activeHabits, logFor } = useData();
   const calendarToday = todayISO();
   const [day, setDay] = useState(calendarToday);
+  const [picks, setPicks] = useState(loadSessionPicks);
 
   useEffect(() => {
     setDay((current) => (current > calendarToday ? calendarToday : current));
@@ -16,11 +23,16 @@ export function WorkoutView() {
 
   const viewingToday = day === calendarToday;
   const canGoForward = day < calendarToday;
-  const session = sessionFor(dow(day));
+  const selectedId = picks[day] || sessionIdFor(dow(day));
+  const session = sessionById(selectedId);
   const lift = findTrainingHabit(activeHabits);
   const done = lift ? Number(logFor(lift.id, day)?.amount) || 0 : 0;
   const total = session.lifts.length;
   const complete = total > 0 && done >= total;
+
+  const choose = (id) => {
+    setPicks(saveSessionPick(day, id));
+  };
 
   return (
     <div className="view">
@@ -60,7 +72,22 @@ export function WorkoutView() {
         </p>
       </header>
 
-      <Workout day={day} layout="page" />
+      <div className="session-picks" role="group" aria-label="Choose today’s session">
+        {SESSION_OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className={`session-pick ${option.id === selectedId ? 'is-on' : ''}`}
+            aria-pressed={option.id === selectedId}
+            onClick={() => choose(option.id)}
+          >
+            <span className="session-pick__name">{option.label}</span>
+            <span className="session-pick__detail">{option.detail}</span>
+          </button>
+        ))}
+      </div>
+
+      <Workout day={day} layout="page" session={session} picks={picks} />
     </div>
   );
 }

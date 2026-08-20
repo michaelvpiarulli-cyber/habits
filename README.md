@@ -14,7 +14,8 @@ Food is logged on **More → Calories** (breakfast, lunch, dinner, snacks). Type
 name to pull calories and macros from a built-in list plus USDA FoodData Central.
 Day totals still roll up for the Protein habit.
 
-On **Lift** you can check off each move and log **weight × reps per set**.
+On **Lift** you can pick any of the six weekly sessions (two Push, two Pull, Legs,
+and the run), then check off each move and log **weight × reps per set**.
 Next session’s target follows what you logged (reps-first once a barbell hits 135 lb
 or dumbbells hit 15 lb).
 

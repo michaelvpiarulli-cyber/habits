@@ -102,6 +102,7 @@ export const LOWER_BODY_PATTERNS = [
  */
 export const SESSIONS = {
   push: {
+    id: 'push',
     kind: 'lift',
     name: 'Push',
     focus: 'chest, shoulders, triceps',
@@ -141,6 +142,7 @@ export const SESSIONS = {
     ],
   },
   pull: {
+    id: 'pull',
     kind: 'lift',
     name: 'Pull',
     focus: 'back, biceps, rear delts',
@@ -180,6 +182,7 @@ export const SESSIONS = {
     ],
   },
   legs: {
+    id: 'legs',
     kind: 'lift',
     name: 'Legs',
     focus: 'quads, glutes, hamstrings, calves',
@@ -223,6 +226,7 @@ export const SESSIONS = {
    * is not Monday’s 135 ceiling session again.
    */
   push2: {
+    id: 'push2',
     kind: 'lift',
     name: 'Push',
     focus: 'chest, shoulders, triceps',
@@ -266,6 +270,7 @@ export const SESSIONS = {
    * session twice.
    */
   pull2: {
+    id: 'pull2',
     kind: 'lift',
     name: 'Pull',
     focus: 'back, biceps, rear delts',
@@ -305,6 +310,7 @@ export const SESSIONS = {
     ],
   },
   run: {
+    id: 'run',
     kind: 'run',
     name: 'Easy run',
     focus: '30 min, conversational pace',
@@ -320,6 +326,7 @@ export const SESSIONS = {
     ],
   },
   walk: {
+    id: 'walk',
     kind: 'walk',
     name: 'Brisk walk',
     focus: '30–40 min',
@@ -337,21 +344,65 @@ export const SESSIONS = {
 };
 
 /** Monday-first, matching dow() in lib/dates. */
-export const WEEK = [
-  SESSIONS.push, // Mon — Push (heavy)
-  SESSIONS.pull, // Tue — Pull
-  SESSIONS.legs, // Wed — Legs
-  SESSIONS.push2, // Thu — second Push
-  SESSIONS.pull2, // Fri — second Pull
-  SESSIONS.run, // Sat — Easy run (only run)
-  SESSIONS.legs, // Sun — Legs
+export const WEEK_IDS = ['push', 'pull', 'legs', 'push2', 'pull2', 'run', 'legs'];
+
+export const WEEK = WEEK_IDS.map((id) => SESSIONS[id]);
+
+/** The six unique sessions you can pick for any day. Sunday reuses Legs. */
+export const SESSION_OPTIONS = [
+  { id: 'push', label: 'Push', detail: 'Bench' },
+  { id: 'pull', label: 'Pull', detail: 'Pulldown' },
+  { id: 'legs', label: 'Legs', detail: 'Squat' },
+  { id: 'push2', label: 'Push', detail: 'Incline' },
+  { id: 'pull2', label: 'Pull', detail: 'Row' },
+  { id: 'run', label: 'Run', detail: 'Easy 30' },
 ];
 
 /** The weekdays the lifting sessions land on — 0=Mon. */
 export const LIFT_DAYS = [0, 1, 2, 3, 4, 6];
 
+export const SESSION_PICKS_KEY = 'tally-session-picks';
+
+export function sessionIdFor(dayOfWeek) {
+  return WEEK_IDS[dayOfWeek] || 'walk';
+}
+
+export function sessionById(id) {
+  return SESSIONS[id] || SESSIONS.walk;
+}
+
 export function sessionFor(dayOfWeek) {
-  return WEEK[dayOfWeek] || SESSIONS.walk;
+  return sessionById(sessionIdFor(dayOfWeek));
+}
+
+export function loadSessionPicks() {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const raw = JSON.parse(localStorage.getItem(SESSION_PICKS_KEY) || '{}');
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveSessionPick(day, sessionId) {
+  const picks = loadSessionPicks();
+  const scheduled = sessionIdFor(dow(day));
+  if (!sessionId || sessionId === scheduled) delete picks[day];
+  else picks[day] = sessionId;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(SESSION_PICKS_KEY, JSON.stringify(picks));
+  }
+  return picks;
+}
+
+/** Weekday default, unless this day was picked as one of the six. */
+export function sessionForDay(day, picks = loadSessionPicks()) {
+  return sessionById(picks[day] || sessionIdFor(dow(day)));
+}
+
+export function sessionIdForDay(day, picks = loadSessionPicks()) {
+  return picks[day] || sessionIdFor(dow(day));
 }
 
 /**
@@ -361,9 +412,10 @@ export function sessionFor(dayOfWeek) {
  *
  * Each entry: { day, weekday, session } — same session objects as WEEK.
  */
-export function weekAhead(fromIso) {
+export function weekAhead(fromIso, picks) {
   const todayDow = dow(fromIso);
   const daysLeft = 6 - todayDow;
+  const chosen = picks || loadSessionPicks();
 
   if (daysLeft <= 0) {
     return {
@@ -371,7 +423,7 @@ export function weekAhead(fromIso) {
       days: Array.from({ length: 7 }, (_, i) => {
         const day = addDays(fromIso, i + 1);
         const d = dow(day);
-        return { day, weekday: WEEKDAY_LABELS[d], session: sessionFor(d) };
+        return { day, weekday: WEEKDAY_LABELS[d], session: sessionForDay(day, chosen) };
       }),
     };
   }
@@ -381,7 +433,7 @@ export function weekAhead(fromIso) {
     days: Array.from({ length: daysLeft }, (_, i) => {
       const day = addDays(fromIso, i + 1);
       const d = dow(day);
-      return { day, weekday: WEEKDAY_LABELS[d], session: sessionFor(d) };
+      return { day, weekday: WEEKDAY_LABELS[d], session: sessionForDay(day, chosen) };
     }),
   };
 }
