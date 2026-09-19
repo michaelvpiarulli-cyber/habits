@@ -140,6 +140,14 @@
   color: var(--blue);
 }
 
+:root[data-reward='gold'] .nav__tab.is-on {
+  background: color-mix(in srgb, var(--gold) 20%, var(--card));
+}
+
+:root[data-reward='gold'] .nav__tab.is-on .nav__icon {
+  color: var(--gold);
+}
+
 /* =========================================================================
    View scaffolding
    ========================================================================= */
