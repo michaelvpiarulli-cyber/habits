@@ -1,24 +1,19 @@
 # Tally
 
 A habit tracker with a satisfying daily loop — same stack as before, Vite + React +
-Supabase + Vercel. Lift, calories, tasks, and the rest of life still live here; they
+Supabase + Vercel. Calories, tasks, and the rest of life still live here; they
 are not the front door.
 
 **Today** is the loop: check what’s due, keep the chain, close a perfect day.
-**Lift** is the session. **Record** is streaks and the contact sheet. **Plan** is the
-month. Everything else lives under **More**.
+**Record** is streaks and the contact sheet. **Plan** is the month. Everything
+else lives under **More**.
 
-Six habits ship as the starting set: whole foods, walk after meals, lift, sleep, protein, weigh in.
+Five habits ship as the starting set: whole foods, walk after meals, sleep, protein, weigh in.
 Edit or delete any of them on **More → Habits**.
 
 Food is logged on **More → Calories** (breakfast, lunch, dinner, snacks). Type a food
 name to pull calories and macros from a built-in list plus USDA FoodData Central.
 Day totals still roll up for the Protein habit.
-
-On **Lift** you can pick any of the six weekly sessions (two Push, two Pull, Legs,
-and the run), then check off each move and log **weight × reps per set**.
-Next session’s target follows what you logged (reps-first once a barbell hits 135 lb
-or dumbbells hit 15 lb).
 
 ## How habits are tracked
 
@@ -27,7 +22,7 @@ Not everything is a checkbox, so a habit picks one of four kinds:
 | Kind | What it means | Example |
 | --- | --- | --- |
 | `check` | Done or not, one tap | Whole foods |
-| `count` | Tap once per rep, up to a target | 3 walks, 2 lifts |
+| `count` | Tap once per rep, up to a target | 3 walks |
 | `amount` | Enter the number you hit against a target | 8 h sleep, 185 g protein |
 | `measure` | Record a reading and watch the trend | Weigh in |
 

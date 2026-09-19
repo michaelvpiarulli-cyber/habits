@@ -236,7 +236,7 @@ export function AccountMenu({ auth, theme, onClose }) {
               Download a backup
             </button>
             <p className="field__hint">
-              Habits, meals, workouts, tasks, calendar, books, jobs, and money as one JSON file.
+              Habits, meals, tasks, calendar, books, jobs, and money as one JSON file.
               Worth doing now and then regardless of sync — a file on your own disk is the copy
               nobody else can lose.
             </p>

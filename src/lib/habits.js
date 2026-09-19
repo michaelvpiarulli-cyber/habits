@@ -11,7 +11,7 @@ import { WEEKDAY_LABELS } from './dates.js';
 
 export const KINDS = [
   { id: 'check', label: 'Done or not', hint: 'One tap. Best for things you either did or you didn’t.' },
-  { id: 'count', label: 'Count up to', hint: 'Tap once per rep — 3 walks, 2 lifts.' },
+  { id: 'count', label: 'Count up to', hint: 'Tap once per rep — 3 walks, 8 glasses.' },
   { id: 'amount', label: 'Hit a number', hint: 'Enter what you hit against a target — 8 h, 185 g.' },
   {
     id: 'measure',
@@ -134,17 +134,6 @@ export const STARTER_HABITS = [
     cadence: 'daily',
   },
   {
-    id: '7a110000-0000-4000-8000-000000000003',
-    name: 'Lift',
-    emoji: '\u{1F3CB}',
-    kind: 'count',
-    // Default matches a typical Push/Pull/Legs session; Workout.jsx retargets
-    // to today's session length (1 on run day, 4 on most lift days).
-    target: 4,
-    unit: 'lifts',
-    cadence: 'daily',
-  },
-  {
     id: '7a110000-0000-4000-8000-000000000004',
     name: 'Sleep',
     emoji: '\u{1F634}',
@@ -172,32 +161,56 @@ export const STARTER_HABITS = [
   },
 ];
 
+/** Kept so existing Lift/Workout rows still collapse as one starter family. */
+export const RETIRED_STARTER_HABITS = [
+  {
+    id: '7a110000-0000-4000-8000-000000000003',
+    name: 'Lift',
+    emoji: '\u{1F3CB}',
+    kind: 'count',
+    target: 4,
+    unit: 'lifts',
+    cadence: 'daily',
+    sortOrder: 2,
+  },
+];
+
+const STARTER_FAMILIES = [...STARTER_HABITS, ...RETIRED_STARTER_HABITS];
+
 const STARTER_ALIASES = new Map([
   ['whole foods', STARTER_HABITS[0].id],
   ['walk after meals', STARTER_HABITS[1].id],
-  ['lift', STARTER_HABITS[2].id],
-  ['workout', STARTER_HABITS[2].id],
-  ['sleep', STARTER_HABITS[3].id],
-  ['protein', STARTER_HABITS[4].id],
-  ['weigh in', STARTER_HABITS[5].id],
+  ['lift', RETIRED_STARTER_HABITS[0].id],
+  ['workout', RETIRED_STARTER_HABITS[0].id],
+  ['sleep', STARTER_HABITS[2].id],
+  ['protein', STARTER_HABITS[3].id],
+  ['weigh in', STARTER_HABITS[4].id],
 ]);
 
-const LIFT_STARTER_ID = STARTER_HABITS[2].id;
+const LIFT_STARTER_ID = RETIRED_STARTER_HABITS[0].id;
+
+function isRetiredTrainingHabit(habit) {
+  if (!habit || habit.deleted) return false;
+  if (habit.id === LIFT_STARTER_ID) return true;
+  if (habit.kind !== 'count') return false;
+  const name = String(habit.name || '').trim();
+  const unit = String(habit.unit || '').trim();
+  return /^(lift|workout)s?$/i.test(name) || /^lifts?$/i.test(unit);
+}
 
 /**
- * Habit that owns today's training checkoffs. Matches the Lift starter by id,
- * name (Lift / Workout), or unit so a rename cannot disable the workout UI.
+ * Hide the old training habit from Today without deleting its history.
+ * Restore lives under More → Habits → Archived.
  */
-export function findTrainingHabit(habits) {
-  if (!Array.isArray(habits)) return null;
-  const active = habits.filter((habit) => habit && !habit.deleted && !habit.archived);
-  return (
-    active.find((habit) => habit.id === LIFT_STARTER_ID) ||
-    active.find((habit) => habit.kind === 'count' && /^(lift|workout)s?$/i.test(habit.name.trim())) ||
-    active.find((habit) => habit.kind === 'count' && /lift|workout/i.test(habit.name)) ||
-    active.find((habit) => habit.kind === 'count' && /^lifts?$/i.test(String(habit.unit || '').trim())) ||
-    null
-  );
+export function archiveRetiredTrainingHabits(habits, archivedAt = new Date().toISOString()) {
+  if (!Array.isArray(habits)) return { habits: [], changedIds: [] };
+  const changedIds = [];
+  const next = habits.map((habit) => {
+    if (!isRetiredTrainingHabit(habit) || habit.archived) return habit;
+    changedIds.push(habit.id);
+    return { ...habit, archived: true, updatedAt: archivedAt };
+  });
+  return { habits: changedIds.length ? next : habits, changedIds };
 }
 
 const normalizeStarterName = (name) =>
@@ -225,7 +238,7 @@ const starterDefaults = (starter, sortOrder) => ({
 
 const starterFor = (habit) => {
   const starterId = STARTER_ALIASES.get(normalizeStarterName(habit.name));
-  const starter = STARTER_HABITS.find((candidate) => candidate.id === starterId);
+  const starter = STARTER_FAMILIES.find((candidate) => candidate.id === starterId);
   if (!starter || (habit.kind || 'check') !== (starter.kind || 'check')) return null;
   return starter;
 };
@@ -238,7 +251,7 @@ const starterFor = (habit) => {
  */
 export function isPristineStarterHabit(habit, starter = starterFor(habit)) {
   if (!starter || habit.updatedAt !== SEED_TIME) return false;
-  const expected = starterDefaults(starter, STARTER_HABITS.indexOf(starter));
+  const expected = starterDefaults(starter, starter.sortOrder ?? STARTER_FAMILIES.indexOf(starter));
   return (
     normalizeStarterName(habit.name) === normalizeStarterName(starter.name) &&
     habit.emoji === expected.emoji &&
@@ -302,7 +315,7 @@ export function cleanupStarterHabitDuplicates(
 ) {
   const canonicalByRemovedId = new Map();
 
-  for (const starter of STARTER_HABITS) {
+  for (const starter of STARTER_FAMILIES) {
     const family = habits.filter(
       (habit) => !habit.deleted && starterFor(habit)?.id === starter.id
     );

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import {
+  archiveRetiredTrainingHabits,
   cleanupStarterHabitDuplicates,
   collapseLogsByHabitDay,
   findStarterHabitCounterpart,
   SEED_TIME,
   STARTER_HABITS,
+  RETIRED_STARTER_HABITS,
 } from '../src/lib/habits.js';
 
 const CLEANED_AT = '2026-08-01T17:00:00.000Z';
@@ -67,7 +69,26 @@ const custom = (fields) => ({
 }
 
 {
-  const pristine = seed(2);
+  const liftStarter = RETIRED_STARTER_HABITS[0];
+  const pristine = {
+    emoji: '',
+    cadence: 'daily',
+    weekdays: [],
+    perWeek: 3,
+    kind: 'check',
+    target: null,
+    unit: '',
+    floor: null,
+    cue: '',
+    afterId: null,
+    archived: false,
+    ...liftStarter,
+    id: 'seed-lift',
+    sortOrder: liftStarter.sortOrder,
+    deleted: false,
+    createdAt: '2026-07-26T00:00:00.000Z',
+    updatedAt: SEED_TIME,
+  };
   const workout = custom({
     id: 'workout-established',
     name: 'Workout',
@@ -235,6 +256,30 @@ const custom = (fields) => ({
   assert.equal(result.logs.find((log) => log.id === 'keep').deleted, true);
   assert.equal(result.logs.find((log) => log.id === 'other-day').deleted, false);
   assert.deepEqual(result.changed, new Set(['keep', 'drop']));
+}
+
+{
+  const lift = custom({
+    id: RETIRED_STARTER_HABITS[0].id,
+    name: 'Lift',
+    kind: 'count',
+    unit: 'lifts',
+    archived: false,
+  });
+  const walk = custom({ id: 'walk', name: 'Walk after meals', kind: 'count', unit: 'walks' });
+  const archived = custom({
+    id: 'already-gone',
+    name: 'Workout',
+    kind: 'count',
+    unit: 'lifts',
+    archived: true,
+  });
+  const result = archiveRetiredTrainingHabits([lift, walk, archived], CLEANED_AT);
+  assert.equal(result.habits.find((habit) => habit.id === lift.id).archived, true);
+  assert.equal(result.habits.find((habit) => habit.id === lift.id).updatedAt, CLEANED_AT);
+  assert.equal(result.habits.find((habit) => habit.id === walk.id).archived, false);
+  assert.equal(result.habits.find((habit) => habit.id === archived.id).updatedAt, archived.updatedAt);
+  assert.deepEqual(result.changedIds, [lift.id]);
 }
 
 console.log('habit migrations\n\nall tests passed');

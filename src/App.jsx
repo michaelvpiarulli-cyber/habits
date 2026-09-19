@@ -4,7 +4,6 @@ import { useTheme } from './hooks/useTheme';
 import { useData } from './context/DataProvider';
 import { useLife } from './context/LifeProvider';
 import { TodayView } from './components/TodayView';
-import { WorkoutView } from './components/WorkoutView';
 import { CaloriesView } from './components/CaloriesView';
 import { ProgressView } from './components/ProgressView';
 import { GoalsView } from './components/GoalsView';
@@ -85,7 +84,6 @@ export default function App() {
       <main className="main">
         {tab === 'more' && more && <SubpageBar title={more.title} onBack={() => setMorePage(null)} />}
         {tab === 'today' && <TodayView onOpen={onOpen} />}
-        {tab === 'workout' && <WorkoutView />}
         {tab === 'record' && <ProgressView />}
         {tab === 'calendar' && <CalendarView />}
         {tab === 'more' && !more && <MoreView onOpen={onOpen} />}

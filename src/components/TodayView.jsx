@@ -8,7 +8,7 @@ import {
   todayISO,
   WEEKDAY_INITIALS,
 } from '../lib/dates';
-import { describeCadence, findTrainingHabit, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
+import { describeCadence, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
 import { feelTap } from '../lib/haptic';
 import { atRiskToday, bestStreak, countInWeek, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
@@ -284,8 +284,7 @@ export function TodayView({ onOpen }) {
   const [pendingJump, setPendingJump] = useState(null);
   const calendarToday = todayISO();
   const [day, setDay] = useState(calendarToday);
-  const training = findTrainingHabit(activeHabits);
-  const habits = activeHabits.filter((habit) => habit.id !== training?.id);
+  const habits = activeHabits;
 
   // Never leave the picker on a future date if the calendar rolls over.
   useEffect(() => {

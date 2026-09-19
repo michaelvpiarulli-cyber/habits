@@ -33,6 +33,7 @@ import { todayISO } from '../lib/dates';
 import {
   cleanupStarterHabitDuplicates,
   collapseLogsByHabitDay,
+  archiveRetiredTrainingHabits,
   findStarterHabitCounterpart,
   isComplete,
   isKept,
@@ -159,8 +160,7 @@ const TABLES = {
  * PostgREST's codes for "that table isn't there". A table added in a later
  * version of the schema may be missing from a project that has not run the
  * migration yet. Keep those rows dirty and surface the error so the data is
- * uploaded once the table exists — clearing dirty here used to strand workouts
- * on the device that logged them.
+ * uploaded once the table exists.
  */
 const MISSING_TABLE_CODES = new Set(['PGRST205', 'PGRST106', '42P01']);
 const isMissingTable = (error) => MISSING_TABLE_CODES.has(error?.code);
@@ -295,7 +295,7 @@ function claimLegacyRecords(userId) {
 }
 
 /**
- * Workouts and habits logged while signed out live under the anonymous scope.
+ * Habits logged while signed out live under the anonymous scope.
  * Fold them into the account once on first sign-in on this device so they can
  * sync to the computer (and every other signed-in browser).
  */
@@ -595,6 +595,10 @@ export function DataProvider({ children }) {
       if (records.identity.length === 0) records.identity = starterIdentity();
     }
 
+    const retired = archiveRetiredTrainingHabits(records.habits, nowISO());
+    records.habits = retired.habits;
+    if (user) retired.changedIds.forEach((id) => markDirty('habits', id));
+
     setHabits(records.habits);
     setLogs(records.logs);
     setGoals(records.goals);
@@ -605,16 +609,21 @@ export function DataProvider({ children }) {
     setLiftLogs(records.liftLogs);
     setStorageScope(desiredScope);
     setSyncState(user ? 'syncing' : 'idle');
-  }, [desiredScope, storageScope, user]);
+  }, [desiredScope, storageScope, user, markDirty]);
 
   // Already-signed-in sessions after an update still need a one-time fold of
-  // any workouts left in the anonymous browser cache.
+  // any habits left in the anonymous browser cache.
   useEffect(() => {
     if (!user || storageScope !== user.id) return;
     const fromAnonymous = claimAnonymousRecords(user.id);
     if (!fromAnonymous) return;
 
-    setHabits((prev) => mergeById(prev, fromAnonymous.habits));
+    setHabits((prev) => {
+      const merged = mergeById(prev, fromAnonymous.habits);
+      const retired = archiveRetiredTrainingHabits(merged, nowISO());
+      retired.changedIds.forEach((id) => markDirty('habits', id));
+      return retired.habits;
+    });
     setLogs((prev) => mergeById(prev, fromAnonymous.logs));
     setGoals((prev) => mergeById(prev, fromAnonymous.goals));
     setIdentity((prev) => mergeById(prev, fromAnonymous.identity));
@@ -779,6 +788,10 @@ export function DataProvider({ children }) {
       Object.entries(cleanedHabits.changed).forEach(([kind, ids]) => {
         ids.forEach((id) => markDirty(kind, id));
       });
+
+      const retired = archiveRetiredTrainingHabits(mergedHabits);
+      mergedHabits = retired.habits;
+      retired.changedIds.forEach((id) => markDirty('habits', id));
 
       const collapsedLogs = collapseLogsByHabitDay(mergedLogs);
       mergedLogs = collapsedLogs.logs;
@@ -1655,107 +1668,6 @@ export function DataProvider({ children }) {
     [writeNutritionDay]
   );
 
-  const liftLogFor = useCallback(
-    (day, move) => liftLogs.find((entry) => !entry.deleted && entry.day === day && entry.move === move) || null,
-    [liftLogs]
-  );
-
-  /**
-   * Most recent logged performance for a movement before `beforeDay`
-   * (exclusive). Used to prescribe today's target without counting today's
-   * in-progress log as history.
-   */
-  const lastLiftLog = useCallback(
-    (move, beforeDay) => {
-      let best = null;
-      for (const entry of liftLogs) {
-        if (entry.deleted || entry.move !== move) continue;
-        if (beforeDay && entry.day >= beforeDay) continue;
-        if (
-          !best ||
-          entry.day > best.day ||
-          (entry.day === best.day && entry.updatedAt > best.updatedAt)
-        ) {
-          best = entry;
-        }
-      }
-      return best;
-    },
-    [liftLogs]
-  );
-
-  const saveLiftLog = useCallback(
-    (day, fields) => {
-      const move = String(fields.move || '').trim();
-      if (!move) return;
-
-      const loadKind = fields.loadKind || 'barbell';
-      const setEntries = Array.isArray(fields.setEntries)
-        ? fields.setEntries
-            .map((entry) => ({
-              loadLb:
-                loadKind === 'bodyweight' || loadKind === 'cardio'
-                  ? null
-                  : entry.loadLb == null
-                    ? null
-                    : Math.max(0, Number(entry.loadLb) || 0),
-              reps: Math.max(0, Number(entry.reps) || 0),
-            }))
-            .filter((entry) => entry.reps > 0)
-        : [];
-
-      const loadLb =
-        loadKind === 'bodyweight' || loadKind === 'cardio'
-          ? null
-          : setEntries.length
-            ? Math.max(...setEntries.map((entry) => Number(entry.loadLb) || 0))
-            : Math.max(0, Number(fields.loadLb) || 0);
-      const sets = setEntries.length || Math.max(0, Number(fields.sets) || 0);
-      const reps = setEntries.length
-        ? Math.min(...setEntries.map((entry) => entry.reps))
-        : Math.max(0, Number(fields.reps) || 0);
-      const empty = sets <= 0 || reps <= 0;
-
-      setLiftLogs((prev) => {
-        const existing = prev.find((entry) => entry.day === day && entry.move === move);
-        if (existing) {
-          markDirty('liftLogs', existing.id);
-          return prev.map((entry) =>
-            entry.id === existing.id
-              ? {
-                  ...entry,
-                  loadKind,
-                  loadLb,
-                  sets: empty ? entry.sets : sets,
-                  reps: empty ? entry.reps : reps,
-                  setEntries: empty ? [] : setEntries,
-                  deleted: empty,
-                  updatedAt: nowISO(),
-                }
-              : entry
-          );
-        }
-        if (empty) return prev;
-        const entry = {
-          id: newId(),
-          day,
-          move,
-          loadKind,
-          loadLb,
-          sets,
-          reps,
-          setEntries,
-          deleted: false,
-          createdAt: nowISO(),
-          updatedAt: nowISO(),
-        };
-        markDirty('liftLogs', entry.id);
-        return [...prev, entry];
-      });
-    },
-    [markDirty]
-  );
-
   /**
    * Everything, as one JSON file. Deliberately the raw records rather than a
    * prettied report: the point is that a copy exists off the device and can be
@@ -1817,9 +1729,6 @@ export function DataProvider({ children }) {
     nutritionFor,
     saveNutrition,
     saveMeals,
-    liftLogFor,
-    lastLiftLog,
-    saveLiftLog,
     exportAll,
     snapshot,
     countdown,

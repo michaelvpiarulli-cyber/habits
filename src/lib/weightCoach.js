@@ -186,7 +186,7 @@ export function buildCoachAdvice({
     detail = `${remaining} kcal still open. Protein left: ${Math.max(0, proteinLeft)}g.`;
     action =
       proteinLeft > 30
-        ? 'Anchor the next meal with protein first, then fill carbs around training.'
+        ? 'Anchor the next meal with protein first, then fill carbs around the rest of the day.'
         : 'Plenty of room — keep portions honest and finish near the budget.';
   } else if (remaining >= 0) {
     detail = `${remaining} kcal left against a ${targetKcal} target.`;

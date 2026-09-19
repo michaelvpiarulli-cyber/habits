@@ -3,7 +3,7 @@
  *
  * Same local-first contract as DataProvider — localStorage is the source of
  * truth, Supabase is a merge on sign-in and a debounced push of dirty rows.
- * Kept in its own provider so habit/workout sync stays untouched.
+ * Kept in its own provider so habit sync stays untouched.
  */
 
 import {

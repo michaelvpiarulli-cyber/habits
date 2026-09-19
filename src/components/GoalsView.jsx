@@ -98,7 +98,7 @@ function GoalForm({ habits, goal, onSave, onClose }) {
               className="field__input"
               value={form.title}
               onChange={(e) => set({ title: e.target.value })}
-              placeholder="Lift 200 days this year"
+              placeholder="Walk 200 days this year"
               autoFocus
             />
           </div>
