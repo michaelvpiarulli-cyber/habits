@@ -8,7 +8,7 @@ import { targetOf } from '../lib/habits';
  * small misalignment of two plates on a real risograph. It is the one place
  * the print metaphor is literal.
  */
-export function HabitMark({ habit, fraction, complete, due, onActivate, label, size = 'md' }) {
+export function HabitMark({ habit, fraction, complete, due, onActivate, label, size = 'md', inking = false }) {
   const segments = habit.kind === 'count' ? targetOf(habit) : 1;
 
   const className = [
@@ -17,6 +17,7 @@ export function HabitMark({ habit, fraction, complete, due, onActivate, label, s
     complete && 'is-complete',
     !complete && fraction > 0 && 'is-partial',
     !complete && due && 'is-due',
+    inking && 'is-inking',
   ]
     .filter(Boolean)
     .join(' ');

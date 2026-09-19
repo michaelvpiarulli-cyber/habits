@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useData } from '../context/DataProvider';
 import {
   addDays,
@@ -9,7 +9,8 @@ import {
   WEEKDAY_INITIALS,
 } from '../lib/dates';
 import { describeCadence, findTrainingHabit, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
-import { atRiskToday, countInWeek, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
+import { feelTap } from '../lib/haptic';
+import { atRiskToday, bestStreak, countInWeek, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
 import { AmountEntry } from './AmountEntry';
 import { DayNote } from './DayNote';
@@ -29,9 +30,9 @@ function WeekStrip({ habits, doneSets, calendarToday, selected, onSelect }) {
     <ol className="strip" aria-label="Week">
       {days.map((day, i) => {
         const future = day > calendarToday;
-        const perfect = !future && isPerfectDay(habits, doneSets, day);
         const dueCount = habits.filter((h) => isDue(h, day) && h.cadence !== 'per_week').length;
         const doneCount = habits.filter((h) => doneSets.get(h.id)?.has(day)).length;
+        const perfect = !future && isPerfectDay(habits, doneSets, day);
         const some = !perfect && doneCount > 0;
         const isSelected = day === selected;
 
@@ -75,6 +76,63 @@ function WeekStrip({ habits, doneSets, calendarToday, selected, onSelect }) {
   );
 }
 
+/** Last seven calendar days, so the chain is visible without reading a number. */
+function ChainTrail({ habit, doneSet, day }) {
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(day, i - 6)), [day]);
+
+  return (
+    <ol className="trail" aria-hidden="true">
+      {days.map((d) => {
+        const due = isDue(habit, d);
+        const done = doneSet.has(d);
+        const cls = ['trail__dot', !due && 'is-off', due && done && 'is-done', due && !done && 'is-empty']
+          .filter(Boolean)
+          .join(' ');
+        return <li key={d} className={cls} />;
+      })}
+    </ol>
+  );
+}
+
+function DayMeter({ done, total }) {
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  return (
+    <div
+      className="day-meter"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-valuenow={done}
+      aria-label={`${done} of ${total} habits done`}
+    >
+      <span className="day-meter__fill" style={{ '--fill': `${pct}%` }} />
+    </div>
+  );
+}
+
+function StreakChips({ items, perfectStreak, onJump }) {
+  if (items.length === 0 && perfectStreak < 2) return null;
+
+  return (
+    <ul className="streak-chips" aria-label="Running streaks">
+      {perfectStreak >= 2 && (
+        <li>
+          <span className="streak-chip streak-chip--perfect">
+            <b>{perfectStreak}</b> perfect
+          </span>
+        </li>
+      )}
+      {items.map(({ habit, streak, unit }) => (
+        <li key={habit.id}>
+          <button type="button" className="streak-chip" onClick={() => onJump(habit.id)}>
+            <b>{streak}</b> {habit.name} {unit}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** One habit, one day. The mark on the left is the whole interaction for most kinds. */
 function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
   const { logFor, doneSetFor, keptSetFor, toggleDay, bumpDay, setValue, valueFor } = useData();
@@ -86,10 +144,25 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
   // The chain is measured on floor days, not only full ones.
   const keptSet = keptSetFor(habit.id);
   const streak = currentStreak(habit, keptSet, day);
+  const best = bestStreak(habit, keptSet, day);
   const atRisk = day === calendarToday && atRiskToday(habit, keptSet, day);
   const isEditing = editing === habit.id;
   const needsEntry = habit.kind === 'amount' || habit.kind === 'measure';
   const dayLabel = relativeDay(day, calendarToday);
+  const nearBest = streak > 0 && best > streak && best - streak <= 3;
+  const [inking, setInking] = useState(false);
+  const wasComplete = useRef(complete);
+  const inkTimer = useRef(0);
+
+  useEffect(() => {
+    if (!wasComplete.current && complete) {
+      setInking(true);
+      window.clearTimeout(inkTimer.current);
+      inkTimer.current = window.setTimeout(() => setInking(false), 420);
+    }
+    wasComplete.current = complete;
+    return () => window.clearTimeout(inkTimer.current);
+  }, [complete]);
 
   // Weight barely moves overnight, so the entry field opens on the last reading.
   const lastReading = useMemo(() => {
@@ -102,9 +175,18 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
   }, [habit, day, valueFor]);
 
   const activate = () => {
-    if (needsEntry) setEditing(isEditing ? null : habit.id);
-    else if (habit.kind === 'count') bumpDay(habit, day);
-    else toggleDay(habit, day);
+    if (needsEntry) {
+      setEditing(isEditing ? null : habit.id);
+      return;
+    }
+    if (habit.kind === 'count') {
+      const next = value + 1;
+      feelTap(next >= targetOf(habit) && !complete ? 'close' : 'tick');
+      bumpDay(habit, day);
+      return;
+    }
+    feelTap(complete ? 'undo' : 'close');
+    toggleDay(habit, day);
   };
 
   let status;
@@ -125,8 +207,14 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
     status = weekly;
   }
 
+  const unit =
+    habit.cadence === 'per_week' ? (streak === 1 ? 'wk' : 'wks') : streak === 1 ? 'day' : 'days';
+
   return (
-    <li className={`row ${complete ? 'is-complete' : ''} ${atRisk ? 'is-at-risk' : ''}`}>
+    <li
+      id={`habit-${habit.id}`}
+      className={`row ${complete ? 'is-complete' : ''} ${atRisk ? 'is-at-risk' : ''} ${inking ? 'is-inking' : ''}`}
+    >
       {atRisk && <p className="row__warn">Don’t miss twice</p>}
       <div className="row__main">
         <HabitMark
@@ -134,6 +222,7 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
           fraction={fractionOf(habit, log)}
           complete={complete}
           due
+          inking={inking}
           onActivate={activate}
           label={
             needsEntry
@@ -152,21 +241,15 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
           <span className="row__status">
             {status}
             {habit.cue && <span className="row__cue"> · {habit.cue}</span>}
+            {nearBest && <span className="row__cue"> · {best - streak} from best</span>}
           </span>
+          <ChainTrail habit={habit} doneSet={keptSet} day={day} />
         </button>
 
         {streak > 0 && (
-          <span className="row__streak" title={`${streak} in a row`}>
+          <span className={`row__streak ${inking ? 'is-pop' : ''}`} title={`${streak} in a row`}>
             <b>{streak}</b>
-            <span className="row__streak-unit">
-              {habit.cadence === 'per_week'
-                ? streak === 1
-                  ? 'wk'
-                  : 'wks'
-                : streak === 1
-                  ? 'day'
-                  : 'days'}
-            </span>
+            <span className="row__streak-unit">{unit}</span>
           </span>
         )}
       </div>
@@ -177,10 +260,13 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
           value={value}
           suggestion={lastReading}
           onSave={(n) => {
+            const nextComplete = isComplete(habit, { amount: n, deleted: false });
+            feelTap(nextComplete && !complete ? 'close' : 'tick');
             setValue(habit, day, n);
             setEditing(null);
           }}
           onClear={() => {
+            feelTap('undo');
             setValue(habit, day, 0);
             setEditing(null);
           }}
@@ -194,6 +280,8 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
 export function TodayView({ onOpen }) {
   const { activeHabits, doneSets, keptSetFor } = useData();
   const [editing, setEditing] = useState(null);
+  const [showRest, setShowRest] = useState(false);
+  const [pendingJump, setPendingJump] = useState(null);
   const calendarToday = todayISO();
   const [day, setDay] = useState(calendarToday);
   const training = findTrainingHabit(activeHabits);
@@ -213,16 +301,44 @@ export function TodayView({ onOpen }) {
   const dueToday = habits
     .filter((h) => isDue(h, day))
     .sort((a, b) => {
-      const risk = (h) =>
-        viewingToday && atRiskToday(h, keptSetFor(h.id), day) ? 0 : 1;
+      const risk = (h) => (viewingToday && atRiskToday(h, keptSetFor(h.id), day) ? 0 : 1);
       return risk(a) - risk(b);
     });
   const restToday = habits.filter((h) => !isDue(h, day));
 
   const doneCount = dueToday.filter((h) => doneSets.get(h.id)?.has(day)).length;
+  const leftCount = Math.max(0, dueToday.length - doneCount);
   const allDone = dueToday.length > 0 && doneCount === dueToday.length;
   const perfectStreak = usePerfectStreak(habits, doneSets, day);
   const [celebrate, dismissCelebrate] = usePerfectCelebration(viewingToday && allDone);
+
+  const hotStreaks = habits
+    .map((habit) => ({
+      habit,
+      streak: currentStreak(habit, keptSetFor(habit.id), day),
+      unit: habit.cadence === 'per_week' ? 'wks' : 'days',
+    }))
+    .filter((item) => item.streak > 0)
+    .sort((a, b) => b.streak - a.streak)
+    .slice(0, 4);
+
+  const jumpTo = (id) => {
+    const el = document.getElementById(`habit-${id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setShowRest(true);
+    setPendingJump(id);
+  };
+
+  useEffect(() => {
+    if (!pendingJump) return;
+    const el = document.getElementById(`habit-${pendingJump}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setPendingJump(null);
+  }, [pendingJump, showRest]);
 
   const goPrev = () => {
     setEditing(null);
@@ -239,16 +355,23 @@ export function TodayView({ onOpen }) {
     setDay(next);
   };
 
+  let headline;
+  if (habits.length === 0) headline = 'Start a chain';
+  else if (dueToday.length === 0) headline = 'Rest day';
+  else if (allDone)
+    headline = (
+      <>
+        A <em>perfect</em> day
+      </>
+    );
+  else if (doneCount === 0) headline = 'Close the day';
+  else headline = `${leftCount} left`;
+
   return (
     <div className={`view ${allDone ? 'view--perfect' : ''}`}>
       <header className="view__head">
         <div className="day-nav">
-          <button
-            type="button"
-            className="day-nav__btn"
-            onClick={goPrev}
-            aria-label="Previous day"
-          >
+          <button type="button" className="day-nav__btn" onClick={goPrev} aria-label="Previous day">
             ‹
           </button>
           <div className="day-nav__center">
@@ -269,19 +392,21 @@ export function TodayView({ onOpen }) {
             ›
           </button>
         </div>
-        <h1 className="view__title">
-          {allDone ? (
-            <>
-              A <em>perfect</em> day
-            </>
-          ) : (
-            <>
-              {doneCount} of {dueToday.length} done
-            </>
-          )}
-        </h1>
+        <h1 className="view__title">{headline}</h1>
+        {dueToday.length > 0 && (
+          <>
+            <DayMeter done={doneCount} total={dueToday.length} />
+            <p className="day-meter__copy">
+              {allDone
+                ? 'Every mark landed.'
+                : `${doneCount} of ${dueToday.length} inked`}
+            </p>
+          </>
+        )}
         {allDone && <PerfectDaySeal streak={perfectStreak} />}
       </header>
+
+      <StreakChips items={hotStreaks} perfectStreak={perfectStreak} onJump={jumpTo} />
 
       <div className="today">
         <aside className="today__rail">
@@ -308,25 +433,9 @@ export function TodayView({ onOpen }) {
               )}
             </div>
           ) : (
-            <ul className="rows">
-              {dueToday.map((h) => (
-                <HabitRow
-                  key={h.id}
-                  habit={h}
-                  day={day}
-                  calendarToday={calendarToday}
-                  editing={editing}
-                  setEditing={setEditing}
-                />
-              ))}
-            </ul>
-          )}
-
-          {restToday.length > 0 && (
-            <section className="rest">
-              <h2 className="eyebrow">Not scheduled {viewingToday ? 'today' : 'this day'}</h2>
-              <ul className="rows rows--muted">
-                {restToday.map((h) => (
+            dueToday.length > 0 && (
+              <ul className="rows">
+                {dueToday.map((h) => (
                   <HabitRow
                     key={h.id}
                     habit={h}
@@ -337,6 +446,36 @@ export function TodayView({ onOpen }) {
                   />
                 ))}
               </ul>
+            )
+          )}
+
+          {restToday.length > 0 && (
+            <section className="rest">
+              <button
+                type="button"
+                className="rest__toggle"
+                aria-expanded={showRest}
+                onClick={() => setShowRest((open) => !open)}
+              >
+                <span className="eyebrow">
+                  Not scheduled {viewingToday ? 'today' : 'this day'}
+                </span>
+                <span className="rest__count">{restToday.length}</span>
+              </button>
+              {showRest && (
+                <ul className="rows rows--muted">
+                  {restToday.map((h) => (
+                    <HabitRow
+                      key={h.id}
+                      habit={h}
+                      day={day}
+                      calendarToday={calendarToday}
+                      editing={editing}
+                      setEditing={setEditing}
+                    />
+                  ))}
+                </ul>
+              )}
             </section>
           )}
 

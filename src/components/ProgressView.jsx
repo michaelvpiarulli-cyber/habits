@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useData } from '../context/DataProvider';
 import { addDays, monthLabel, parseISO, rangeOfDays, todayISO } from '../lib/dates';
 import { describeCadence, describeTarget, fractionOf, isTrend } from '../lib/habits';
-import { bestStreak, completionRate, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
+import { bestStreak, completionRate, currentStreak, isDue, isPerfectDay, perfectDayStreak } from '../lib/streaks';
 import { TrendChart } from './TrendChart';
 import { ReviewList } from './WeeklyReview';
 
@@ -131,6 +131,17 @@ export function ProgressView() {
   const days = useMemo(() => rangeOfDays(from, today), [from, today]);
 
   const trendHabits = activeHabits.filter(isTrend);
+  const perfect = perfectDayStreak(activeHabits, doneSets, today);
+  const hottest = activeHabits.reduce(
+    (best, habit) => {
+      const n = currentStreak(habit, doneSetFor(habit.id), today);
+      return n > best.n ? { n, name: habit.name } : best;
+    },
+    { n: 0, name: '' }
+  );
+  const ranked = [...activeHabits].sort(
+    (a, b) => currentStreak(b, doneSetFor(b.id), today) - currentStreak(a, doneSetFor(a.id), today)
+  );
 
   if (activeHabits.length === 0) {
     return (
@@ -149,16 +160,39 @@ export function ProgressView() {
   return (
     <div className="view">
       <header className="view__head">
-        <p className="eyebrow">Last 12 weeks</p>
+        <p className="eyebrow">Keep the chain</p>
         <h1 className="view__title">The record</h1>
       </header>
 
-      <Grid habits={activeHabits} days={days} doneSets={doneSets} logFor={logFor} today={today} />
-      <p className="grid__key">
-        <span className="key key--part" /> partial
-        <span className="key key--full" /> done
-        <span className="key key--perfect" /> everything
-      </p>
+      <div className="record-hero">
+        <div className="figure">
+          <span className="figure__number">{perfect}</span>
+          <span className="eyebrow">perfect days</span>
+        </div>
+        <div className="figure">
+          <span className="figure__number">{hottest.n}</span>
+          <span className="eyebrow">{hottest.n ? hottest.name : 'hottest chain'}</span>
+        </div>
+      </div>
+
+      <section className="section">
+        <h2 className="eyebrow">Streaks</h2>
+        <ul className="cards">
+          {ranked.map((habit) => (
+            <StreakCard key={habit.id} habit={habit} doneSet={doneSetFor(habit.id)} today={today} from={from} />
+          ))}
+        </ul>
+      </section>
+
+      <section className="section">
+        <h2 className="eyebrow">Last 12 weeks</h2>
+        <Grid habits={activeHabits} days={days} doneSets={doneSets} logFor={logFor} today={today} />
+        <p className="grid__key">
+          <span className="key key--part" /> partial
+          <span className="key key--full" /> done
+          <span className="key key--perfect" /> everything
+        </p>
+      </section>
 
       {trendHabits.map((habit) => {
         const points = days
@@ -175,15 +209,6 @@ export function ProgressView() {
       })}
 
       <ReviewList />
-
-      <section className="section">
-        <h2 className="eyebrow">Streaks</h2>
-        <ul className="cards">
-          {activeHabits.map((habit) => (
-            <StreakCard key={habit.id} habit={habit} doneSet={doneSetFor(habit.id)} today={today} from={from} />
-          ))}
-        </ul>
-      </section>
     </div>
   );
 }

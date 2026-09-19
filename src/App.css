@@ -159,6 +159,78 @@
   color: var(--violet);
 }
 
+.day-meter {
+  margin-top: 14px;
+  height: 8px;
+  border: 1px solid var(--rule);
+  border-radius: 99px;
+  background: var(--sunk);
+  overflow: hidden;
+}
+
+.day-meter__fill {
+  display: block;
+  height: 100%;
+  width: var(--fill, 0%);
+  background: var(--ink);
+  transition: width 220ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.view--perfect .day-meter__fill {
+  background: var(--violet);
+}
+
+.day-meter__copy {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.streak-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+}
+
+.streak-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 99px;
+  background: var(--card);
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.streak-chip b {
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  text-transform: none;
+}
+
+.streak-chip--perfect {
+  border-color: var(--violet);
+  color: var(--violet);
+}
+
+.streak-chip--perfect b {
+  color: var(--violet);
+}
+
 .section {
   margin-top: 34px;
 }
@@ -171,7 +243,36 @@
 }
 
 .rest {
-  margin-top: 30px;
+  margin-top: 22px;
+}
+
+.rest__toggle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0 0 10px;
+  border: 0;
+  border-bottom: 1px dashed var(--rule);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.rest__toggle .eyebrow {
+  margin: 0;
+}
+
+.rest__count {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.rest .rows {
+  margin-top: 10px;
 }
 
 .empty {
@@ -191,6 +292,10 @@
   color: var(--ink-soft);
   max-width: 42ch;
   margin: 0 auto;
+}
+
+.empty .text-btn {
+  margin-top: 12px;
 }
 
 /* =========================================================================
@@ -888,10 +993,15 @@
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--card);
+  scroll-margin-top: 72px;
 }
 
 .row.is-complete {
   border-color: var(--blue);
+}
+
+.row.is-inking {
+  animation: ink-pop 280ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
 .row__main {
@@ -928,19 +1038,49 @@
   color: var(--ink-soft);
 }
 
+.trail {
+  display: flex;
+  gap: 3px;
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+}
+
+.trail__dot {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--rule);
+  border-radius: 1px;
+  background: transparent;
+}
+
+.trail__dot.is-done {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.trail__dot.is-off {
+  opacity: 0.28;
+}
+
 .row__streak {
   flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-width: 2.4rem;
   line-height: 1;
-  color: var(--pink);
+  color: var(--ink);
 }
 
 .row__streak b {
   font-family: var(--display);
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 400;
+}
+
+.row__streak.is-pop b {
+  animation: streak-pop 320ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
 .row__streak-unit {
@@ -966,8 +1106,8 @@
 }
 
 .mark--md {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
 }
 
 .mark--sm {
@@ -1014,11 +1154,54 @@
   border-color: var(--blue);
 }
 
+.mark.is-inking {
+  animation: mark-pop 280ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
 /* The one motion in the app: the tick lands like a stamp being pressed. */
 @keyframes stamp {
   from {
-    transform: scale(1.5);
+    transform: scale(1.8) rotate(-8deg);
     opacity: 0;
+  }
+  55% {
+    transform: scale(0.92) rotate(2deg);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes ink-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.018);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes mark-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes streak-pop {
+  from {
+    transform: scale(0.7);
+    opacity: 0.4;
   }
   to {
     transform: scale(1);
@@ -1284,6 +1467,20 @@
 .figure__number i {
   font-style: normal;
   font-size: 0.6em;
+}
+
+.record-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.record-hero .figure__number {
+  font-size: 2.75rem;
 }
 
 /* =========================================================================
@@ -3845,7 +4042,10 @@ form.field {
   .perfect-seal,
   .perfect-burst,
   .perfect-burst__card,
-  .perfect-burst__fleck {
+  .perfect-burst__fleck,
+  .row.is-inking,
+  .mark.is-inking,
+  .row__streak.is-pop b {
     animation: none;
   }
 
@@ -3887,40 +4087,6 @@ form.field {
   color: var(--ink-soft);
 }
 
-.home-jumps {
-  margin: 4px 0 8px;
-}
-
-.home-jump {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--rule);
-  text-align: left;
-}
-
-.home-jump__name {
-  display: block;
-  margin-top: 2px;
-  font-weight: 600;
-}
-
-.home-jump__meta {
-  display: block;
-  font-size: 0.813rem;
-  color: var(--ink-soft);
-}
-
-.home-jump__go {
-  flex: none;
-  color: var(--ink-soft);
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
 .quick-add {
   display: flex;
   align-items: center;
@@ -3930,12 +4096,6 @@ form.field {
 
 .quick-add .field__input {
   flex: 1;
-}
-
-.home-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 18px;
 }
 
 .workout--page {

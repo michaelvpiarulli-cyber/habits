@@ -1,11 +1,12 @@
 # Tally
 
-A life dashboard: habits, training, tasks, calendar, books, job applications,
-and money — same stack as before, Vite + React + Supabase + Vercel.
+A habit tracker with a satisfying daily loop — same stack as before, Vite + React +
+Supabase + Vercel. Lift, calories, tasks, and the rest of life still live here; they
+are not the front door.
 
-Home is the briefing: training, habits left, due tasks, and the calendar. Lift is
-the session. Today’s habits sit on their own tab. Plan is the month. Everything
-else lives under More.
+**Today** is the loop: check what’s due, keep the chain, close a perfect day.
+**Lift** is the session. **Record** is streaks and the contact sheet. **Plan** is the
+month. Everything else lives under **More**.
 
 Six habits ship as the starting set: whole foods, walk after meals, lift, sleep, protein, weigh in.
 Edit or delete any of them on **More → Habits**.
@@ -73,7 +74,7 @@ so Gmail and Google Calendar can connect.
 
 ## Google Calendar and Gmail
 
-Optional. The dashboard keeps its own tasks, events, and due dates without Google.
+Optional. The app keeps its own tasks, events, and due dates without Google.
 
 1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) create an
    OAuth 2.0 **Web application** client.

@@ -1,10 +1,9 @@
 const GROUPS = [
   {
-    label: 'Body',
+    label: 'Daily',
     pages: [
-      { id: 'calories', label: 'Calories' },
-      { id: 'record', label: 'Record' },
       { id: 'habits', label: 'Habits' },
+      { id: 'calories', label: 'Calories' },
     ],
   },
   {

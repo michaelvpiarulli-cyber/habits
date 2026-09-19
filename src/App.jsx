@@ -4,7 +4,6 @@ import { useTheme } from './hooks/useTheme';
 import { useData } from './context/DataProvider';
 import { useLife } from './context/LifeProvider';
 import { TodayView } from './components/TodayView';
-import { HomeView } from './components/HomeView';
 import { WorkoutView } from './components/WorkoutView';
 import { CaloriesView } from './components/CaloriesView';
 import { ProgressView } from './components/ProgressView';
@@ -25,7 +24,6 @@ import './App.css';
 
 const MORE_PAGES = {
   calories: { View: CaloriesView, title: 'Calories' },
-  record: { View: ProgressView, title: 'Record' },
   goals: { View: GoalsView, title: 'Goals' },
   habits: { View: HabitsView, title: 'Habits' },
   identity: { View: IdentityView, title: 'Identity' },
@@ -41,7 +39,7 @@ export default function App() {
   const theme = useTheme();
   const { syncState, syncAvailable, dataReady } = useData();
   const life = useLife();
-  const [tab, setTab] = useState('home');
+  const [tab, setTab] = useState('today');
   const [morePage, setMorePage] = useState(null);
   const [accountOpen, setAccountOpen] = useState(false);
 
@@ -86,9 +84,9 @@ export default function App() {
 
       <main className="main">
         {tab === 'more' && more && <SubpageBar title={more.title} onBack={() => setMorePage(null)} />}
-        {tab === 'home' && <HomeView onOpen={onOpen} />}
         {tab === 'today' && <TodayView onOpen={onOpen} />}
         {tab === 'workout' && <WorkoutView />}
+        {tab === 'record' && <ProgressView />}
         {tab === 'calendar' && <CalendarView />}
         {tab === 'more' && !more && <MoreView onOpen={onOpen} />}
         {tab === 'more' && MoreViewComp && <MoreViewComp />}
