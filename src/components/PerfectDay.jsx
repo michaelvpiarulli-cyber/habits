@@ -85,7 +85,9 @@ export function PerfectDayOverlay({ streak, treat = null, onDone }) {
       </div>
 
       <div className="perfect-burst__card" onClick={(e) => e.stopPropagation()}>
-        <p className="perfect-burst__eyebrow">{treat ? 'Treat unlocked' : 'Day closed'}</p>
+        <p className="perfect-burst__eyebrow">
+          {gold ? '30 days' : treat ? 'Treat unlocked' : 'Day closed'}
+        </p>
         <h2 id={titleId} className="perfect-burst__title">
           {treat ? treat.name : 'Perfect'}
         </h2>
@@ -99,7 +101,7 @@ export function PerfectDayOverlay({ streak, treat = null, onDone }) {
           ))}
         </p>
         <button ref={closeRef} type="button" className="perfect-burst__btn" onClick={onDone}>
-          {treat ? 'Stamp it' : 'See you tomorrow'}
+          {gold ? 'Put it on' : treat ? 'Stamp it' : 'See you tomorrow'}
         </button>
       </div>
     </div>

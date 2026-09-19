@@ -47,13 +47,16 @@ function doneSets(entries) {
 
 console.log('rewards');
 
-test('thirty is the gold-ink unlock', () => {
+test('thirty closed days unlock gold', () => {
   assert.equal(GOLD_AT, 30);
-  const thirty = TREATS.find((treat) => treat.at === 30);
-  assert.equal(thirty.unlock, 'gold');
+  const gold = TREATS.find((treat) => treat.at === 30);
+  assert.equal(gold.id, 'gold');
+  assert.equal(gold.name, 'Gold');
+  assert.equal(gold.unlock, 'gold');
   assert.equal(rewardSkin(29), null);
   assert.equal(rewardSkin(30), 'gold');
   assert.equal(rewardSkin(100), 'gold');
+  assert.equal(nextTreat(29)?.id, 'gold');
 });
 
 test('treats are earned at closed-day counts, not live streaks', () => {
@@ -71,10 +74,10 @@ test('treats are earned at closed-day counts, not live streaks', () => {
   );
   assert.deepEqual(
     treatsEarned(30).map((t) => t.id),
-    ['first', 'three', 'week', 'fortnight', 'thirty']
+    ['first', 'three', 'week', 'fortnight', 'gold']
   );
   assert.equal(nextTreat(0)?.id, 'first');
-  assert.equal(nextTreat(14)?.id, 'thirty');
+  assert.equal(nextTreat(14)?.id, 'gold');
   assert.equal(nextTreat(100), null);
 });
 
@@ -109,8 +112,8 @@ test('hydrate marks history as seen so old work does not overlay', () => {
   assert.deepEqual(seen, ['first', 'three', 'week', 'fortnight']);
   assert.equal(treatJustUnlocked(14, store), null);
   const treat = treatJustUnlocked(30, store);
-  assert.equal(treat.id, 'thirty');
-  assert.ok(JSON.parse(store.getItem(SEEN_KEY)).includes('thirty'));
+  assert.equal(treat.id, 'gold');
+  assert.ok(JSON.parse(store.getItem(SEEN_KEY)).includes('gold'));
 });
 
 test('first stamp celebrates when there is no prior history', () => {

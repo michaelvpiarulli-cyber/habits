@@ -38,9 +38,9 @@ export const TREATS = [
   },
   {
     at: 30,
-    id: 'thirty',
-    name: 'Thirty',
-    line: 'Gold ink. Thirty closed days unlock it.',
+    id: 'gold',
+    name: 'Gold',
+    line: 'Thirty closed days. You unlock gold.',
     unlock: 'gold',
   },
   {

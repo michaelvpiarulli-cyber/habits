@@ -3,7 +3,7 @@ import { useData } from '../context/DataProvider';
 import { addDays, monthLabel, parseISO, rangeOfDays, todayISO } from '../lib/dates';
 import { describeCadence, describeTarget, fractionOf, isTrend } from '../lib/habits';
 import { bestStreak, completionRate, countPerfectDays, currentStreak, isDue, isPerfectDay, perfectDayStreak } from '../lib/streaks';
-import { GOLD_AT, nextTreat, TREATS } from '../lib/rewards';
+import { nextTreat, TREATS } from '../lib/rewards';
 import { TrendChart } from './TrendChart';
 import { ReviewList } from './WeeklyReview';
 
@@ -134,7 +134,9 @@ function TreatsBoard({ closed }) {
       <p className="section__note">
         Closed days you keep, even if a streak breaks.
         {next
-          ? ` ${next.at - closed} more to ${next.name}${next.at === GOLD_AT ? ' — gold ink' : ''}.`
+          ? next.unlock === 'gold'
+            ? ` ${next.at - closed} more and you unlock gold.`
+            : ` ${next.at - closed} more to ${next.name}.`
           : closed
             ? ' The press is full.'
             : ''}
@@ -153,7 +155,9 @@ function TreatsBoard({ closed }) {
                 {earned ? '★' : treat.at}
               </span>
               <span className="treat__name">{treat.name}</span>
-              <span className="treat__at">{treat.at} closed days{gold ? ' · gold ink' : ''}</span>
+              <span className="treat__at">
+                {treat.at} closed days{gold ? ' · unlock gold' : ''}
+              </span>
             </li>
           );
         })}
