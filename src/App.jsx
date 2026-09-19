@@ -68,7 +68,9 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1 className="wordmark">Tally</h1>
+        <h1 className="wordmark">
+          Tally<span className="wordmark__dot" aria-hidden="true">.</span>
+        </h1>
         <button
           type="button"
           className={`account ${syncState === 'error' || life.syncState === 'error' ? 'is-error' : ''}`}

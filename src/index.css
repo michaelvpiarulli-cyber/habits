@@ -1,38 +1,39 @@
 /**
- * Tally — black & white edition.
+ * Tally — fun, still spare.
  *
- * Near-monochrome UI: ink on paper, gray for soft structure. Former spot
- * inks (blue / pink / violet) resolve to black and gray so the whole app
- * stays one palette in both light and dark.
+ * Warm paper, round corners, two inks (sky + coral) that mix to violet
+ * on a perfect day. Colour does the celebrating; the layout stays quiet.
  */
 
 :root {
   color-scheme: light;
 
-  --paper: #f5f5f5;
-  --card: #ffffff;
-  --sunk: #ebebeb;
-  --rule: #d0d0d0;
+  --paper: #f6f1ea;
+  --card: #fffcf8;
+  --sunk: #efe6db;
+  --rule: #e4d8cc;
 
-  --ink: #111111;
-  --ink-soft: #6a6a6a;
+  --ink: #1c1915;
+  --ink-soft: #7a7168;
 
-  /* Accents collapse to ink / graphite — same tokens, no hue. */
-  --blue: #1a1a1a;
-  --blue-deep: #000000;
-  --blue-wash: #ececec;
-  --pink: #111111;
-  --pink-wash: #f0f0f0;
-  --violet: #3a3a3a;
+  --blue: #3b82f6;
+  --blue-deep: #1d4ed8;
+  --blue-wash: #dceafd;
+  --pink: #f07167;
+  --pink-wash: #fde3df;
+  --violet: #7c6af2;
 
-  --on-ink: #fafafa;
-  --on-pink: #fafafa;
-  --scrim: rgba(0, 0, 0, 0.45);
-  --shadow: rgba(0, 0, 0, 0.12);
+  --on-ink: #fffcf8;
+  --on-pink: #fffcf8;
+  --scrim: rgba(28, 25, 21, 0.4);
+  --shadow: rgba(28, 25, 21, 0.08);
+  --shadow-float: 0 10px 30px rgba(28, 25, 21, 0.1);
 
-  --nav-height: 62px;
+  --nav-height: 64px;
   --gutter: 18px;
-  --radius: 4px;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
 
   --sans: 'IBM Plex Sans', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -50,25 +51,26 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --paper: #0a0a0a;
-  --card: #141414;
-  --sunk: #1c1c1c;
-  --rule: #2e2e2e;
+  --paper: #14110e;
+  --card: #1e1a16;
+  --sunk: #2a241f;
+  --rule: #3a332c;
 
-  --ink: #f2f2f2;
-  --ink-soft: #9a9a9a;
+  --ink: #f6f1ea;
+  --ink-soft: #a89f94;
 
-  --blue: #f2f2f2;
-  --blue-deep: #ffffff;
-  --blue-wash: #222222;
-  --pink: #f2f2f2;
-  --pink-wash: #1f1f1f;
-  --violet: #c8c8c8;
+  --blue: #7eb6ff;
+  --blue-deep: #c5dcff;
+  --blue-wash: #24344a;
+  --pink: #ff9b8f;
+  --pink-wash: #3a2421;
+  --violet: #c4b5fd;
 
-  --on-ink: #0a0a0a;
-  --on-pink: #0a0a0a;
+  --on-ink: #14110e;
+  --on-pink: #14110e;
   --scrim: rgba(0, 0, 0, 0.7);
-  --shadow: rgba(0, 0, 0, 0.55);
+  --shadow: rgba(0, 0, 0, 0.4);
+  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -84,8 +86,13 @@ body {
 body {
   min-width: 320px;
   background-color: var(--paper);
+  background-image: radial-gradient(900px 420px at 50% -8%, var(--blue-wash), transparent 58%);
   color: var(--ink);
   -webkit-tap-highlight-color: transparent;
+}
+
+:root[data-theme='dark'] body {
+  background-image: radial-gradient(900px 420px at 50% -8%, color-mix(in srgb, var(--blue) 18%, transparent), transparent 58%);
 }
 
 h1,
@@ -115,7 +122,7 @@ textarea {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 

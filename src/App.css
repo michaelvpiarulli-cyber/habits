@@ -5,7 +5,7 @@
 .app {
   max-width: 640px;
   margin: 0 auto;
-  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--nav-height) + 18px + env(safe-area-inset-bottom));
 }
 
 .topbar {
@@ -16,17 +16,22 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px var(--gutter) 10px;
-  background: var(--paper);
+  padding: 14px var(--gutter) 8px;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(14px);
 }
 
 .wordmark {
   font-family: var(--display);
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 400;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   line-height: 1;
+}
+
+.wordmark__dot {
+  color: var(--pink);
 }
 
 .account {
@@ -86,18 +91,21 @@
 
 .nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 20;
   display: grid;
   grid-template-columns: repeat(var(--tabs, 4), 1fr);
-  max-width: 640px;
-  margin: 0 auto;
-  height: calc(var(--nav-height) + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
-  background: var(--card);
-  border-top: 1px solid var(--rule);
+  width: calc(100% - 20px);
+  max-width: 620px;
+  height: var(--nav-height);
+  padding: 6px;
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(18px);
 }
 
 .nav__tab {
@@ -105,7 +113,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
+  border-radius: var(--radius-pill);
   font-family: var(--mono);
   font-size: 0.5625rem;
   letter-spacing: 0.06em;
@@ -120,6 +129,7 @@
 
 .nav__tab.is-on {
   color: var(--ink);
+  background: var(--blue-wash);
 }
 
 .nav__tab.is-on .nav__icon {
@@ -161,9 +171,9 @@
 
 .day-meter {
   margin-top: 14px;
-  height: 8px;
-  border: 1px solid var(--rule);
-  border-radius: 99px;
+  height: 10px;
+  border: 0;
+  border-radius: var(--radius-pill);
   background: var(--sunk);
   overflow: hidden;
 }
@@ -172,7 +182,7 @@
   display: block;
   height: 100%;
   width: var(--fill, 0%);
-  background: var(--ink);
+  background: linear-gradient(90deg, var(--blue), var(--violet));
   transition: width 220ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
@@ -202,10 +212,11 @@
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid var(--rule);
-  border-radius: 99px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: var(--radius-pill);
   background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
   font-family: var(--mono);
   font-size: 0.625rem;
   letter-spacing: 0.04em;
@@ -223,8 +234,9 @@
 }
 
 .streak-chip--perfect {
-  border-color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 16%, var(--card));
   color: var(--violet);
+  box-shadow: none;
 }
 
 .streak-chip--perfect b {
@@ -276,10 +288,12 @@
 }
 
 .empty {
-  padding: 26px 18px;
-  border: 1px dashed var(--rule);
+  padding: 28px 18px;
+  border: 0;
   border-radius: var(--radius);
+  background: var(--card);
   text-align: center;
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .empty__title {
@@ -354,9 +368,9 @@
   position: relative;
   display: block;
   width: 100%;
-  height: 26px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  height: 28px;
+  border: 0;
+  border-radius: 10px;
   background: var(--sunk);
   overflow: hidden;
 }
@@ -429,13 +443,14 @@
   width: 40px;
   height: 40px;
   margin-top: -6px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-pill);
   background: var(--card);
   color: var(--ink);
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .day-nav__btn:disabled {
@@ -476,11 +491,11 @@
   align-items: center;
   gap: 14px;
   margin: 0 0 24px;
-  padding: 13px 15px;
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--violet);
+  padding: 14px 16px;
+  border: 0;
   border-radius: var(--radius);
   background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .countdown__figure {
@@ -688,11 +703,8 @@
   color: var(--ink-soft);
 }
 
-/* One miss from breaking the chain. Pink, and loud, because this is the single
+/* One miss from breaking the chain. Coral wash, because this is the single
    moment the rule exists for — the second miss is the one that matters. */
-.row.is-at-risk {
-  border-color: var(--pink);
-}
 
 .row__warn {
   padding: 6px 12px 0;
@@ -905,9 +917,10 @@
   position: relative;
   counter-increment: statement;
   padding: 15px 15px 15px 46px;
-  border: 1px solid var(--rule);
+  border: 0;
   border-radius: var(--radius);
   background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .statement::before {
@@ -923,7 +936,8 @@
 }
 
 .statement.is-today {
-  border-color: var(--blue);
+  background: var(--blue-wash);
+  box-shadow: none;
 }
 
 .statement__head {
@@ -982,7 +996,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .rows--muted {
@@ -990,14 +1004,21 @@
 }
 
 .row {
-  border: 1px solid var(--rule);
+  border: 0;
   border-radius: var(--radius);
   background: var(--card);
   scroll-margin-top: 72px;
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .row.is-complete {
-  border-color: var(--blue);
+  background: var(--blue-wash);
+  box-shadow: none;
+}
+
+.row.is-at-risk {
+  background: var(--pink-wash);
+  box-shadow: none;
 }
 
 .row.is-inking {
@@ -1008,7 +1029,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 12px 14px;
 }
 
 .row__body {
@@ -1049,18 +1070,17 @@
 .trail__dot {
   width: 7px;
   height: 7px;
-  border: 1px solid var(--rule);
-  border-radius: 1px;
-  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sunk);
 }
 
 .trail__dot.is-done {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: var(--blue);
 }
 
 .trail__dot.is-off {
-  opacity: 0.28;
+  opacity: 0.35;
 }
 
 .row__streak {
@@ -1070,7 +1090,7 @@
   align-items: center;
   min-width: 2.4rem;
   line-height: 1;
-  color: var(--ink);
+  color: var(--pink);
 }
 
 .row__streak b {
@@ -1099,7 +1119,7 @@
   position: relative;
   flex: none;
   border: 2px solid var(--rule);
-  border-radius: var(--radius);
+  border-radius: 50%;
   background: var(--sunk);
   overflow: hidden;
   color: var(--on-ink);
@@ -1142,7 +1162,8 @@
   width: 100%;
   height: 100%;
   padding: 9px;
-  stroke-linecap: square;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   animation: stamp 200ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
@@ -1224,9 +1245,9 @@
   width: 38px;
   height: 38px;
   flex: none;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  background: var(--paper);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--sunk);
   font-size: 1.125rem;
   line-height: 1;
 }
@@ -1263,7 +1284,7 @@
   flex: none;
   height: 38px;
   padding: 0 14px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   background: var(--blue);
   color: var(--on-ink);
   font-size: 0.813rem;
@@ -1419,10 +1440,11 @@
 }
 
 .card {
-  padding: 14px;
-  border: 1px solid var(--rule);
+  padding: 16px;
+  border: 0;
   border-radius: var(--radius);
   background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .card__name {
@@ -1473,10 +1495,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
-  padding: 16px 18px;
-  border: 1px solid var(--rule);
+  padding: 18px 20px;
+  border: 0;
   border-radius: var(--radius);
   background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .record-hero .figure__number {
@@ -1489,10 +1512,11 @@
 
 .trend {
   margin-top: 10px;
-  padding: 14px;
-  border: 1px solid var(--rule);
+  padding: 16px;
+  border: 0;
   border-radius: var(--radius);
   background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .trend__figures {
@@ -1577,9 +1601,12 @@
 
 .lines {
   list-style: none;
-  padding: 0;
+  padding: 4px 12px;
   margin: 0;
-  border-top: 1px solid var(--rule);
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .lines--muted {
@@ -1616,11 +1643,16 @@
   color: var(--ink-soft);
 }
 
+.line:last-child {
+  border-bottom: 0;
+}
+
 .line__action {
   flex: none;
   padding: 6px 10px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--sunk);
   font-size: 0.75rem;
   color: var(--ink-soft);
 }
@@ -1639,10 +1671,11 @@
 }
 
 .goal {
-  padding: 14px;
-  border: 1px solid var(--rule);
+  padding: 16px;
+  border: 0;
   border-radius: var(--radius);
   background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .goal.is-hit {
@@ -1909,10 +1942,11 @@ form.field {
   grid-template-columns: 1fr;
   gap: 2px;
   padding: 11px 12px;
-  border: 1px solid var(--rule);
+  border: 0;
   border-radius: var(--radius);
   background: var(--card);
   cursor: pointer;
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .option input {
@@ -1946,20 +1980,24 @@ form.field {
 /* Segmented control */
 .segmented {
   display: flex;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-pill);
   overflow: hidden;
+  background: var(--sunk);
+  padding: 3px;
+  gap: 3px;
 }
 
 .segmented__item {
   flex: 1;
-  padding: 9px 6px;
+  padding: 8px 6px;
   text-align: center;
   font-size: 0.813rem;
   color: var(--ink-soft);
-  background: var(--card);
+  background: transparent;
   cursor: pointer;
-  border-right: 1px solid var(--rule);
+  border: 0;
+  border-radius: var(--radius-pill);
 }
 
 .segmented__item:last-child {
@@ -1994,9 +2032,9 @@ form.field {
 
 .weekday {
   height: 40px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  background: var(--card);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--sunk);
   font-size: 0.813rem;
   color: var(--ink-soft);
 }
@@ -2030,17 +2068,19 @@ form.field {
 /* Buttons */
 .btn {
   padding: 11px 16px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border: 0;
+  border-radius: var(--radius-pill);
   background: var(--card);
   font-size: 0.875rem;
   font-weight: 600;
+  box-shadow: 0 1px 0 var(--rule);
 }
 
 .btn--primary {
   background: var(--pink);
   border-color: var(--pink);
   color: var(--on-pink);
+  box-shadow: none;
 }
 
 .btn--primary:disabled {
@@ -2134,9 +2174,10 @@ form.field {
     justify-content: center;
     gap: 14px;
     padding: 0 18px;
-    background: var(--card);
+    background: var(--paper);
     border-bottom: none;
     border-right: 1px solid var(--rule);
+    backdrop-filter: none;
   }
 
   .wordmark {
@@ -2149,17 +2190,21 @@ form.field {
     top: 106px;
     bottom: 0;
     right: auto;
+    transform: none;
     width: var(--sidebar);
     max-width: none;
     height: auto;
     margin: 0;
-    padding: 12px;
+    padding: 14px 12px;
     grid-template-columns: 1fr;
     align-content: start;
-    gap: 2px;
-    background: var(--card);
-    border-top: none;
+    gap: 4px;
+    background: var(--paper);
+    border: 0;
+    border-radius: 0;
     border-right: 1px solid var(--rule);
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .nav__tab {
@@ -2177,7 +2222,8 @@ form.field {
   }
 
   .nav__tab.is-on {
-    background: var(--sunk);
+    background: var(--blue-wash);
+    color: var(--ink);
   }
 
   .main {
@@ -4038,11 +4084,12 @@ form.field {
 
 .more-list {
   list-style: none;
-  padding: 0;
+  padding: 4px;
   margin: 8px 0 0;
-  border: 1px solid var(--rule);
+  border: 0;
   border-radius: var(--radius);
   background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
   overflow: hidden;
 }
 
@@ -4057,7 +4104,8 @@ form.field {
   font: inherit;
   color: inherit;
   background: transparent;
-  border-bottom: 1px solid var(--rule);
+  border: 0;
+  border-radius: var(--radius-sm);
 }
 
 .more-list li:last-child .more-row {

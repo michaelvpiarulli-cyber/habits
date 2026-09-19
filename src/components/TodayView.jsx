@@ -355,15 +355,15 @@ export function TodayView({ onOpen }) {
   };
 
   let headline;
-  if (habits.length === 0) headline = 'Start a chain';
-  else if (dueToday.length === 0) headline = 'Rest day';
+  if (habits.length === 0) headline = 'Let’s start';
+  else if (dueToday.length === 0) headline = 'Off day';
   else if (allDone)
     headline = (
       <>
         A <em>perfect</em> day
       </>
     );
-  else if (doneCount === 0) headline = 'Close the day';
+  else if (doneCount === 0) headline = 'Let’s go';
   else headline = `${leftCount} left`;
 
   return (
@@ -397,8 +397,8 @@ export function TodayView({ onOpen }) {
             <DayMeter done={doneCount} total={dueToday.length} />
             <p className="day-meter__copy">
               {allDone
-                ? 'Every mark landed.'
-                : `${doneCount} of ${dueToday.length} inked`}
+                ? 'That’s a wrap.'
+                : `${doneCount} of ${dueToday.length} done`}
             </p>
           </>
         )}
@@ -421,7 +421,7 @@ export function TodayView({ onOpen }) {
         <div className="today__main">
           {habits.length === 0 ? (
             <div className="empty">
-              <p className="empty__title">No habits yet.</p>
+              <p className="empty__title">Nothing to tap yet.</p>
               <p className="empty__body">
                 Add one under More → Habits and it shows up here every day it’s due.
               </p>
