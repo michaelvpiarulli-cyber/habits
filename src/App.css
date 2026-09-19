@@ -1593,8 +1593,7 @@
   color: var(--on-ink);
 }
 
-.treat.is-earned.treat--gold .treat__mark,
-:root[data-reward='gold'] .treat.is-earned .treat__mark {
+.treat.is-earned.treat--gold .treat__mark {
   background: var(--gold);
   color: var(--on-ink);
 }
