@@ -5,7 +5,8 @@
  */
 export function feelTap(kind = 'tick') {
   try {
-    const pattern = kind === 'close' ? [10, 16, 22] : kind === 'undo' ? 6 : 8;
+    const pattern =
+      kind === 'treat' ? [10, 28, 14, 28, 36] : kind === 'close' ? [10, 16, 22] : kind === 'undo' ? 6 : 8;
     navigator.vibrate?.(pattern);
   } catch {
     /* ignore */

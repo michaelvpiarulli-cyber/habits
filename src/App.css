@@ -34,6 +34,10 @@
   color: var(--pink);
 }
 
+:root[data-reward='gold'] .wordmark__dot {
+  color: var(--gold);
+}
+
 .account {
   display: inline-flex;
   align-items: center;
@@ -241,6 +245,25 @@
 
 .streak-chip--perfect b {
   color: var(--violet);
+}
+
+.streak-chip--treat {
+  background: color-mix(in srgb, var(--pink) 14%, var(--card));
+  color: var(--pink);
+  box-shadow: none;
+}
+
+.streak-chip--treat b {
+  color: var(--pink);
+}
+
+:root[data-reward='gold'] .streak-chip--treat {
+  background: color-mix(in srgb, var(--gold) 18%, var(--card));
+  color: var(--gold);
+}
+
+:root[data-reward='gold'] .streak-chip--treat b {
+  color: var(--gold);
 }
 
 .section {
@@ -1504,6 +1527,74 @@
 
 .record-hero .figure__number {
   font-size: 2.75rem;
+}
+
+.treats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.treat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
+  opacity: 0.42;
+}
+
+.treat.is-earned,
+.treat.is-next {
+  opacity: 1;
+}
+
+.treat.is-next {
+  box-shadow: inset 0 0 0 1.5px var(--blue);
+}
+
+.treat__mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--sunk);
+  font-family: var(--display);
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+.treat.is-earned .treat__mark {
+  background: var(--violet);
+  color: var(--on-ink);
+}
+
+.treat.is-earned.treat--gold .treat__mark,
+:root[data-reward='gold'] .treat.is-earned .treat__mark {
+  background: var(--gold);
+  color: var(--on-ink);
+}
+
+.treat__name {
+  font-family: var(--display);
+  font-size: 1.375rem;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.treat__at {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 /* =========================================================================
@@ -3640,6 +3731,28 @@ form.field {
 
 .perfect-burst__fleck--violet {
   background: var(--violet);
+}
+
+.perfect-burst__fleck--gold {
+  background: var(--gold);
+}
+
+.perfect-burst--gold .perfect-burst__card {
+  border-color: var(--gold);
+}
+
+.perfect-burst--gold .perfect-burst__title,
+.perfect-burst--treat .perfect-burst__title {
+  color: var(--violet);
+}
+
+.perfect-burst--gold .perfect-burst__title {
+  color: var(--gold);
+}
+
+.perfect-burst--gold .perfect-burst__btn {
+  background: var(--gold);
+  color: var(--on-ink);
 }
 
 @keyframes perfect-fleck {

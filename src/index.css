@@ -22,6 +22,7 @@
   --pink: #f07167;
   --pink-wash: #fde3df;
   --violet: #7c6af2;
+  --gold: #c9a227;
 
   --on-ink: #fffcf8;
   --on-pink: #fffcf8;
@@ -65,6 +66,7 @@
   --pink: #ff9b8f;
   --pink-wash: #3a2421;
   --violet: #c4b5fd;
+  --gold: #e8c547;
 
   --on-ink: #14110e;
   --on-pink: #14110e;
@@ -93,6 +95,18 @@ body {
 
 :root[data-theme='dark'] body {
   background-image: radial-gradient(900px 420px at 50% -8%, color-mix(in srgb, var(--blue) 18%, transparent), transparent 58%);
+}
+
+:root[data-reward='gold'] body {
+  background-image:
+    radial-gradient(640px 280px at 88% -6%, color-mix(in srgb, var(--gold) 22%, transparent), transparent 55%),
+    radial-gradient(900px 420px at 50% -8%, var(--blue-wash), transparent 58%);
+}
+
+:root[data-theme='dark'][data-reward='gold'] body {
+  background-image:
+    radial-gradient(640px 280px at 88% -6%, color-mix(in srgb, var(--gold) 16%, transparent), transparent 55%),
+    radial-gradient(900px 420px at 50% -8%, color-mix(in srgb, var(--blue) 18%, transparent), transparent 58%);
 }
 
 h1,

@@ -1,4 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { feelTap } from '../lib/haptic';
+import { GOLD_AT, treatJustUnlocked } from '../lib/rewards';
 import { perfectDayStreak } from '../lib/streaks';
 
 /**
@@ -22,20 +24,17 @@ const MOTIONS = [
   { x: 64, y: -16, rot: -8, ink: 'pink', delay: 230 },
 ];
 
-export function PerfectDayOverlay({ streak, onDone }) {
+export function PerfectDayOverlay({ streak, treat = null, onDone }) {
   const titleId = useId();
   const closeRef = useRef(null);
+  const gold = treat?.unlock === 'gold' || treat?.at === GOLD_AT;
 
   useEffect(() => {
     closeRef.current?.focus();
-    try {
-      navigator.vibrate?.(28);
-    } catch {
-      /* ignore */
-    }
-    const t = window.setTimeout(onDone, 4200);
+    feelTap(treat ? 'treat' : 'close');
+    const t = window.setTimeout(onDone, treat ? 5200 : 4200);
     return () => window.clearTimeout(t);
-  }, [onDone]);
+  }, [onDone, treat]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -48,16 +47,23 @@ export function PerfectDayOverlay({ streak, onDone }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onDone]);
 
-  const line =
-    streak >= 3
+  const line = treat
+    ? treat.line
+    : streak >= 3
       ? `${streak} perfect days pressed in a row.`
       : streak === 2
         ? 'Two perfect days. The plate is warm.'
         : 'Both inks. Full registration.';
 
+  const next = treat
+    ? gold
+      ? 'Gold ink is yours. The press remembers.'
+      : 'Kept even if a streak breaks.'
+    : 'Tomorrow is blank paper.\nCome ink it.';
+
   return (
     <div
-      className="perfect-burst"
+      className={`perfect-burst ${treat ? 'perfect-burst--treat' : ''} ${gold ? 'perfect-burst--gold' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -67,7 +73,7 @@ export function PerfectDayOverlay({ streak, onDone }) {
         {MOTIONS.map((m, i) => (
           <span
             key={i}
-            className={`perfect-burst__fleck perfect-burst__fleck--${m.ink}`}
+            className={`perfect-burst__fleck perfect-burst__fleck--${gold && m.ink === 'violet' ? 'gold' : m.ink}`}
             style={{
               '--x': `${m.x}vw`,
               '--y': `${m.y}vh`,
@@ -79,18 +85,21 @@ export function PerfectDayOverlay({ streak, onDone }) {
       </div>
 
       <div className="perfect-burst__card" onClick={(e) => e.stopPropagation()}>
-        <p className="perfect-burst__eyebrow">Day closed</p>
+        <p className="perfect-burst__eyebrow">{treat ? 'Treat unlocked' : 'Day closed'}</p>
         <h2 id={titleId} className="perfect-burst__title">
-          Perfect
+          {treat ? treat.name : 'Perfect'}
         </h2>
         <p className="perfect-burst__line">{line}</p>
         <p className="perfect-burst__next">
-          Tomorrow is blank paper.
-          <br />
-          Come ink it.
+          {next.split('\n').map((part, i) => (
+            <span key={part}>
+              {i > 0 && <br />}
+              {part}
+            </span>
+          ))}
         </p>
         <button ref={closeRef} type="button" className="perfect-burst__btn" onClick={onDone}>
-          See you tomorrow
+          {treat ? 'Stamp it' : 'See you tomorrow'}
         </button>
       </div>
     </div>
@@ -118,17 +127,24 @@ export function PerfectDaySeal({ streak }) {
 }
 
 /** Watches allDone and fires the overlay exactly once per completion moment. */
-export function usePerfectCelebration(allDone) {
+export function usePerfectCelebration(allDone, closedCount = 0) {
   const prev = useRef(null);
   const [open, setOpen] = useState(false);
+  const [treat, setTreat] = useState(null);
 
   useEffect(() => {
-    if (prev.current === false && allDone === true) setOpen(true);
+    if (prev.current === false && allDone === true) {
+      setTreat(treatJustUnlocked(closedCount));
+      setOpen(true);
+    }
     prev.current = allDone;
-  }, [allDone]);
+  }, [allDone, closedCount]);
 
-  const dismiss = useRef(() => setOpen(false)).current;
-  return [open, dismiss];
+  const dismiss = useRef(() => {
+    setOpen(false);
+    setTreat(null);
+  }).current;
+  return [open, dismiss, treat];
 }
 
 export function usePerfectStreak(habits, doneSets, day) {

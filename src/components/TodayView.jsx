@@ -10,7 +10,8 @@ import {
 } from '../lib/dates';
 import { describeCadence, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
 import { feelTap } from '../lib/haptic';
-import { atRiskToday, bestStreak, countInWeek, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
+import { nextTreat } from '../lib/rewards';
+import { atRiskToday, bestStreak, countInWeek, countPerfectDays, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
 import { AmountEntry } from './AmountEntry';
 import { DayNote } from './DayNote';
@@ -110,11 +111,33 @@ function DayMeter({ done, total }) {
   );
 }
 
-function StreakChips({ items, perfectStreak, onJump }) {
-  if (items.length === 0 && perfectStreak < 2) return null;
+function TreatChip({ closed }) {
+  const next = nextTreat(closed);
+  if (closed === 0) return null;
+  if (!next) {
+    return (
+      <span className="streak-chip streak-chip--treat">
+        <b>{closed}</b> closed
+      </span>
+    );
+  }
+  return (
+    <span className="streak-chip streak-chip--treat">
+      <b>{closed}</b> of {next.at} to {next.name}
+    </span>
+  );
+}
+
+function StreakChips({ items, perfectStreak, closed, onJump }) {
+  if (items.length === 0 && perfectStreak < 2 && closed === 0) return null;
 
   return (
     <ul className="streak-chips" aria-label="Running streaks">
+      {closed > 0 && (
+        <li>
+          <TreatChip closed={closed} />
+        </li>
+      )}
       {perfectStreak >= 2 && (
         <li>
           <span className="streak-chip streak-chip--perfect">
@@ -309,7 +332,14 @@ export function TodayView({ onOpen }) {
   const leftCount = Math.max(0, dueToday.length - doneCount);
   const allDone = dueToday.length > 0 && doneCount === dueToday.length;
   const perfectStreak = usePerfectStreak(habits, doneSets, day);
-  const [celebrate, dismissCelebrate] = usePerfectCelebration(viewingToday && allDone);
+  const closedCount = useMemo(
+    () => countPerfectDays(habits, doneSets, day),
+    [habits, doneSets, day]
+  );
+  const [celebrate, dismissCelebrate, treat] = usePerfectCelebration(
+    viewingToday && allDone,
+    closedCount
+  );
 
   const hotStreaks = habits
     .map((habit) => ({
@@ -405,7 +435,7 @@ export function TodayView({ onOpen }) {
         {allDone && <PerfectDaySeal streak={perfectStreak} />}
       </header>
 
-      <StreakChips items={hotStreaks} perfectStreak={perfectStreak} onJump={jumpTo} />
+      <StreakChips items={hotStreaks} perfectStreak={perfectStreak} closed={closedCount} onJump={jumpTo} />
 
       <div className="today">
         <aside className="today__rail">
@@ -482,7 +512,9 @@ export function TodayView({ onOpen }) {
         </div>
       </div>
 
-      {celebrate && <PerfectDayOverlay streak={perfectStreak} onDone={dismissCelebrate} />}
+      {celebrate && (
+        <PerfectDayOverlay streak={perfectStreak} treat={treat} onDone={dismissCelebrate} />
+      )}
     </div>
   );
 }

@@ -19,6 +19,7 @@ import { MoreView } from './components/MoreView';
 import { SubpageBar } from './components/FormSheet';
 import { BottomNav } from './components/BottomNav';
 import { AccountMenu } from './components/AccountMenu';
+import { RewardSkin } from './components/RewardSkin';
 import './App.css';
 
 const MORE_PAGES = {
@@ -67,6 +68,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <RewardSkin />
       <header className="topbar">
         <h1 className="wordmark">
           Tally<span className="wordmark__dot" aria-hidden="true">.</span>

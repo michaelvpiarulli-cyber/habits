@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useData } from '../context/DataProvider';
 import { addDays, monthLabel, parseISO, rangeOfDays, todayISO } from '../lib/dates';
 import { describeCadence, describeTarget, fractionOf, isTrend } from '../lib/habits';
-import { bestStreak, completionRate, currentStreak, isDue, isPerfectDay, perfectDayStreak } from '../lib/streaks';
+import { bestStreak, completionRate, countPerfectDays, currentStreak, isDue, isPerfectDay, perfectDayStreak } from '../lib/streaks';
+import { GOLD_AT, nextTreat, TREATS } from '../lib/rewards';
 import { TrendChart } from './TrendChart';
 import { ReviewList } from './WeeklyReview';
 
@@ -124,6 +125,43 @@ function StreakCard({ habit, doneSet, today, from }) {
   );
 }
 
+function TreatsBoard({ closed }) {
+  const next = nextTreat(closed);
+
+  return (
+    <section className="section">
+      <h2 className="eyebrow">Treats</h2>
+      <p className="section__note">
+        Closed days you keep, even if a streak breaks.
+        {next
+          ? ` ${next.at - closed} more to ${next.name}${next.at === GOLD_AT ? ' — gold ink' : ''}.`
+          : closed
+            ? ' The press is full.'
+            : ''}
+      </p>
+      <ul className="treats">
+        {TREATS.map((treat) => {
+          const earned = closed >= treat.at;
+          const isNext = next?.id === treat.id;
+          const gold = treat.unlock === 'gold';
+          return (
+            <li
+              key={treat.id}
+              className={`treat ${earned ? 'is-earned' : ''} ${isNext ? 'is-next' : ''} ${gold ? 'treat--gold' : ''}`}
+            >
+              <span className="treat__mark" aria-hidden="true">
+                {earned ? '★' : treat.at}
+              </span>
+              <span className="treat__name">{treat.name}</span>
+              <span className="treat__at">{treat.at} closed days{gold ? ' · gold ink' : ''}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 export function ProgressView() {
   const { activeHabits, doneSets, doneSetFor, logFor, valueFor } = useData();
   const today = todayISO();
@@ -132,13 +170,7 @@ export function ProgressView() {
 
   const trendHabits = activeHabits.filter(isTrend);
   const perfect = perfectDayStreak(activeHabits, doneSets, today);
-  const hottest = activeHabits.reduce(
-    (best, habit) => {
-      const n = currentStreak(habit, doneSetFor(habit.id), today);
-      return n > best.n ? { n, name: habit.name } : best;
-    },
-    { n: 0, name: '' }
-  );
+  const closed = countPerfectDays(activeHabits, doneSets, today);
   const ranked = [...activeHabits].sort(
     (a, b) => currentStreak(b, doneSetFor(b.id), today) - currentStreak(a, doneSetFor(a.id), today)
   );
@@ -166,14 +198,16 @@ export function ProgressView() {
 
       <div className="record-hero">
         <div className="figure">
-          <span className="figure__number">{perfect}</span>
-          <span className="eyebrow">perfect days</span>
+          <span className="figure__number">{closed}</span>
+          <span className="eyebrow">closed days</span>
         </div>
         <div className="figure">
-          <span className="figure__number">{hottest.n}</span>
-          <span className="eyebrow">{hottest.n ? hottest.name : 'hottest chain'}</span>
+          <span className="figure__number">{perfect}</span>
+          <span className="eyebrow">in a row</span>
         </div>
       </div>
+
+      <TreatsBoard closed={closed} />
 
       <section className="section">
         <h2 className="eyebrow">Streaks</h2>

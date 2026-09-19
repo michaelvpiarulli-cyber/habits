@@ -1,4 +1,4 @@
-import { addDays, dow, isoOf, startOfWeek, todayISO, daysBetween } from './dates';
+import { addDays, dow, isoOf, startOfWeek, todayISO, daysBetween } from './dates.js';
 
 /**
  * Streak and completion maths for the three cadences.
@@ -196,4 +196,25 @@ export function perfectDayStreak(habits, doneSetsById, iso = todayISO()) {
     cursor = addDays(cursor, -1);
   }
   return streak;
+}
+
+/**
+ * Lifetime closed days — the reward currency. A broken streak does not take
+ * these back. Caps at MAX_LOOKBACK_DAYS and stops before any habit existed.
+ */
+export function countPerfectDays(habits, doneSetsById, iso = todayISO()) {
+  if (!habits.length) return 0;
+
+  let first = iso;
+  for (const habit of habits) {
+    const born = isoOf(new Date(habit.createdAt));
+    if (born < first) first = born;
+  }
+  if (daysBetween(first, iso) > MAX_LOOKBACK_DAYS) first = addDays(iso, -MAX_LOOKBACK_DAYS);
+
+  let n = 0;
+  for (let d = first; daysBetween(d, iso) >= 0; d = addDays(d, 1)) {
+    if (isPerfectDay(habits, doneSetsById, d)) n++;
+  }
+  return n;
 }
