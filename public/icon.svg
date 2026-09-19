@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Full-bleed. iOS applies the rounded mask. -->
+  <rect width="1024" height="1024" fill="#F6F1EA"/>
+  <rect x="160" y="160" width="320" height="320" rx="128" fill="#3B82F6"/>
+  <rect x="544" y="160" width="320" height="320" rx="128" fill="#F07167"/>
+  <rect x="160" y="544" width="320" height="320" rx="128" fill="#7C6AF2"/>
+  <rect x="544" y="544" width="320" height="320" rx="128" fill="#1C1915"/>
+</svg>

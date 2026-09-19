@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px var(--gutter) 8px;
+  padding: calc(14px + env(safe-area-inset-top)) var(--gutter) 8px;
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   backdrop-filter: blur(14px);
 }
@@ -2023,6 +2023,18 @@
   background: var(--sunk);
   padding: 1px 4px;
   border-radius: 2px;
+}
+
+.install-steps {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.install-steps li + li {
+  margin-top: 6px;
 }
 
 .field > .field__label + .btn,

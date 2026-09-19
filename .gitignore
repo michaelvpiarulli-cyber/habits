@@ -27,3 +27,13 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+
+# Capacitor iOS (generated copies and user data)
+ios/App/Pods
+ios/App/App/public
+ios/App/build
+ios/DerivedData
+ios/App/App.xcworkspace/xcuserdata
+ios/App/App.xcodeproj/xcuserdata
+ios/App/App.xcworkspace/xcshareddata/swiftpm
+*.xcuserstate

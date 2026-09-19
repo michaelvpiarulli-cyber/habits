@@ -8,9 +8,17 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node scripts/test-habit-migrations.js && node scripts/test-nutrition.js && node scripts/test-food-search.js && node scripts/test-macro-targets.js && node scripts/test-weight-coach.js && node scripts/test-recent-foods.js && node scripts/test-food-library.js && node scripts/test-starter-foods.js && node scripts/test-life.js && node scripts/test-rewards.js"
+    "test": "node scripts/test-habit-migrations.js && node scripts/test-nutrition.js && node scripts/test-food-search.js && node scripts/test-macro-targets.js && node scripts/test-weight-coach.js && node scripts/test-recent-foods.js && node scripts/test-food-library.js && node scripts/test-starter-foods.js && node scripts/test-life.js && node scripts/test-rewards.js && node scripts/test-install.js",
+    "ios": "npm run build && npx cap sync ios",
+    "ios:open": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@fontsource/anton": "^5.2.5",
     "@fontsource/ibm-plex-mono": "^5.2.5",
     "@fontsource/ibm-plex-sans": "^5.2.5",
@@ -19,6 +27,7 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@eslint/js": "^9.25.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",

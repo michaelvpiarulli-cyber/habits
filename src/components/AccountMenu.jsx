@@ -4,6 +4,7 @@ import { useLife } from '../context/LifeProvider';
 import { GoogleConnect } from './GoogleConnect';
 import { nowISO } from '../lib/mappers';
 import { todayISO } from '../lib/dates';
+import { isNativeApp, isStandaloneDisplay, needsIosInstallHint } from '../lib/install';
 
 const THEMES = [
   ['light', 'Light'],
@@ -78,6 +79,26 @@ export function AccountMenu({ auth, theme, onClose }) {
 
         <div className="sheet__body">
           <p className={`status status--${syncState}`}>{status}</p>
+
+          <fieldset className="field">
+            <legend className="field__label">iPhone</legend>
+            {isNativeApp() ? (
+              <p className="field__hint">Installed as Tally on this iPhone.</p>
+            ) : isStandaloneDisplay() ? (
+              <p className="field__hint">Running from the Home Screen. That’s the app.</p>
+            ) : needsIosInstallHint() ? (
+              <ol className="install-steps">
+                <li>Open this site in Safari — not Chrome or Instagram.</li>
+                <li>Tap the Share button, then Add to Home Screen.</li>
+                <li>Tap Add. Tally opens full-screen from its icon.</li>
+              </ol>
+            ) : (
+              <p className="field__hint">
+                On iPhone, open this site in Safari, tap Share, then Add to Home Screen. For a
+                native install from Xcode, see the README.
+              </p>
+            )}
+          </fieldset>
 
           {!syncAvailable && (
             <p className="field__hint">

@@ -1,0 +1,25 @@
+{
+  "appId": "app.tally.habits",
+  "appName": "Tally",
+  "webDir": "dist",
+  "backgroundColor": "#F6F1EA",
+  "ios": {
+    "contentInset": "automatic",
+    "preferredContentMode": "mobile",
+    "backgroundColor": "#F6F1EA"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#F6F1EA",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "overlaysWebView": true
+    },
+    "Keyboard": {
+      "resize": "native"
+    }
+  }
+}

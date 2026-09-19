@@ -20,6 +20,7 @@ import { SubpageBar } from './components/FormSheet';
 import { BottomNav } from './components/BottomNav';
 import { AccountMenu } from './components/AccountMenu';
 import { RewardSkin } from './components/RewardSkin';
+import { NativeShell } from './components/NativeShell';
 import './App.css';
 
 const MORE_PAGES = {
@@ -56,6 +57,7 @@ export default function App() {
   if (auth.loading || !dataReady || !life.dataReady) {
     return (
       <div className="app">
+        <NativeShell isDark={theme.isDark} />
         <main className="main">
           <p className="status">Loading…</p>
         </main>
@@ -68,6 +70,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <NativeShell isDark={theme.isDark} />
       <RewardSkin />
       <header className="topbar">
         <h1 className="wordmark">

@@ -67,6 +67,44 @@ so Gmail and Google Calendar can connect.
 
 `vercel.json` rewrites all routes to `index.html`.
 
+## iPhone app
+
+Two ways, both from the same codebase.
+
+### On your phone today (Home Screen)
+
+1. Open the live site in **Safari** (not Chrome).
+2. Tap **Share → Add to Home Screen → Add**.
+3. Open Tally from the new icon. It runs full-screen, with the Tally icon.
+
+Account → iPhone in the app repeats those steps when you are still in Safari.
+
+### Native install from Xcode (no App Store)
+
+This is the real iPhone app: Taptic haptics, status bar, home-screen icon from Xcode. You need a Mac with Xcode. A free Apple ID is enough to put it on your own phone for a week at a time.
+
+```bash
+npm install
+npm run ios
+npm run ios:open
+```
+
+In Xcode:
+
+1. Select the **App** target → **Signing & Capabilities**.
+2. Check **Automatically manage signing** and pick your Personal Team.
+3. Plug in your iPhone, pick it as the run destination, press Play.
+
+After you change the web app:
+
+```bash
+npm run ios
+```
+
+then Run again in Xcode. `ios/` is the Capacitor shell; `npx cap sync` copies `dist/` into it.
+
+App Store submission is a separate step (paid developer account, screenshots, review). You do not need that to use Tally yourself.
+
 ## Google Calendar and Gmail
 
 Optional. The app keeps its own tasks, events, and due dates without Google.
