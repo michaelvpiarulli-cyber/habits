@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node scripts/test-habit-migrations.js && node scripts/test-nutrition.js && node scripts/test-food-search.js && node scripts/test-macro-targets.js && node scripts/test-weight-coach.js && node scripts/test-recent-foods.js && node scripts/test-food-library.js && node scripts/test-starter-foods.js && node scripts/test-life.js && node scripts/test-rewards.js && node scripts/test-install.js && node scripts/test-menu.js",
+    "test": "node scripts/test-habit-migrations.js && node scripts/test-nutrition.js && node scripts/test-food-search.js && node scripts/test-macro-targets.js && node scripts/test-weight-coach.js && node scripts/test-recent-foods.js && node scripts/test-food-library.js && node scripts/test-starter-foods.js && node scripts/test-life.js && node scripts/test-rewards.js && node scripts/test-install.js && node scripts/test-menu.js && node scripts/test-goals.js",
     "ios": "npm run build && npx cap sync ios",
     "ios:open": "npx cap open ios"
   },

@@ -3,6 +3,7 @@ const GROUPS = [
     label: 'Daily',
     pages: [
       { id: 'habits', label: 'Habits' },
+      { id: 'goals', label: 'Goals' },
       { id: 'calories', label: 'Calories' },
     ],
   },
@@ -19,7 +20,6 @@ const GROUPS = [
     pages: [
       { id: 'books', label: 'Books' },
       { id: 'money', label: 'Money' },
-      { id: 'goals', label: 'Goals' },
       { id: 'identity', label: 'Identity' },
     ],
   },

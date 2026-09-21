@@ -43,6 +43,7 @@ import {
   STARTER_HABITS,
 } from '../lib/habits';
 import { isCourse, keepLocalCourses } from '../lib/menu';
+import { keepLocalGoalNesting, progressOf as goalProgressOf } from '../lib/goals';
 import {
   compactMeals,
   emptyNutritionDay,
@@ -626,7 +627,7 @@ export function DataProvider({ children }) {
       return retired.habits;
     });
     setLogs((prev) => mergeById(prev, fromAnonymous.logs));
-    setGoals((prev) => mergeById(prev, fromAnonymous.goals));
+    setGoals((prev) => keepLocalGoalNesting(mergeById(prev, fromAnonymous.goals), prev));
     setIdentity((prev) => mergeById(prev, fromAnonymous.identity));
     setDayNotes((prev) => mergeById(prev, fromAnonymous.dayNotes));
     setReviews((prev) => mergeById(prev, fromAnonymous.reviews));
@@ -747,7 +748,10 @@ export function DataProvider({ children }) {
       }
       let mergedHabits = keepLocalCourses(mergeById(remoteHabits, local.habits), local.habits);
       let mergedLogs = mergeById((l.data || []).map(logFromRow), local.logs);
-      let mergedGoals = mergeById((g.data || []).map(goalFromRow), local.goals);
+      let mergedGoals = keepLocalGoalNesting(
+        mergeById((g.data || []).map(goalFromRow), local.goals),
+        local.goals
+      );
       // identity arrived after the first schema, so a project that has not run
       // the migration reads as "nothing remote" rather than as a failure.
       let mergedIdentity =
@@ -1269,12 +1273,13 @@ export function DataProvider({ children }) {
   );
 
   /**
-   * Goals tied to a habit read their progress off that habit's completions, so
-   * there is never a second number to keep up to date by hand.
+   * Goals tied to a habit read their progress off that habit's completions.
+   * Goals with micro-goals underneath score by how many of those are done.
+   * Everything else is the handwritten +1 counter.
    */
   const goalProgress = useCallback(
-    (goal) => (goal.habitId ? (doneSets.get(goal.habitId)?.size ?? 0) : goal.progress),
-    [doneSets]
+    (goal) => goalProgressOf(goal, { goals, doneSets }),
+    [goals, doneSets]
   );
 
   // --- mutators -------------------------------------------------------------
@@ -1410,6 +1415,7 @@ export function DataProvider({ children }) {
         unit: fields.unit || '',
         habitId: fields.habitId || null,
         dueDate: fields.dueDate || null,
+        parentId: fields.parentId || null,
         done: false,
         deleted: false,
         createdAt: nowISO(),
@@ -1430,7 +1436,19 @@ export function DataProvider({ children }) {
     [markDirty]
   );
 
-  const deleteGoal = useCallback((id) => updateGoal(id, { deleted: true }), [updateGoal]);
+  /** Soft-delete the goal and any micro-goals sitting under it. */
+  const deleteGoal = useCallback(
+    (id) => {
+      setGoals((prev) =>
+        prev.map((g) => {
+          if (g.id !== id && g.parentId !== id) return g;
+          markDirty('goals', g.id);
+          return { ...g, deleted: true, updatedAt: nowISO() };
+        })
+      );
+    },
+    [markDirty]
+  );
 
   const addStatement = useCallback(
     (fields) => {

@@ -91,7 +91,7 @@ export default function App() {
       <main className="main">
         {tab === 'more' && more && <SubpageBar title={more.title} onBack={() => setMorePage(null)} />}
         {tab === 'today' && <TodayView onOpen={onOpen} />}
-        {tab === 'record' && <ProgressView />}
+        {tab === 'record' && <ProgressView onOpen={onOpen} />}
         {tab === 'calendar' && <CalendarView />}
         {tab === 'more' && !more && <MoreView onOpen={onOpen} />}
         {tab === 'more' && MoreViewComp && <MoreViewComp />}

@@ -6,6 +6,7 @@ import { bestStreak, completionRate, countPerfectDays, currentStreak, isDue, isP
 import { nextTreat, TREATS } from '../lib/rewards';
 import { TrendChart } from './TrendChart';
 import { ReviewList } from './WeeklyReview';
+import { childrenOf, isHit, targetOf, topLevelGoals } from '../lib/goals';
 
 const HISTORY_DAYS = 84; // twelve weeks — enough to see a pattern, few enough to scan
 
@@ -166,8 +167,8 @@ function TreatsBoard({ closed }) {
   );
 }
 
-export function ProgressView() {
-  const { activeHabits, doneSets, doneSetFor, logFor, valueFor } = useData();
+export function ProgressView({ onOpen }) {
+  const { activeHabits, doneSets, doneSetFor, logFor, valueFor, goals, goalProgress } = useData();
   const today = todayISO();
   const from = addDays(today, -(HISTORY_DAYS - 1));
   const days = useMemo(() => rangeOfDays(from, today), [from, today]);
@@ -178,8 +179,9 @@ export function ProgressView() {
   const ranked = [...activeHabits].sort(
     (a, b) => currentStreak(b, doneSetFor(b.id), today) - currentStreak(a, doneSetFor(a.id), today)
   );
+  const openGoals = topLevelGoals(goals).filter((g) => !isHit(g, goalProgress(g), goals));
 
-  if (activeHabits.length === 0) {
+  if (activeHabits.length === 0 && openGoals.length === 0) {
     return (
       <div className="view">
         <header className="view__head">
@@ -213,24 +215,69 @@ export function ProgressView() {
 
       <TreatsBoard closed={closed} />
 
-      <section className="section">
-        <h2 className="eyebrow">Streaks</h2>
-        <ul className="cards">
-          {ranked.map((habit) => (
-            <StreakCard key={habit.id} habit={habit} doneSet={doneSetFor(habit.id)} today={today} from={from} />
-          ))}
-        </ul>
-      </section>
+      {openGoals.length > 0 && (
+        <section className="section">
+          <div className="section__head">
+            <h2 className="eyebrow">Goals</h2>
+            {onOpen && (
+              <button type="button" className="text-btn" onClick={() => onOpen('more', 'goals')}>
+                All
+              </button>
+            )}
+          </div>
+          <ul className="goals goals--compact">
+            {openGoals.map((g) => {
+              const progress = goalProgress(g);
+              const target = targetOf(g, goals);
+              const pct = Math.min(100, Math.round((progress / target) * 100));
+              const micros = childrenOf(goals, g.id);
+              return (
+                <li key={g.id} className="goal goal--compact">
+                  <div className="goal__head">
+                    <h3 className="goal__title">{g.title}</h3>
+                    <span className="goal__count">
+                      <b>{progress}</b> of {target}
+                      {micros.length > 0 && !g.habitId ? ' steps' : g.unit ? ` ${g.unit}` : ''}
+                    </span>
+                  </div>
+                  <div className="goal__bar" role="img" aria-label={`${pct} percent`}>
+                    <span className="goal__fill" style={{ width: `${pct}%` }} />
+                  </div>
+                  {micros.length > 0 && (
+                    <p className="goal__detail">
+                      {micros.filter((m) => isHit(m, goalProgress(m), goals)).length} of {micros.length}{' '}
+                      micro-goals
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
-      <section className="section">
-        <h2 className="eyebrow">Last 12 weeks</h2>
-        <Grid habits={activeHabits} days={days} doneSets={doneSets} logFor={logFor} today={today} />
-        <p className="grid__key">
-          <span className="key key--part" /> partial
-          <span className="key key--full" /> done
-          <span className="key key--perfect" /> everything
-        </p>
-      </section>
+      {activeHabits.length > 0 && (
+        <section className="section">
+          <h2 className="eyebrow">Streaks</h2>
+          <ul className="cards">
+            {ranked.map((habit) => (
+              <StreakCard key={habit.id} habit={habit} doneSet={doneSetFor(habit.id)} today={today} from={from} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {activeHabits.length > 0 && (
+        <section className="section">
+          <h2 className="eyebrow">Last 12 weeks</h2>
+          <Grid habits={activeHabits} days={days} doneSets={doneSets} logFor={logFor} today={today} />
+          <p className="grid__key">
+            <span className="key key--part" /> partial
+            <span className="key key--full" /> done
+            <span className="key key--perfect" /> everything
+          </p>
+        </section>
+      )}
 
       {trendHabits.map((habit) => {
         const points = days
