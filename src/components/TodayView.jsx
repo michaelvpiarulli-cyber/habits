@@ -209,9 +209,14 @@ function HabitRow({
   }, [habit, day, valueFor]);
 
   const activate = () => {
-    if (compact && habit.kind === 'amount' && !complete) {
-      feelTap('close');
-      setValue(habit, day, targetOf(habit));
+    if (compact && habit.kind === 'amount') {
+      if (!complete) {
+        feelTap('close');
+        setValue(habit, day, targetOf(habit));
+      } else {
+        feelTap('undo');
+        setValue(habit, day, 0);
+      }
       return;
     }
     if (needsEntry) {
@@ -412,6 +417,27 @@ export function TodayView({ onOpen }) {
   const courses = groupByCourse(dueToday);
   const upNextId = groupByCourse(stillOpen)[0]?.habits[0]?.id;
   const focused = openCourse ? courses.find((c) => c.id === openCourse) : null;
+  const focusedOpen = focused
+    ? focused.habits.filter((h) => stillOpen.some((open) => open.id === h.id))
+    : [];
+  const focusedDone = focused
+    ? focused.habits.filter((h) => alreadyDone.some((done) => done.id === h.id))
+    : [];
+
+  const openPlate = (id) => {
+    setEditing(null);
+    setOpenCourse(id);
+    const course = courses.find((c) => c.id === id);
+    const left = course
+      ? course.habits.filter((h) => stillOpen.some((open) => open.id === h.id)).length
+      : 0;
+    setShowDone(left === 0);
+  };
+
+  const closePlate = () => {
+    setEditing(null);
+    setOpenCourse(null);
+  };
 
   const jumpTo = (id) => {
     const inDone = alreadyDone.some((h) => h.id === id);
@@ -535,20 +561,17 @@ export function TodayView({ onOpen }) {
                   <button
                     type="button"
                     className="menu-focus__back"
-                    onClick={() => setOpenCourse(null)}
+                    onClick={closePlate}
                   >
                     ‹ Menu
                   </button>
                   <header className="menu-focus__head">
                     <h2 className="menu-focus__title">{focused.name}</h2>
-                    <p className="menu-focus__count">
-                      {focused.habits.filter((h) => stillOpen.some((open) => open.id === h.id)).length} left
-                    </p>
+                    <p className="menu-focus__count">{focusedOpen.length} left</p>
                   </header>
-                  <ul className="rows">
-                    {focused.habits
-                      .filter((h) => stillOpen.some((open) => open.id === h.id))
-                      .map((h) => (
+                  {focusedOpen.length > 0 && (
+                    <ul className="rows">
+                      {focusedOpen.map((h) => (
                         <HabitRow
                           key={h.id}
                           habit={h}
@@ -559,8 +582,23 @@ export function TodayView({ onOpen }) {
                           nextUp={h.id === upNextId && stillOpen.length > 1}
                         />
                       ))}
-                  </ul>
-                  {focused.habits.some((h) => alreadyDone.some((done) => done.id === h.id)) && (
+                    </ul>
+                  )}
+                  {focusedDone.length > 0 && focusedOpen.length === 0 && (
+                    <ul className="rows">
+                      {focusedDone.map((h) => (
+                        <HabitRow
+                          key={h.id}
+                          habit={h}
+                          day={day}
+                          calendarToday={calendarToday}
+                          editing={editing}
+                          setEditing={setEditing}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                  {focusedDone.length > 0 && focusedOpen.length > 0 && (
                     <section className="rest">
                       <button
                         type="button"
@@ -569,24 +607,20 @@ export function TodayView({ onOpen }) {
                         onClick={() => setShowDone((open) => !open)}
                       >
                         <span className="eyebrow">Done</span>
-                        <span className="rest__count">
-                          {focused.habits.filter((h) => alreadyDone.some((done) => done.id === h.id)).length}
-                        </span>
+                        <span className="rest__count">{focusedDone.length}</span>
                       </button>
                       {showDone && (
                         <ul className="rows rows--muted">
-                          {focused.habits
-                            .filter((h) => alreadyDone.some((done) => done.id === h.id))
-                            .map((h) => (
-                              <HabitRow
-                                key={h.id}
-                                habit={h}
-                                day={day}
-                                calendarToday={calendarToday}
-                                editing={editing}
-                                setEditing={setEditing}
-                              />
-                            ))}
+                          {focusedDone.map((h) => (
+                            <HabitRow
+                              key={h.id}
+                              habit={h}
+                              day={day}
+                              calendarToday={calendarToday}
+                              editing={editing}
+                              setEditing={setEditing}
+                            />
+                          ))}
                         </ul>
                       )}
                     </section>
@@ -608,7 +642,7 @@ export function TodayView({ onOpen }) {
                         <button
                           type="button"
                           className="menu-card__head"
-                          onClick={() => setOpenCourse(course.id)}
+                          onClick={() => openPlate(course.id)}
                           aria-label={`${course.name}, ${left} left`}
                         >
                           <span className="menu-card__name">{course.name}</span>
