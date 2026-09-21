@@ -1949,7 +1949,7 @@
 }
 
 .goal {
-  padding: 16px 16px 14px;
+  padding: 18px 16px 14px;
   border: 0;
   border-radius: var(--radius);
   background: var(--card);
@@ -1963,7 +1963,7 @@
 
 .goal__head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
