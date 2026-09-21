@@ -1975,11 +1975,14 @@
 }
 
 .goal__title {
+  display: block;
+  width: 100%;
   font-family: var(--display);
   font-size: 1.5rem;
   font-weight: 400;
   letter-spacing: 0.01em;
   line-height: 1.1;
+  text-align: left;
 }
 
 .goal__aside {
