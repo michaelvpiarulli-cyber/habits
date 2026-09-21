@@ -610,6 +610,160 @@
 }
 
 /* =========================================================================
+   Today menu — courses like a ticket, not a checklist
+   ========================================================================= */
+
+.menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.menu-card {
+  margin: 0;
+  padding: 12px 12px 10px;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 0 var(--rule);
+  min-width: 0;
+}
+
+.menu-card.is-closed {
+  background: var(--blue-wash);
+  box-shadow: none;
+}
+
+.menu-card.is-editing {
+  grid-column: 1 / -1;
+}
+
+.menu-card__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 0 2px 6px;
+  text-align: left;
+}
+
+.menu-card__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.938rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.menu-card__count {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.menu-card__chevron {
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--ink-soft);
+}
+
+.menu-card.is-closed .menu-card__name,
+.menu-card.is-closed .menu-card__count,
+.menu-card.is-closed .menu-card__chevron {
+  color: var(--ink-soft);
+}
+
+.rows--menu {
+  gap: 0;
+}
+
+.row.row--menu {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.row.row--menu.is-complete,
+.row.row--menu.is-at-risk,
+.row.row--menu.is-up-next {
+  background: transparent;
+  box-shadow: none;
+}
+
+.row--menu.is-up-next {
+  box-shadow: none;
+}
+
+.row--menu.is-up-next .row__name {
+  color: var(--blue-deep);
+}
+
+.row--menu .row__main {
+  gap: 8px;
+  padding: 5px 2px;
+}
+
+.row--menu .row__name {
+  font-size: 0.813rem;
+  font-weight: 400;
+}
+
+.row--menu.is-complete .row__name {
+  text-decoration: line-through;
+}
+
+.row--menu .mark--sm {
+  width: 22px;
+  height: 22px;
+  border-width: 1.5px;
+}
+
+.row--menu.is-at-risk .row__name {
+  color: var(--pink);
+}
+
+.menu-focus__back {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+
+.menu-focus__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.menu-focus__title {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.menu-focus__count {
+  font-family: var(--mono);
+  font-size: 0.688rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.segmented--wrap {
+  flex-wrap: wrap;
+}
+
+.segmented--wrap .segmented__item {
+  flex: 1 1 calc(33.33% - 3px);
+}
+
+/* =========================================================================
    Pregnancy detail, day note, weekly review
    ========================================================================= */
 

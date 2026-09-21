@@ -42,6 +42,7 @@ import {
   SEED_TIME,
   STARTER_HABITS,
 } from '../lib/habits';
+import { isCourse, keepLocalCourses } from '../lib/menu';
 import {
   compactMeals,
   emptyNutritionDay,
@@ -619,7 +620,7 @@ export function DataProvider({ children }) {
     if (!fromAnonymous) return;
 
     setHabits((prev) => {
-      const merged = mergeById(prev, fromAnonymous.habits);
+      const merged = keepLocalCourses(mergeById(prev, fromAnonymous.habits), prev);
       const retired = archiveRetiredTrainingHabits(merged, nowISO());
       retired.changedIds.forEach((id) => markDirty('habits', id));
       return retired.habits;
@@ -744,7 +745,7 @@ export function DataProvider({ children }) {
       if (initial) {
         local = withAccountSafeSeedIds(local, remoteHabits, remoteIdentity);
       }
-      let mergedHabits = mergeById(remoteHabits, local.habits);
+      let mergedHabits = keepLocalCourses(mergeById(remoteHabits, local.habits), local.habits);
       let mergedLogs = mergeById((l.data || []).map(logFromRow), local.logs);
       let mergedGoals = mergeById((g.data || []).map(goalFromRow), local.goals);
       // identity arrived after the first schema, so a project that has not run
@@ -1294,6 +1295,7 @@ export function DataProvider({ children }) {
         identityId: fields.identityId || null,
         cue: fields.cue || '',
         afterId: fields.afterId || null,
+        course: isCourse(fields.course) ? fields.course : null,
         archived: false,
         sortOrder: habits.length,
         deleted: false,

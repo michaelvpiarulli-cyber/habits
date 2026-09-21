@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { KINDS } from '../lib/habits';
+import { COURSES, courseOf, isCourse } from '../lib/menu';
 import { WEEKDAY_INITIALS, WEEKDAY_LABELS } from '../lib/dates';
 import { useData } from '../context/DataProvider';
 
@@ -16,6 +17,7 @@ const blank = {
   identityId: '',
   cue: '',
   afterId: '',
+  course: 'main',
 };
 
 /** Create or edit a habit. One sheet for both — the fields are identical. */
@@ -31,6 +33,7 @@ export function HabitEditor({ habit, onSave, onDelete, onClose }) {
           identityId: habit.identityId || '',
           afterId: habit.afterId || '',
           cue: habit.cue || '',
+          course: courseOf(habit),
           weekdays: habit.weekdays?.length ? habit.weekdays : blank.weekdays,
         }
       : blank
@@ -64,6 +67,7 @@ export function HabitEditor({ habit, onSave, onDelete, onClose }) {
       identityId: form.identityId || null,
       cue: form.cue.trim(),
       afterId: form.afterId || null,
+      course: isCourse(form.course) ? form.course : null,
     });
   };
 
@@ -250,6 +254,31 @@ export function HabitEditor({ habit, onSave, onDelete, onClose }) {
               </p>
             </div>
           )}
+
+          <fieldset className="field">
+            <legend className="field__label">On the menu</legend>
+            <div className="segmented segmented--wrap">
+              {COURSES.map((course) => (
+                <label
+                  key={course.id}
+                  className={`segmented__item ${form.course === course.id ? 'is-on' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="course"
+                    value={course.id}
+                    checked={form.course === course.id}
+                    onChange={() => set({ course: course.id })}
+                  />
+                  {course.name}
+                </label>
+              ))}
+            </div>
+            <p className="field__hint">
+              Starters are the easy first tap. Mains close the day. Desserts and specials are the
+              treats you named — earned by showing up, not by chance.
+            </p>
+          </fieldset>
 
           <fieldset className="field">
             <legend className="field__label">When it’s due</legend>

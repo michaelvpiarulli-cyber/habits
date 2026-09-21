@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { describeCadence, describeTarget } from '../lib/habits';
+import { courseLabel, courseOf } from '../lib/menu';
 import { HabitEditor } from './HabitEditor';
 
 function HabitLine({ habit, onEdit, onArchive }) {
@@ -14,6 +15,8 @@ function HabitLine({ habit, onEdit, onArchive }) {
           {habit.name}
         </span>
         <span className="line__meta">
+          {courseLabel(courseOf(habit))}
+          {' · '}
           {describeCadence(habit)}
           {target ? ` · ${target}` : ''}
         </span>
