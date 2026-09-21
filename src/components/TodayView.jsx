@@ -15,6 +15,7 @@ import { atRiskToday, bestStreak, countInWeek, countPerfectDays, currentStreak, 
 import { HabitMark } from './HabitMark';
 import { AmountEntry } from './AmountEntry';
 import { DayNote } from './DayNote';
+import { Countdown } from './Countdown';
 import {
   PerfectDayOverlay,
   PerfectDaySeal,
@@ -157,7 +158,7 @@ function StreakChips({ items, perfectStreak, closed, onJump }) {
 }
 
 /** One habit, one day. The mark on the left is the whole interaction for most kinds. */
-function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
+function HabitRow({ habit, day, calendarToday, editing, setEditing, nextUp = false }) {
   const { logFor, doneSetFor, keptSetFor, toggleDay, bumpDay, setValue, valueFor } = useData();
 
   const log = logFor(habit.id, day);
@@ -212,6 +213,17 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
     toggleDay(habit, day);
   };
 
+  // Amount habits: the circle hits the target in one tap. The name still opens
+  // the keypad when you need a different number.
+  const activateMark = () => {
+    if (habit.kind === 'amount' && !complete) {
+      feelTap('close');
+      setValue(habit, day, targetOf(habit));
+      return;
+    }
+    activate();
+  };
+
   let status;
   if (habit.kind === 'count') {
     status = `${value} of ${targetOf(habit)}${habit.unit ? ` ${habit.unit}` : ''}`;
@@ -236,7 +248,7 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
   return (
     <li
       id={`habit-${habit.id}`}
-      className={`row ${complete ? 'is-complete' : ''} ${atRisk ? 'is-at-risk' : ''} ${inking ? 'is-inking' : ''}`}
+      className={`row ${complete ? 'is-complete' : ''} ${atRisk ? 'is-at-risk' : ''} ${inking ? 'is-inking' : ''} ${nextUp ? 'is-up-next' : ''}`}
     >
       {atRisk && <p className="row__warn">Don’t miss twice</p>}
       <div className="row__main">
@@ -246,9 +258,11 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
           complete={complete}
           due
           inking={inking}
-          onActivate={activate}
+          onActivate={activateMark}
           label={
-            needsEntry
+            habit.kind === 'amount' && !complete
+              ? `Mark ${habit.name} done at ${targetOf(habit)} ${habit.unit || ''}`.trim()
+              : needsEntry
               ? `Record ${habit.name}`
               : complete
                 ? `Clear ${habit.name} for ${dayLabel}`
@@ -300,10 +314,31 @@ function HabitRow({ habit, day, calendarToday, editing, setEditing }) {
   );
 }
 
+function headlineFor({ habits, dueToday, allDone, doneCount, leftCount, viewingToday }) {
+  if (habits.length === 0) return 'Let’s start';
+  if (dueToday.length === 0) return 'Off day';
+  if (allDone) {
+    return (
+      <>
+        A <em>perfect</em> day
+      </>
+    );
+  }
+  if (doneCount === 0 && viewingToday) {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Let’s go';
+    if (hour < 17) return 'Keep going';
+    return 'Finish the day';
+  }
+  if (doneCount === 0) return 'Let’s go';
+  return `${leftCount} left`;
+}
+
 export function TodayView({ onOpen }) {
   const { activeHabits, doneSets, keptSetFor } = useData();
   const [editing, setEditing] = useState(null);
   const [showRest, setShowRest] = useState(false);
+  const [showDone, setShowDone] = useState(false);
   const [pendingJump, setPendingJump] = useState(null);
   const calendarToday = todayISO();
   const [day, setDay] = useState(calendarToday);
@@ -351,7 +386,13 @@ export function TodayView({ onOpen }) {
     .sort((a, b) => b.streak - a.streak)
     .slice(0, 4);
 
+  const stillOpen = dueToday.filter((h) => !doneSets.get(h.id)?.has(day));
+  const alreadyDone = dueToday.filter((h) => doneSets.get(h.id)?.has(day));
+  const upNextId = stillOpen[0]?.id;
+
   const jumpTo = (id) => {
+    const inDone = alreadyDone.some((h) => h.id === id);
+    if (inDone) setShowDone(true);
     const el = document.getElementById(`habit-${id}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -367,7 +408,7 @@ export function TodayView({ onOpen }) {
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setPendingJump(null);
-  }, [pendingJump, showRest]);
+  }, [pendingJump, showRest, showDone]);
 
   const goPrev = () => {
     setEditing(null);
@@ -384,17 +425,14 @@ export function TodayView({ onOpen }) {
     setDay(next);
   };
 
-  let headline;
-  if (habits.length === 0) headline = 'Let’s start';
-  else if (dueToday.length === 0) headline = 'Off day';
-  else if (allDone)
-    headline = (
-      <>
-        A <em>perfect</em> day
-      </>
-    );
-  else if (doneCount === 0) headline = 'Let’s go';
-  else headline = `${leftCount} left`;
+  const headline = headlineFor({
+    habits,
+    dueToday,
+    allDone,
+    doneCount,
+    leftCount,
+    viewingToday,
+  });
 
   return (
     <div className={`view ${allDone ? 'view--perfect' : ''}`}>
@@ -433,6 +471,7 @@ export function TodayView({ onOpen }) {
           </>
         )}
         {allDone && <PerfectDaySeal streak={perfectStreak} />}
+        {viewingToday && <Countdown compact />}
       </header>
 
       <StreakChips items={hotStreaks} perfectStreak={perfectStreak} closed={closedCount} onJump={jumpTo} />
@@ -463,18 +502,64 @@ export function TodayView({ onOpen }) {
             </div>
           ) : (
             dueToday.length > 0 && (
-              <ul className="rows">
-                {dueToday.map((h) => (
-                  <HabitRow
-                    key={h.id}
-                    habit={h}
-                    day={day}
-                    calendarToday={calendarToday}
-                    editing={editing}
-                    setEditing={setEditing}
-                  />
-                ))}
-              </ul>
+              <>
+                {stillOpen.length > 0 && (
+                  <ul className="rows">
+                    {stillOpen.map((h) => (
+                      <HabitRow
+                        key={h.id}
+                        habit={h}
+                        day={day}
+                        calendarToday={calendarToday}
+                        editing={editing}
+                        setEditing={setEditing}
+                        nextUp={h.id === upNextId && stillOpen.length > 1}
+                      />
+                    ))}
+                  </ul>
+                )}
+                {alreadyDone.length > 0 && !allDone && (
+                  <section className="rest">
+                    <button
+                      type="button"
+                      className="rest__toggle"
+                      aria-expanded={showDone}
+                      onClick={() => setShowDone((open) => !open)}
+                    >
+                      <span className="eyebrow">Done</span>
+                      <span className="rest__count">{alreadyDone.length}</span>
+                    </button>
+                    {showDone && (
+                      <ul className="rows rows--muted">
+                        {alreadyDone.map((h) => (
+                          <HabitRow
+                            key={h.id}
+                            habit={h}
+                            day={day}
+                            calendarToday={calendarToday}
+                            editing={editing}
+                            setEditing={setEditing}
+                          />
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                )}
+                {allDone && (
+                  <ul className="rows">
+                    {alreadyDone.map((h) => (
+                      <HabitRow
+                        key={h.id}
+                        habit={h}
+                        day={day}
+                        calendarToday={calendarToday}
+                        editing={editing}
+                        setEditing={setEditing}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </>
             )
           )}
 
@@ -509,6 +594,11 @@ export function TodayView({ onOpen }) {
           )}
 
           <DayNote day={day} />
+          {habits.length > 0 && onOpen && (
+            <button type="button" className="text-btn today__add" onClick={() => onOpen('more', 'habits')}>
+              Add a habit
+            </button>
+          )}
         </div>
       </div>
 

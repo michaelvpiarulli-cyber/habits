@@ -177,9 +177,13 @@ export function isPerfectDay(habits, doneSetsById, iso) {
  * How many perfect days in a row ending on `iso` (inclusive).
  * Skips days with nothing due — those are not failures, just blank paper.
  */
-export function perfectDayStreak(habits, doneSetsById, iso = todayISO()) {
+export function perfectDayStreak(habits, doneSetsById, iso = todayISO(), today = todayISO()) {
   let streak = 0;
   let cursor = iso;
+  // Today is never a miss until the day is over — same rule as habit streaks.
+  if (iso === today && !isPerfectDay(habits, doneSetsById, iso)) {
+    cursor = addDays(iso, -1);
+  }
   for (let i = 0; i < MAX_LOOKBACK_DAYS; i++) {
     const live = habits.filter(
       (h) =>

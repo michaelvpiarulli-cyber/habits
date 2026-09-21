@@ -13,7 +13,7 @@ import { gestation, serveToday, trimesterOf, weekInfo } from '../lib/pregnancy';
  * left — because that is the number said out loud and the one an appointment
  * will use.
  */
-export function Countdown() {
+export function Countdown({ compact = false }) {
   const { countdown } = useData();
   if (!countdown?.date) return null;
 
@@ -52,7 +52,7 @@ export function Countdown() {
         </span>
       </div>
 
-      {showWeeks && (
+      {showWeeks && !compact && (
         <div className="preg">
           <p className="preg__week">
             Week {g.weeks}

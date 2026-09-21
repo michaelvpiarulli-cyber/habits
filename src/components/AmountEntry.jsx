@@ -85,6 +85,11 @@ export function AmountEntry({ habit, value, suggestion, onSave, onClear, onCance
       <button type="submit" className="entry__save">
         Save
       </button>
+      {habit.kind === 'amount' && habit.target > 0 && Number(draft) !== Number(habit.target) && (
+        <button type="button" className="entry__clear" onClick={() => onSave(round(Number(habit.target)))}>
+          Hit {habit.target}
+        </button>
+      )}
       {value > 0 && (
         <button type="button" className="entry__clear" onClick={onClear}>
           Clear

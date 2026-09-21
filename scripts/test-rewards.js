@@ -2,7 +2,7 @@
  * Closed-day treats and gold-ink unlock — run with `npm test`.
  */
 import assert from 'node:assert/strict';
-import { countPerfectDays, isPerfectDay } from '../src/lib/streaks.js';
+import { countPerfectDays, isPerfectDay, perfectDayStreak } from '../src/lib/streaks.js';
 import {
   applyRewardSkin,
   GOLD_AT,
@@ -89,6 +89,17 @@ test('countPerfectDays keeps stamps after a broken streak', () => {
   ]);
   assert.equal(isPerfectDay(habits, sets, '2026-09-03'), false);
   assert.equal(countPerfectDays(habits, sets, '2026-09-04'), 3);
+});
+
+test('an unfinished today does not wipe the perfect-day streak', () => {
+  const habits = [habit('water')];
+  const sets = doneSets([['water', ['2026-09-17', '2026-09-18', '2026-09-19']]]);
+  assert.equal(perfectDayStreak(habits, sets, '2026-09-20', '2026-09-20'), 3);
+  assert.equal(perfectDayStreak(habits, sets, '2026-09-19', '2026-09-20'), 3);
+  const closedToday = doneSets([
+    ['water', ['2026-09-17', '2026-09-18', '2026-09-19', '2026-09-20']],
+  ]);
+  assert.equal(perfectDayStreak(habits, closedToday, '2026-09-20', '2026-09-20'), 4);
 });
 
 test('days with nothing due do not mint a stamp', () => {
