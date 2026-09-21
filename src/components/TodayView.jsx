@@ -517,11 +517,6 @@ export function TodayView({ onOpen }) {
         {dueToday.length > 0 && (
           <>
             <DayMeter done={doneCount} total={dueToday.length} />
-            <p className="day-meter__copy">
-              {allDone
-                ? 'That’s a wrap.'
-                : `${doneCount} of ${dueToday.length} done`}
-            </p>
           </>
         )}
         {allDone && <PerfectDaySeal streak={perfectStreak} />}

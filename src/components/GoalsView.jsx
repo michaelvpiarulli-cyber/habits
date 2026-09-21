@@ -16,7 +16,6 @@ function GoalCard({
   onBumpMicro,
   onAddMicro,
   onEdit,
-  onEditMicro,
 }) {
   const pct = Math.min(100, Math.round((progress / target) * 100));
   const hit = progress >= target;
@@ -105,14 +104,6 @@ function GoalCard({
                     +1
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="micro__more"
-                  onClick={() => onEditMicro(micro)}
-                  aria-label={`Edit ${micro.title}`}
-                >
-                  ···
-                </button>
               </li>
             );
           })}
@@ -138,7 +129,7 @@ function GoalCard({
   );
 }
 
-function GoalForm({ habits, goal, parent, onSave, onDelete, onClose }) {
+function GoalForm({ habits, goal, parent, steps = [], onSave, onOpenStep, onDelete, onClose }) {
   const isMicro = Boolean(parent);
   const [form, setForm] = useState(() => ({
     title: goal?.title || '',
@@ -284,6 +275,22 @@ function GoalForm({ habits, goal, parent, onSave, onDelete, onClose }) {
               onChange={(e) => set({ dueDate: e.target.value })}
             />
           </div>
+
+          {!isMicro && steps.length > 0 && (
+            <div className="field">
+              <p className="field__label">Steps</p>
+              <ul className="sheet-steps">
+                {steps.map((step) => (
+                  <li key={step.id}>
+                    <button type="button" className="sheet-steps__row" onClick={() => onOpenStep(step)}>
+                      <span>{step.title}</span>
+                      <span aria-hidden="true">›</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <footer className="sheet__foot">
@@ -304,6 +311,7 @@ function GoalForm({ habits, goal, parent, onSave, onDelete, onClose }) {
 export function GoalsView() {
   const { goals, habits, activeHabits, addGoal, updateGoal, deleteGoal, goalProgress } = useData();
   const [editing, setEditing] = useState(null);
+  const [openReached, setOpenReached] = useState(null);
 
   const parents = topLevelGoals(goals);
   const open = parents.filter((g) => !isHit(g, goalProgress(g), goals));
@@ -347,7 +355,6 @@ export function GoalsView() {
       onBumpMicro={bumpMicro}
       onAddMicro={(title) => addGoal({ title, target: 1, parentId: g.id })}
       onEdit={() => setEditing(g)}
-      onEditMicro={(micro) => setEditing(micro)}
     />
   );
 
@@ -377,7 +384,20 @@ export function GoalsView() {
       {hit.length > 0 && (
         <section className="section">
           <h2 className="eyebrow">Reached</h2>
-          <ul className="goals">{hit.map(renderCard)}</ul>
+          <ul className="reached">
+            {hit.map((g) =>
+              openReached === g.id ? (
+                renderCard(g)
+              ) : (
+                <li key={g.id}>
+                  <button type="button" className="reached__row" onClick={() => setOpenReached(g.id)}>
+                    <span className="reached__name">{g.title}</span>
+                    <span className="reached__tick" aria-hidden="true" />
+                  </button>
+                </li>
+              )
+            )}
+          </ul>
         </section>
       )}
 
@@ -390,6 +410,12 @@ export function GoalsView() {
               ? editing.parent
               : goals.find((g) => g.id === editing?.parentId) || null
           }
+          steps={
+            editing && editing !== 'new' && !editing.parentId && editing.mode !== 'micro-new'
+              ? childrenOf(goals, editing.id)
+              : []
+          }
+          onOpenStep={(step) => setEditing(step)}
           onSave={save}
           onDelete={() => {
             const current = editing === 'new' || editing?.mode === 'micro-new' ? null : editing;

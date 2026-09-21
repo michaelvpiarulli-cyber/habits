@@ -213,14 +213,21 @@
 
 .streak-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   list-style: none;
-  padding: 0;
-  margin: 0 0 18px;
+  padding: 0 0 2px;
+  margin: 0 0 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.streak-chips::-webkit-scrollbar {
+  display: none;
 }
 
 .streak-chip {
+  flex: none;
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
@@ -2202,6 +2209,64 @@
 
 .micro-add__go:disabled {
   opacity: 0.4;
+}
+
+.reached {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reached__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--blue-wash);
+  text-align: left;
+}
+
+.reached__name {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+.reached__tick {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+
+.sheet-steps {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.sheet-steps__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+  text-align: left;
+  font-size: 0.938rem;
+}
+
+.sheet-steps__row span:last-child {
+  color: var(--ink-soft);
 }
 
 .chip {
