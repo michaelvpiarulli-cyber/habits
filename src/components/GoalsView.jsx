@@ -141,7 +141,7 @@ function GoalForm({ habits, goal, parent, onSave, onClose }) {
   const [form, setForm] = useState(() => ({
     title: goal?.title || '',
     detail: goal?.detail || '',
-    target: goal?.target ?? (isMicro ? 1 : ''),
+    target: goal?.target ?? 1,
     unit: goal?.unit || '',
     habitId: goal?.habitId || '',
     dueDate: goal?.dueDate || '',
