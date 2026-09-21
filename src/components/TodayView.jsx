@@ -209,6 +209,11 @@ function HabitRow({
   }, [habit, day, valueFor]);
 
   const activate = () => {
+    if (compact && habit.kind === 'amount' && !complete) {
+      feelTap('close');
+      setValue(habit, day, targetOf(habit));
+      return;
+    }
     if (needsEntry) {
       setEditing(isEditing ? null : habit.id);
       return;
