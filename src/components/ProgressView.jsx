@@ -231,24 +231,27 @@ export function ProgressView({ onOpen }) {
               const target = targetOf(g, goals);
               const pct = Math.min(100, Math.round((progress / target) * 100));
               const micros = childrenOf(goals, g.id);
+              const unit = micros.length > 0 && !g.habitId ? 'steps' : g.unit || '';
               return (
                 <li key={g.id} className="goal goal--compact">
-                  <div className="goal__head">
-                    <h3 className="goal__title">{g.title}</h3>
-                    <span className="goal__count">
-                      <b>{progress}</b> of {target}
-                      {micros.length > 0 && !g.habitId ? ' steps' : g.unit ? ` ${g.unit}` : ''}
-                    </span>
+                  <header className="goal__head">
+                    <div className="goal__copy">
+                      <p className="eyebrow">
+                        of {target}
+                        {unit ? ` ${unit}` : ''}
+                      </p>
+                      <h3 className="goal__title">{g.title}</h3>
+                    </div>
+                    <span className="goal__figure">{progress}</span>
+                  </header>
+                  <div
+                    className="goal__bar"
+                    role="img"
+                    aria-label={`${progress} of ${target}${unit ? ` ${unit}` : ''}`}
+                    style={{ '--fill': `${pct}%` }}
+                  >
+                    <span className="goal__fill" />
                   </div>
-                  <div className="goal__bar" role="img" aria-label={`${pct} percent`}>
-                    <span className="goal__fill" style={{ width: `${pct}%` }} />
-                  </div>
-                  {micros.length > 0 && (
-                    <p className="goal__detail">
-                      {micros.filter((m) => isHit(m, goalProgress(m), goals)).length} of {micros.length}{' '}
-                      micro-goals
-                    </p>
-                  )}
                 </li>
               );
             })}

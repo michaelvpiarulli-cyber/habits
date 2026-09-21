@@ -1938,11 +1938,11 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .goal {
-  padding: 16px;
+  padding: 16px 16px 14px;
   border: 0;
   border-radius: var(--radius);
   background: var(--card);
@@ -1950,19 +1950,62 @@
 }
 
 .goal.is-hit {
-  border-color: var(--violet);
+  background: var(--blue-wash);
+  box-shadow: none;
 }
 
 .goal__head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
+}
+
+.goal__copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.goal__copy .eyebrow {
+  margin-bottom: 2px;
+}
+
+.goal__copy .eyebrow .is-overdue {
+  color: var(--pink);
 }
 
 .goal__title {
-  font-size: 1rem;
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+.goal__aside {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  line-height: 1;
+}
+
+.goal__figure {
+  font-family: var(--display);
+  font-size: 2.25rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--pink);
+  line-height: 0.9;
+}
+
+.goal.is-hit .goal__figure {
+  color: var(--violet);
+}
+
+:root[data-reward='gold'] .goal.is-hit .goal__figure {
+  color: var(--gold);
 }
 
 .goal__due {
@@ -1979,26 +2022,31 @@
 .goal__detail {
   font-size: 0.813rem;
   color: var(--ink-soft);
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .goal__bar {
-  height: 10px;
-  margin: 12px 0 8px;
+  height: 8px;
+  margin: 12px 0 0;
   background: var(--sunk);
-  border-radius: 1px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
 }
 
 .goal__fill {
   display: block;
   height: 100%;
+  width: var(--fill, 0%);
   background: var(--blue);
   transition: width 240ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
 .goal.is-hit .goal__fill {
   background: var(--violet);
+}
+
+:root[data-reward='gold'] .goal.is-hit .goal__fill {
+  background: var(--gold);
 }
 
 .goal__foot {
@@ -2029,20 +2077,37 @@
   padding: 14px;
 }
 
+.goal--compact .goal__title {
+  font-size: 1.25rem;
+}
+
+.goal--compact .goal__figure {
+  font-size: 1.75rem;
+}
+
+.goal--compact .goal__bar {
+  margin-top: 10px;
+}
+
 .micros {
   list-style: none;
-  padding: 0;
-  margin: 12px 0 0;
+  padding: 8px 0 0;
+  margin: 8px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  border-top: 1px solid var(--rule);
+}
+
+.goal.is-hit .micros {
+  border-top-color: color-mix(in srgb, var(--blue) 22%, transparent);
 }
 
 .micro {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  gap: 10px;
+  padding: 8px 0;
 }
 
 .micro__mark {
@@ -2070,40 +2135,70 @@
 }
 
 .micro__name {
-  font-size: 0.875rem;
+  font-size: 0.938rem;
+  font-weight: 500;
+  line-height: 1.3;
 }
 
 .micro.is-done .micro__name {
   color: var(--ink-soft);
   text-decoration: line-through;
+  font-weight: 400;
 }
 
 .micro__meta {
   font-family: var(--mono);
   font-size: 0.688rem;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 
-.micro__edit {
+.micro__more {
   flex: none;
-  font-family: var(--mono);
-  font-size: 0.688rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  padding: 4px 2px 4px 8px;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  line-height: 1;
   color: var(--ink-soft);
-  padding: 4px;
+  opacity: 0.55;
 }
 
 .micro-add {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
 }
 
-.micro-add .field__input {
+.micro-add__input {
   flex: 1;
   min-width: 0;
+  height: 36px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  font-size: 0.938rem;
+}
+
+.micro-add__input::placeholder {
+  color: var(--ink-soft);
+}
+
+.micro-add__go {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sunk);
+  color: var(--ink);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.micro-add__go:disabled {
+  opacity: 0.4;
 }
 
 .chip {

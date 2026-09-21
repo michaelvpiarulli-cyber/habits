@@ -17,13 +17,12 @@ function GoalCard({
   onAddMicro,
   onEdit,
   onEditMicro,
-  onDelete,
-  onDeleteMicro,
 }) {
   const pct = Math.min(100, Math.round((progress / target) * 100));
   const hit = progress >= target;
   const overdue = goal.dueDate && !hit && goal.dueDate < todayISO();
   const scoredByMicros = micros.length > 0 && !habit;
+  const unit = scoredByMicros ? 'steps' : goal.unit || '';
   const [draft, setDraft] = useState('');
 
   const addMicro = (e) => {
@@ -36,107 +35,111 @@ function GoalCard({
 
   return (
     <li className={`goal ${hit ? 'is-hit' : ''}`}>
-      <div className="goal__head">
-        <h3 className="goal__title">{goal.title}</h3>
-        {goal.dueDate && (
-          <span className={`goal__due ${overdue ? 'is-overdue' : ''}`}>
-            {overdue ? 'Due ' : ''}
-            {relativeDay(goal.dueDate)}
-          </span>
-        )}
-      </div>
-
-      {goal.detail && <p className="goal__detail">{goal.detail}</p>}
-
-      <div className="goal__bar" role="img" aria-label={`${pct} percent`}>
-        <span className="goal__fill" style={{ width: `${pct}%` }} />
-      </div>
-
-      <div className="goal__foot">
-        <span className="goal__count">
-          <b>{progress}</b> of {target}
-          {scoredByMicros ? ' steps' : goal.unit ? ` ${goal.unit}` : ''}
-          {habit && <span className="goal__link"> · from {habit.name}</span>}
-        </span>
-
-        <span className="goal__actions">
+      <header className="goal__head">
+        <div className="goal__copy">
+          <p className="eyebrow">
+            of {target}
+            {unit ? ` ${unit}` : ''}
+            {habit ? ` · ${habit.name}` : ''}
+            {goal.dueDate && (
+              <span className={overdue ? 'is-overdue' : undefined}>
+                {` · ${overdue ? 'due ' : ''}${relativeDay(goal.dueDate)}`}
+              </span>
+            )}
+          </p>
+          <h3 className="goal__title">{goal.title}</h3>
+          {goal.detail && <p className="goal__detail">{goal.detail}</p>}
+        </div>
+        <div className="goal__aside">
+          <span className="goal__figure">{progress}</span>
           {!habit && micros.length === 0 && !hit && (
-            <button type="button" className="chip" onClick={() => onBump(1)}>
+            <button type="button" className="text-btn" onClick={() => onBump(1)}>
               +1
             </button>
           )}
-          <button type="button" className="chip" onClick={onEdit}>
+          <button type="button" className="text-btn" onClick={onEdit}>
             Edit
           </button>
-          <button type="button" className="chip chip--danger" onClick={onDelete}>
-            Delete
-          </button>
-        </span>
+        </div>
+      </header>
+
+      <div
+        className="goal__bar"
+        role="img"
+        aria-label={`${progress} of ${target}${unit ? ` ${unit}` : ''}`}
+        style={{ '--fill': `${pct}%` }}
+      >
+        <span className="goal__fill" />
       </div>
 
-      <ul className="micros" aria-label="Micro-goals">
-        {micros.map((micro) => {
-          const value = microProgress(micro);
-          const microTarget = targetOf(micro);
-          const done = isHit(micro, value);
-          const countable = microTarget > 1 && !micro.habitId;
-          return (
-            <li key={micro.id} className={`micro ${done ? 'is-done' : ''}`}>
-              <button
-                type="button"
-                className="micro__mark"
-                onClick={() => onToggleMicro(micro)}
-                aria-pressed={done}
-                aria-label={done ? `Clear ${micro.title}` : `Mark ${micro.title} done`}
-              />
-              <button type="button" className="micro__body" onClick={() => (countable ? onBumpMicro(micro) : onToggleMicro(micro))}>
-                <span className="micro__name">{micro.title}</span>
-                {(countable || micro.dueDate) && (
-                  <span className="micro__meta">
-                    {countable ? `${value} of ${microTarget}${micro.unit ? ` ${micro.unit}` : ''}` : ''}
-                    {micro.dueDate ? `${countable ? ' · ' : ''}${relativeDay(micro.dueDate)}` : ''}
-                  </span>
-                )}
-              </button>
-              {countable && !done && (
-                <button type="button" className="chip" onClick={() => onBumpMicro(micro)}>
-                  +1
+      {micros.length > 0 && (
+        <ul className="micros" aria-label="Micro-goals">
+          {micros.map((micro) => {
+            const value = microProgress(micro);
+            const microTarget = targetOf(micro);
+            const done = isHit(micro, value);
+            const countable = microTarget > 1 && !micro.habitId;
+            return (
+              <li key={micro.id} className={`micro ${done ? 'is-done' : ''}`}>
+                <button
+                  type="button"
+                  className="micro__mark"
+                  onClick={() => onToggleMicro(micro)}
+                  aria-pressed={done}
+                  aria-label={done ? `Clear ${micro.title}` : `Mark ${micro.title} done`}
+                />
+                <button
+                  type="button"
+                  className="micro__body"
+                  onClick={() => (countable ? onBumpMicro(micro) : onToggleMicro(micro))}
+                >
+                  <span className="micro__name">{micro.title}</span>
+                  {(countable || micro.dueDate) && (
+                    <span className="micro__meta">
+                      {countable ? `${value} of ${microTarget}${micro.unit ? ` ${micro.unit}` : ''}` : ''}
+                      {micro.dueDate ? `${countable ? ' · ' : ''}${relativeDay(micro.dueDate)}` : ''}
+                    </span>
+                  )}
                 </button>
-              )}
-              <button type="button" className="micro__edit" onClick={() => onEditMicro(micro)}>
-                Edit
-              </button>
-              <button
-                type="button"
-                className="micro__edit"
-                onClick={() => onDeleteMicro(micro)}
-                aria-label={`Delete ${micro.title}`}
-              >
-                ×
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                {countable && !done && (
+                  <button type="button" className="text-btn" onClick={() => onBumpMicro(micro)}>
+                    +1
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="micro__more"
+                  onClick={() => onEditMicro(micro)}
+                  aria-label={`Edit ${micro.title}`}
+                >
+                  ···
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
-      <form className="micro-add" onSubmit={addMicro}>
-        <input
-          className="field__input"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Add a micro-goal"
-          aria-label={`Add a micro-goal under ${goal.title}`}
-          maxLength={80}
-        />
-        <button type="submit" className="chip" disabled={!draft.trim()}>
-          Add
-        </button>
-      </form>
+      {!hit && (
+        <form className="micro-add" onSubmit={addMicro}>
+          <input
+            className="micro-add__input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Add a step"
+            aria-label={`Add a micro-goal under ${goal.title}`}
+            maxLength={80}
+          />
+          <button type="submit" className="micro-add__go" disabled={!draft.trim()} aria-label="Add step">
+            +
+          </button>
+        </form>
+      )}
     </li>
   );
 }
 
-function GoalForm({ habits, goal, parent, onSave, onClose }) {
+function GoalForm({ habits, goal, parent, onSave, onDelete, onClose }) {
   const isMicro = Boolean(parent);
   const [form, setForm] = useState(() => ({
     title: goal?.title || '',
@@ -285,6 +288,11 @@ function GoalForm({ habits, goal, parent, onSave, onClose }) {
         </div>
 
         <footer className="sheet__foot">
+          {goal && onDelete && (
+            <button type="button" className="btn btn--danger" onClick={onDelete}>
+              Delete
+            </button>
+          )}
           <button type="submit" className="btn btn--primary" disabled={!canSave}>
             {goal ? 'Save changes' : isMicro ? 'Add micro-goal' : 'Add goal'}
           </button>
@@ -341,8 +349,6 @@ export function GoalsView() {
       onAddMicro={(title) => addGoal({ title, target: 1, parentId: g.id })}
       onEdit={() => setEditing(g)}
       onEditMicro={(micro) => setEditing(micro)}
-      onDelete={() => deleteGoal(g.id)}
-      onDeleteMicro={(micro) => deleteGoal(micro.id)}
     />
   );
 
@@ -362,8 +368,7 @@ export function GoalsView() {
         <div className="empty">
           <p className="empty__title">No goals yet.</p>
           <p className="empty__body">
-            A goal is the destination. Micro-goals are the steps you tick to get there. Tie the big
-            one to a habit and it keeps its own score.
+            A goal is the destination. The steps underneath are how you get there.
           </p>
         </div>
       )}
@@ -387,6 +392,15 @@ export function GoalsView() {
               : goals.find((g) => g.id === editing?.parentId) || null
           }
           onSave={save}
+          onDelete={() => {
+            const current = editing === 'new' || editing?.mode === 'micro-new' ? null : editing;
+            if (!current) return;
+            const label = current.parentId ? 'this step' : 'this goal and its steps';
+            if (window.confirm(`Delete “${current.title}” (${label})?`)) {
+              deleteGoal(current.id);
+              setEditing(null);
+            }
+          }}
           onClose={() => setEditing(null)}
         />
       )}
