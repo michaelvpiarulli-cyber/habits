@@ -47,7 +47,9 @@ function GoalCard({
               </span>
             )}
           </p>
-          <h3 className="goal__title">{goal.title}</h3>
+          <button type="button" className="goal__title" onClick={onEdit}>
+            {goal.title}
+          </button>
           {goal.detail && <p className="goal__detail">{goal.detail}</p>}
         </div>
         <div className="goal__aside">
@@ -57,9 +59,6 @@ function GoalCard({
               +1
             </button>
           )}
-          <button type="button" className="text-btn" onClick={onEdit}>
-            Edit
-          </button>
         </div>
       </header>
 
