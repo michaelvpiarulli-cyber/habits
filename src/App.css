@@ -4295,6 +4295,13 @@ form.field {
   color: var(--ink-soft);
 }
 
+.plan-head-actions .text-btn,
+.plan-tray__actions .text-btn {
+  padding: 8px 10px;
+  margin: -8px -4px;
+  border-radius: var(--radius);
+}
+
 .today__add {
   display: block;
   margin-top: 18px;
