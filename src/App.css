@@ -4584,6 +4584,25 @@ form.field {
   margin: 0;
 }
 
+.plan-head-actions,
+.plan-tray__actions,
+.plan-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.plan-sheet-actions {
+  flex-direction: column;
+  align-items: stretch;
+  margin-top: 4px;
+}
+
+.plan-sheet-actions .btn {
+  width: 100%;
+}
+
 .plan-tray__list {
   display: flex;
   flex-wrap: wrap;

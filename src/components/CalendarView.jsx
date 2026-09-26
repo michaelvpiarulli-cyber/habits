@@ -136,12 +136,63 @@ function addEnd(start) {
   return clockOf(total);
 }
 
-function ScheduleSheet({ slot, tasks, onPickTask, onNewEvent, onClose }) {
+function TaskQuickForm({ day, defaultTime, onSave, onClose }) {
+  const [title, setTitle] = useState('');
+  const [dueTime, setDueTime] = useState(defaultTime || '');
+
+  return (
+    <FormSheet title={defaultTime ? `Task · ${formatClock(defaultTime)}` : 'New task'} onClose={onClose}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!title.trim()) return;
+          onSave({
+            title: title.trim(),
+            dueDate: day,
+            dueTime: dueTime || defaultTime || '',
+          });
+        }}
+      >
+        <div className="field">
+          <label className="field__label" htmlFor="plan-task-title">
+            Task
+          </label>
+          <input
+            id="plan-task-title"
+            className="field__input"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ship PR review"
+            autoFocus
+          />
+        </div>
+        <div className="field">
+          <label className="field__label" htmlFor="plan-task-time">
+            Time
+          </label>
+          <input
+            id="plan-task-time"
+            className="field__input"
+            type="time"
+            value={dueTime}
+            onChange={(e) => setDueTime(e.target.value)}
+          />
+        </div>
+        <p className="quiet">Leave time blank to park it in To schedule, then drop it on an hour.</p>
+        <button type="submit" className="btn btn--primary" disabled={!title.trim()}>
+          Save
+        </button>
+      </form>
+    </FormSheet>
+  );
+}
+
+function ScheduleSheet({ slot, tasks, onPickTask, onNewTask, onNewEvent, onClose }) {
   return (
     <FormSheet title={`Schedule · ${formatClock(slot)}`} onClose={onClose}>
-      <p className="quiet">Pick a task to place at this time, or add an event.</p>
+      <p className="quiet">Park a task here, or add something new.</p>
       {tasks.length === 0 ? (
-        <p className="quiet">No open tasks waiting. Create an event instead.</p>
+        <p className="quiet">No open tasks waiting yet.</p>
       ) : (
         <ul className="schedule-pick">
           {tasks.map((task) => (
@@ -156,9 +207,14 @@ function ScheduleSheet({ slot, tasks, onPickTask, onNewEvent, onClose }) {
           ))}
         </ul>
       )}
-      <button type="button" className="btn btn--primary" onClick={onNewEvent}>
-        New event at {formatClock(slot)}
-      </button>
+      <div className="plan-sheet-actions">
+        <button type="button" className="btn btn--primary" onClick={onNewTask}>
+          New task at {formatClock(slot)}
+        </button>
+        <button type="button" className="btn" onClick={onNewEvent}>
+          New event at {formatClock(slot)}
+        </button>
+      </div>
     </FormSheet>
   );
 }
@@ -171,13 +227,14 @@ function hourLabel(hour) {
 
 export function CalendarView() {
   const { goals } = useData();
-  const { events, tasks, addEvent, updateEvent, updateTask, toggleTask } = useLife();
+  const { events, tasks, addEvent, updateEvent, addTask, updateTask, toggleTask } = useLife();
   const google = useGoogle();
   const today = todayISO();
   const [day, setDay] = useState(today);
   const [googleEvents, setGoogleEvents] = useState([]);
   const [googleNote, setGoogleNote] = useState('');
   const [editing, setEditing] = useState(null);
+  const [taskDraft, setTaskDraft] = useState(null);
   const [slotPick, setSlotPick] = useState(null);
   const [placingTaskId, setPlacingTaskId] = useState(null);
   const timelineRef = useRef(null);
@@ -322,13 +379,18 @@ export function CalendarView() {
         </div>
         <div className="view__head--row">
           <h1 className="view__title">Plan</h1>
-          <button
-            type="button"
-            className="text-btn"
-            onClick={() => setEditing({ day, startTime: '', allDay: true })}
-          >
-            New
-          </button>
+          <div className="plan-head-actions">
+            <button type="button" className="text-btn" onClick={() => setTaskDraft({ day })}>
+              Task
+            </button>
+            <button
+              type="button"
+              className="text-btn"
+              onClick={() => setEditing({ day, startTime: '', allDay: true })}
+            >
+              Event
+            </button>
+          </div>
         </div>
       </header>
 
@@ -338,11 +400,16 @@ export function CalendarView() {
       <section className="section plan-tray">
         <div className="section__head">
           <h2 className="eyebrow">To schedule</h2>
-          {placingTask && (
-            <button type="button" className="text-btn" onClick={() => setPlacingTaskId(null)}>
-              Cancel
+          <div className="plan-tray__actions">
+            {placingTask && (
+              <button type="button" className="text-btn" onClick={() => setPlacingTaskId(null)}>
+                Cancel
+              </button>
+            )}
+            <button type="button" className="text-btn" onClick={() => setTaskDraft({ day })}>
+              Add
             </button>
-          )}
+          </div>
         </div>
         {pool.length === 0 ? (
           <p className="quiet">Nothing waiting. Add a task, then park it on the timeline.</p>
@@ -505,12 +572,29 @@ export function CalendarView() {
           slot={slotPick}
           tasks={pool}
           onPickTask={(task) => scheduleTask(task, slotPick)}
+          onNewTask={() => {
+            const start = slotPick;
+            setSlotPick(null);
+            setTaskDraft({ day, dueTime: start });
+          }}
           onNewEvent={() => {
             const start = slotPick;
             setSlotPick(null);
             setEditing({ day, startTime: start, endTime: addEnd(start), allDay: false });
           }}
           onClose={() => setSlotPick(null)}
+        />
+      )}
+
+      {taskDraft && (
+        <TaskQuickForm
+          day={taskDraft.day || day}
+          defaultTime={taskDraft.dueTime || ''}
+          onSave={(fields) => {
+            addTask(fields);
+            setTaskDraft(null);
+          }}
+          onClose={() => setTaskDraft(null)}
         />
       )}
 
