@@ -3,7 +3,14 @@
  * Pure functions so the views stay thin and the tests do not need a browser.
  */
 
-import { addDays } from './dates.js';
+import { addDays, addMinutes, minutesOf } from './dates.js';
+
+/** Default length for a timed task block on the day plan. */
+export const TASK_BLOCK_MINUTES = 45;
+
+/** Visible day window when nothing is scheduled outside it. */
+export const TIMELINE_DAY_START = 6;
+export const TIMELINE_DAY_END = 22;
 
 export const TASK_LISTS = [
   ['inbox', 'Inbox'],
@@ -278,4 +285,101 @@ export function agendaRange(sources, from, to) {
     if (day === to) break;
   }
   return days;
+}
+
+/**
+ * Agenda rows without a clock time — the ones waiting to be placed on the
+ * day timeline. Timed rows belong on the hour grid instead.
+ */
+export function unscheduledAgenda(items) {
+  return (items || []).filter((item) => item.allDay || !item.startTime);
+}
+
+export function timedAgenda(items) {
+  return (items || []).filter((item) => !item.allDay && item.startTime);
+}
+
+/**
+ * Open tasks that can be dropped onto a day slot: due that day with no time,
+ * overdue with no time, or undated. Already-timed tasks stay on the grid.
+ */
+export function schedulableTasks(tasks, day) {
+  return living(tasks)
+    .filter((task) => !task.done)
+    .filter((task) => {
+      if (task.dueTime) return false;
+      if (!task.dueDate) return true;
+      return task.dueDate <= day;
+    })
+    .sort((a, b) => {
+      const aDue = a.dueDate || '9999-99-99';
+      const bDue = b.dueDate || '9999-99-99';
+      if (aDue !== bDue) return aDue.localeCompare(bDue);
+      return (a.title || '').localeCompare(b.title || '');
+    });
+}
+
+/**
+ * Hour labels for the day plan grid. Expands past the default window when a
+ * timed item starts earlier or ends later.
+ */
+export function timelineHours(items, { startHour = TIMELINE_DAY_START, endHour = TIMELINE_DAY_END } = {}) {
+  let start = startHour;
+  let end = endHour;
+  for (const item of timedAgenda(items)) {
+    const from = minutesOf(item.startTime);
+    if (from === null) continue;
+    const duration = item.endTime
+      ? Math.max(15, (minutesOf(item.endTime) ?? from + TASK_BLOCK_MINUTES) - from)
+      : TASK_BLOCK_MINUTES;
+    const to = from + duration;
+    start = Math.min(start, Math.floor(from / 60));
+    end = Math.max(end, Math.ceil(to / 60));
+  }
+  start = Math.max(0, start);
+  end = Math.min(24, Math.max(start + 1, end));
+  const hours = [];
+  for (let h = start; h < end; h++) hours.push(h);
+  return hours;
+}
+
+/**
+ * Position timed agenda items on a day grid for absolute layout.
+ * `top` / `height` are percentages of the full hour range.
+ */
+export function timelineBlocks(
+  items,
+  {
+    hours,
+    defaultDuration = TASK_BLOCK_MINUTES,
+    pxPerHour = 56,
+  } = {}
+) {
+  const range = hours?.length ? hours : timelineHours(items);
+  if (!range.length) return [];
+  const startMin = range[0] * 60;
+  const endMin = (range[range.length - 1] + 1) * 60;
+  const span = Math.max(60, endMin - startMin);
+
+  return timedAgenda(items)
+    .map((item) => {
+      const from = minutesOf(item.startTime);
+      if (from === null) return null;
+      const end = item.endTime ? minutesOf(item.endTime) : null;
+      const duration = end !== null && end > from ? end - from : defaultDuration;
+      const topMin = Math.max(startMin, from);
+      const bottomMin = Math.min(endMin, from + Math.max(15, duration));
+      if (bottomMin <= startMin || topMin >= endMin) return null;
+      const top = ((topMin - startMin) / span) * 100;
+      const height = ((bottomMin - topMin) / span) * 100;
+      return {
+        ...item,
+        top,
+        height: Math.max(height, (20 / (span / 60) / pxPerHour) * 100),
+        durationMinutes: Math.max(15, duration),
+        endTime: item.endTime || addMinutes(item.startTime, Math.max(15, duration)),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
 }

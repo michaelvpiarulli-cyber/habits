@@ -4,8 +4,10 @@
 import assert from 'node:assert/strict';
 import {
   addMinutes,
+  clockOf,
   endOfMonth,
   formatClock,
+  minutesOf,
   monthCells,
   startOfMonth,
 } from '../src/lib/dates.js';
@@ -20,6 +22,11 @@ import {
   moneyForMonth,
   pipelineCounts,
   roundMoney,
+  schedulableTasks,
+  timedAgenda,
+  timelineBlocks,
+  timelineHours,
+  unscheduledAgenda,
 } from '../src/lib/life.js';
 
 let failed = 0;
@@ -180,6 +187,66 @@ test('month grid is Monday-first and pads to whole weeks', () => {
   assert.equal(cells.filter(Boolean)[0], '2026-08-01');
   assert.equal(formatClock('09:05'), '9:05 am');
   assert.equal(addMinutes('09:45', 30), '10:15');
+  assert.equal(minutesOf('09:45'), 9 * 60 + 45);
+  assert.equal(clockOf(615), '10:15');
+});
+
+test('day timeline splits unscheduled rows and places timed blocks', () => {
+  const items = agendaForDay(
+    {
+      events: [
+        stamp('e', {
+          title: 'Dentist',
+          day: '2026-08-16',
+          startTime: '14:00',
+          endTime: '14:30',
+          allDay: false,
+        }),
+      ],
+      tasks: [
+        stamp('open', { title: 'Ship PR', dueDate: '2026-08-16', dueTime: '', done: false, list: 'work' }),
+        stamp('timed', { title: 'Deep work', dueDate: '2026-08-16', dueTime: '09:00', done: false }),
+        stamp('later', { title: 'Someday', dueDate: null, dueTime: '', done: false }),
+      ],
+      goals: [stamp('g', { title: 'Lift 200', dueDate: '2026-08-16', done: false })],
+      googleEvents: [],
+    },
+    '2026-08-16'
+  );
+
+  assert.deepEqual(
+    unscheduledAgenda(items).map((item) => item.source),
+    ['task', 'goal']
+  );
+  assert.deepEqual(
+    timedAgenda(items).map((item) => item.title),
+    ['Deep work', 'Dentist']
+  );
+
+  const hours = timelineHours(items);
+  assert.equal(hours[0], 6);
+  assert.ok(hours.includes(9));
+  assert.ok(hours.includes(14));
+
+  const blocks = timelineBlocks(items, { hours });
+  assert.equal(blocks.length, 2);
+  assert.equal(blocks[0].title, 'Deep work');
+  assert.ok(blocks[0].top < blocks[1].top);
+  assert.ok(blocks[0].height > 0);
+
+  const pool = schedulableTasks(
+    [
+      stamp('open', { title: 'Ship PR', dueDate: '2026-08-16', dueTime: '', done: false }),
+      stamp('timed', { title: 'Deep work', dueDate: '2026-08-16', dueTime: '09:00', done: false }),
+      stamp('later', { title: 'Someday', dueDate: null, dueTime: '', done: false }),
+      stamp('done', { title: 'Done', dueDate: '2026-08-16', dueTime: '', done: true }),
+    ],
+    '2026-08-16'
+  );
+  assert.deepEqual(
+    pool.map((task) => task.id),
+    ['open', 'later']
+  );
 });
 
 test('Google event bodies use dates for all-day and dateTime otherwise', () => {
