@@ -4751,9 +4751,13 @@ form.field {
 }
 
 .fridge-stage {
-  perspective: 1400px;
+  perspective: 1600px;
+  perspective-origin: 30% 45%;
   margin: 0 auto 8px;
   max-width: 420px;
+  padding: 8px 28px 8px 8px;
+  overflow: visible;
+  transform-style: preserve-3d;
 }
 
 .fridge-body {
@@ -4767,7 +4771,7 @@ form.field {
     inset 0 1px 0 rgba(255, 255, 255, 0.55),
     inset 0 -2px 0 rgba(0, 0, 0, 0.08),
     0 18px 40px rgba(28, 25, 21, 0.18);
-  overflow: hidden;
+  overflow: visible;
   transform-style: preserve-3d;
   animation: fridge-settle 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -4814,6 +4818,7 @@ form.field {
     radial-gradient(120% 70% at 50% -10%, rgba(255, 255, 255, 0.55), transparent 50%),
     linear-gradient(180deg, var(--fridge-cavity), var(--fridge-cavity-deep));
   box-shadow: inset 0 0 0 2px var(--fridge-seal);
+  transform: translateZ(0);
 }
 
 .fridge-cavity__light {
@@ -5042,9 +5047,10 @@ form.field {
   background: transparent;
   transform-origin: left center;
   transform-style: preserve-3d;
-  transition: transform 560ms cubic-bezier(0.22, 0.8, 0.25, 1);
+  transition: transform 640ms cubic-bezier(0.2, 0.75, 0.2, 1);
   z-index: 8;
   -webkit-tap-highlight-color: transparent;
+  will-change: transform;
 }
 
 .fridge-hinge-door--freezer {
@@ -5059,12 +5065,22 @@ form.field {
 }
 
 .fridge-hinge-door.is-open {
-  transform: rotateY(-78deg);
+  transform: rotateY(-105deg) translateZ(2px);
   pointer-events: none;
 }
 
 .fridge-hinge-door.is-open .fridge-hinge-door__face {
-  box-shadow: -10px 8px 24px rgba(0, 0, 0, 0.22);
+  box-shadow:
+    -18px 12px 28px rgba(0, 0, 0, 0.28),
+    inset 4px 0 12px rgba(0, 0, 0, 0.12);
+}
+
+.fridge-hinge-door:not(.is-open):hover .fridge-hinge-door__face {
+  filter: brightness(1.03);
+}
+
+.fridge-hinge-door:not(.is-open):hover {
+  transform: rotateY(-6deg);
 }
 
 .fridge-hinge-door__face {
@@ -5227,6 +5243,16 @@ form.field {
   color: var(--ink-soft);
 }
 
+@media (max-width: 480px) {
+  .fridge-stage {
+    padding-right: 12px;
+  }
+
+  .fridge-hinge-door.is-open {
+    transform: rotateY(-92deg) translateZ(2px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fridge-body,
   .fridge-hinge-door,
@@ -5240,6 +5266,11 @@ form.field {
   }
 
   .fridge-hinge-door.is-open {
-    transform: translateX(-102%);
+    opacity: 0;
+    transform: none;
+  }
+
+  .fridge-hinge-door:not(.is-open):hover {
+    transform: none;
   }
 }
