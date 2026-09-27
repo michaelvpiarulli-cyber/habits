@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLife } from '../context/LifeProvider';
 import {
   FRIDGE_KINDS,
@@ -205,12 +205,18 @@ export function GroceryView() {
     toggleGroceryItem,
     deleteGroceryItem,
     clearOutGroceryItems,
+    seedFridgeFromPhotos,
   } = useLife();
   const grouped = useMemo(() => groupFridgeItems(groceryItems), [groceryItems]);
   const [door, setDoor] = useState('closed');
   const [openZones, setOpenZones] = useState(() => new Set(['fridge', 'dairy', 'produce']));
   const [editing, setEditing] = useState(null);
   const [showOut, setShowOut] = useState(false);
+
+  // Pull in any newly recognized photo products when you open Fridge.
+  useEffect(() => {
+    seedFridgeFromPhotos();
+  }, [seedFridgeFromPhotos]);
 
   const freezer = grouped.sections.find((s) => s.id === 'freezer');
   const cold = grouped.sections.filter((s) => s.id !== 'freezer');

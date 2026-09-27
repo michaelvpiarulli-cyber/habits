@@ -114,7 +114,7 @@ test('groupFridgeItems splits by zone and keeps finished food separate', () => {
 });
 
 test('photo fridge seed covers freezer, fridge, dairy, produce, and door', () => {
-  assert.ok(PHOTO_FRIDGE_ITEMS.length >= 40);
+  assert.ok(PHOTO_FRIDGE_ITEMS.length >= 80);
   const zones = new Set(PHOTO_FRIDGE_ITEMS.map((item) => item.zone));
   assert.ok(zones.has('freezer'));
   assert.ok(zones.has('fridge'));
