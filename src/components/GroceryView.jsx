@@ -342,11 +342,17 @@ export function GroceryView() {
             aria-label={door === 'freezer' ? 'Close freezer' : `Open freezer, ${freezerItems.length} items`}
             onClick={() => openDoor('freezer')}
           >
-            <span className="fridge-hinge-door__face">
-              <span className="fridge-hinge-door__brand">Freezer</span>
-              <span className="fridge-hinge-door__count">{freezerItems.length}</span>
-              <span className="fridge-hinge-door__handle" aria-hidden="true" />
-              <span className="fridge-hinge-door__seal" aria-hidden="true" />
+            <span className="fridge-hinge-door__pivot">
+              <span className="fridge-hinge-door__face">
+                <span className="fridge-hinge-door__brand">Freezer</span>
+                <span className="fridge-hinge-door__count">{freezerItems.length}</span>
+                <span className="fridge-hinge-door__handle" aria-hidden="true" />
+                <span className="fridge-hinge-door__seal" aria-hidden="true" />
+              </span>
+              <span className="fridge-hinge-door__inside" aria-hidden="true">
+                <span className="fridge-hinge-door__inside-bin" />
+                <span className="fridge-hinge-door__inside-bin" />
+              </span>
             </span>
           </button>
 
@@ -357,12 +363,19 @@ export function GroceryView() {
             aria-label={door === 'fridge' ? 'Close fridge' : `Open fridge, ${coldCount} items`}
             onClick={() => openDoor('fridge')}
           >
-            <span className="fridge-hinge-door__face">
-              <span className="fridge-hinge-door__brand">Fridge</span>
-              <span className="fridge-hinge-door__count">{coldCount}</span>
-              <span className="fridge-hinge-door__handle" aria-hidden="true" />
-              <span className="fridge-hinge-door__dispense" aria-hidden="true" />
-              <span className="fridge-hinge-door__seal" aria-hidden="true" />
+            <span className="fridge-hinge-door__pivot">
+              <span className="fridge-hinge-door__face">
+                <span className="fridge-hinge-door__brand">Fridge</span>
+                <span className="fridge-hinge-door__count">{coldCount}</span>
+                <span className="fridge-hinge-door__handle" aria-hidden="true" />
+                <span className="fridge-hinge-door__dispense" aria-hidden="true" />
+                <span className="fridge-hinge-door__seal" aria-hidden="true" />
+              </span>
+              <span className="fridge-hinge-door__inside" aria-hidden="true">
+                <span className="fridge-hinge-door__inside-bin" />
+                <span className="fridge-hinge-door__inside-bin fridge-hinge-door__inside-bin--tall" />
+                <span className="fridge-hinge-door__inside-bin" />
+              </span>
             </span>
           </button>
         </div>

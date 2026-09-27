@@ -5045,12 +5045,8 @@ form.field {
   border: 0;
   padding: 0;
   background: transparent;
-  transform-origin: left center;
-  transform-style: preserve-3d;
-  transition: transform 640ms cubic-bezier(0.2, 0.75, 0.2, 1);
   z-index: 8;
   -webkit-tap-highlight-color: transparent;
-  will-change: transform;
 }
 
 .fridge-hinge-door--freezer {
@@ -5064,31 +5060,44 @@ form.field {
   height: auto;
 }
 
+.fridge-hinge-door__pivot {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition: transform 700ms cubic-bezier(0.18, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
 .fridge-hinge-door.is-open {
-  transform: rotateY(-105deg) translateZ(2px);
   pointer-events: none;
 }
 
-.fridge-hinge-door.is-open .fridge-hinge-door__face {
-  box-shadow:
-    -18px 12px 28px rgba(0, 0, 0, 0.28),
-    inset 4px 0 12px rgba(0, 0, 0, 0.12);
+.fridge-hinge-door.is-open .fridge-hinge-door__pivot {
+  transform: perspective(1000px) rotateY(-128deg);
+}
+
+.fridge-hinge-door:not(.is-open):hover .fridge-hinge-door__pivot {
+  transform: perspective(1000px) rotateY(-10deg);
 }
 
 .fridge-hinge-door:not(.is-open):hover .fridge-hinge-door__face {
   filter: brightness(1.03);
 }
 
-.fridge-hinge-door:not(.is-open):hover {
-  transform: rotateY(-6deg);
+.fridge-hinge-door__face,
+.fridge-hinge-door__inside {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .fridge-hinge-door__face {
-  position: relative;
   display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 12px;
   background:
     linear-gradient(105deg, rgba(255, 255, 255, 0.4), transparent 28%),
     linear-gradient(180deg, var(--fridge-steel-shine), var(--fridge-steel) 55%, var(--fridge-steel-deep));
@@ -5097,7 +5106,34 @@ form.field {
     inset -8px 0 16px rgba(0, 0, 0, 0.05),
     0 2px 0 rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  transition: box-shadow 560ms ease;
+  transform: translateZ(1px);
+}
+
+.fridge-hinge-door__inside {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 12px;
+  background:
+    linear-gradient(180deg, #243038, #171d22 60%, #101418);
+  box-shadow: inset 0 0 0 2px #0b0f12;
+  transform: rotateY(180deg) translateZ(1px);
+}
+
+.fridge-hinge-door__inside-bin {
+  flex: 1;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 8px 10px rgba(0, 0, 0, 0.25);
+}
+
+.fridge-hinge-door__inside-bin--tall {
+  flex: 1.4;
+}
+
+.fridge-hinge-door.is-open .fridge-hinge-door__pivot {
+  box-shadow: -20px 16px 36px rgba(0, 0, 0, 0.3);
 }
 
 .fridge-hinge-door__brand {
@@ -5178,9 +5214,9 @@ form.field {
   background: linear-gradient(90deg, #1a2228, #3a4650);
 }
 
-.fridge-stage.is-freezer .fridge-hinge-door--fridge,
-.fridge-stage.is-fridge .fridge-hinge-door--freezer {
-  filter: brightness(0.92);
+.fridge-stage.is-freezer .fridge-hinge-door--fridge .fridge-hinge-door__face,
+.fridge-stage.is-fridge .fridge-hinge-door--freezer .fridge-hinge-door__face {
+  opacity: 0.88;
 }
 
 .fridge-close-hint {
@@ -5248,14 +5284,14 @@ form.field {
     padding-right: 12px;
   }
 
-  .fridge-hinge-door.is-open {
-    transform: rotateY(-92deg) translateZ(2px);
+  .fridge-hinge-door.is-open .fridge-hinge-door__pivot {
+    transform: perspective(900px) rotateY(-118deg);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .fridge-body,
-  .fridge-hinge-door,
+  .fridge-hinge-door__pivot,
   .fridge-bay,
   .fridge-shelf--drawer .fridge-shelf__glass,
   .food-pack,
@@ -5267,10 +5303,10 @@ form.field {
 
   .fridge-hinge-door.is-open {
     opacity: 0;
-    transform: none;
   }
 
-  .fridge-hinge-door:not(.is-open):hover {
+  .fridge-hinge-door.is-open .fridge-hinge-door__pivot,
+  .fridge-hinge-door:not(.is-open):hover .fridge-hinge-door__pivot {
     transform: none;
   }
 }
