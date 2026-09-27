@@ -8,6 +8,24 @@ import {
 } from '../lib/fridge';
 import { FormSheet } from './FormSheet';
 
+const KIND_GLYPH = {
+  dairy: '◇',
+  produce: '◉',
+  meat: '▣',
+  beverage: '◈',
+  frozen: '❄',
+  condiment: '◍',
+  bakery: '▢',
+  leftover: '◐',
+  other: '○',
+};
+
+function shortName(name) {
+  const text = (name || '').trim();
+  if (text.length <= 18) return text;
+  return `${text.slice(0, 16)}…`;
+}
+
 function FridgeForm({ item, defaultZone, onSave, onDelete, onClose }) {
   const [form, setForm] = useState(() => ({
     name: item?.name || '',
@@ -124,76 +142,77 @@ function FridgeForm({ item, defaultZone, onSave, onDelete, onClose }) {
         <button type="submit" className="btn btn--primary" disabled={!canSave}>
           Save
         </button>
-        {item && onDelete && (
-          <button
-            type="button"
-            className="btn btn--danger"
-            onClick={() => {
-              onDelete(item.id);
-              onClose();
-            }}
-          >
-            Delete
-          </button>
+        {item && (
+          <>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                onSave({ ...form, markOut: !item.checked });
+              }}
+            >
+              {item.checked ? 'Put back in fridge' : 'Mark out'}
+            </button>
+            {onDelete && (
+              <button
+                type="button"
+                className="btn btn--danger"
+                onClick={() => {
+                  onDelete(item.id);
+                  onClose();
+                }}
+              >
+                Delete
+              </button>
+            )}
+          </>
         )}
       </form>
     </FormSheet>
   );
 }
 
-function FridgeChip({ item, onEdit, onToggle }) {
-  const meta = [item.brand, item.quantity].filter(Boolean).join(' · ');
+function FoodPack({ item, index, onEdit }) {
+  const kind = item.kind || 'other';
+  const title = [item.brand, item.name, item.quantity].filter(Boolean).join(' · ');
   return (
-    <li className={`fridge-chip fridge-chip--${item.kind || 'other'} ${item.checked ? 'is-out' : ''}`}>
-      <button type="button" className="fridge-chip__body" onClick={onEdit}>
-        <span className="fridge-chip__name">{item.name}</span>
-        {meta ? <span className="fridge-chip__meta">{meta}</span> : null}
-      </button>
-      <button
-        type="button"
-        className="fridge-chip__out"
-        onClick={() => onToggle(item.id)}
-        aria-pressed={item.checked}
-      >
-        {item.checked ? 'Back' : 'Out'}
-      </button>
-    </li>
+    <button
+      type="button"
+      className={`food-pack food-pack--${kind}`}
+      style={{ '--pack-delay': `${Math.min(index, 12) * 28}ms` }}
+      title={title}
+      onClick={onEdit}
+    >
+      <span className="food-pack__glyph" aria-hidden="true">
+        {KIND_GLYPH[kind] || KIND_GLYPH.other}
+      </span>
+      <span className="food-pack__name">{shortName(item.name)}</span>
+      {item.brand ? <span className="food-pack__brand">{item.brand}</span> : null}
+    </button>
   );
 }
 
-function ZoneShelf({ section, open, onToggleOpen, onEdit, onToggle, onAdd }) {
-  const count = section.items.length;
+function ShelfRow({ label, items, onEdit, onAdd, drawer }) {
   return (
-    <section className={`fridge-zone ${open ? 'is-open' : ''}`}>
-      <button type="button" className="fridge-zone__head" onClick={onToggleOpen}>
-        <span className="fridge-zone__label">{section.label}</span>
-        <span className="fridge-zone__count">{count ? `${count} in stock` : 'Empty'}</span>
-        <span className="fridge-zone__chev" aria-hidden="true">
-          {open ? '▾' : '▸'}
-        </span>
-      </button>
-      {open && (
-        <div className="fridge-zone__body">
-          {count === 0 ? (
-            <p className="fridge-zone__empty">Nothing here yet.</p>
-          ) : (
-            <ul className="fridge-chip-list">
-              {section.items.map((item) => (
-                <FridgeChip
-                  key={item.id}
-                  item={item}
-                  onEdit={() => onEdit(item)}
-                  onToggle={onToggle}
-                />
-              ))}
-            </ul>
-          )}
-          <button type="button" className="text-btn fridge-zone__add" onClick={onAdd}>
-            Add to {section.label.toLowerCase()}
-          </button>
-        </div>
-      )}
-    </section>
+    <div className={`fridge-shelf ${drawer ? 'fridge-shelf--drawer' : ''}`}>
+      <div className="fridge-shelf__rail">
+        <span className="fridge-shelf__label">{label}</span>
+        <button type="button" className="fridge-shelf__add" onClick={onAdd}>
+          +
+        </button>
+      </div>
+      <div className="fridge-shelf__glass">
+        {items.length === 0 ? (
+          <p className="fridge-shelf__empty">Empty</p>
+        ) : (
+          <div className="food-pack-row">
+            {items.map((item, index) => (
+              <FoodPack key={item.id} item={item} index={index} onEdit={() => onEdit(item)} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -209,18 +228,27 @@ export function GroceryView() {
   } = useLife();
   const grouped = useMemo(() => groupFridgeItems(groceryItems), [groceryItems]);
   const [door, setDoor] = useState('closed');
-  const [openZones, setOpenZones] = useState(() => new Set(['fridge', 'dairy', 'produce']));
   const [editing, setEditing] = useState(null);
   const [showOut, setShowOut] = useState(false);
 
-  // Pull in any newly recognized photo products when you open Fridge.
   useEffect(() => {
     seedFridgeFromPhotos();
   }, [seedFridgeFromPhotos]);
 
-  const freezer = grouped.sections.find((s) => s.id === 'freezer');
-  const cold = grouped.sections.filter((s) => s.id !== 'freezer');
+  const byId = useMemo(() => {
+    const map = Object.fromEntries(grouped.sections.map((s) => [s.id, s.items]));
+    return map;
+  }, [grouped.sections]);
+
+  const freezerItems = byId.freezer || [];
+  const fridgeItems = byId.fridge || [];
+  const dairyItems = byId.dairy || [];
+  const produceItems = byId.produce || [];
+  const doorItems = byId.door || [];
+  const coldCount = fridgeItems.length + dairyItems.length + produceItems.length + doorItems.length;
   const stockedCount = grouped.stocked.length;
+
+  const openDoor = (next) => setDoor((current) => (current === next ? 'closed' : next));
 
   const save = (form) => {
     const fields = {
@@ -232,18 +260,14 @@ export function GroceryView() {
       expiresOn: form.expiresOn || null,
       notes: form.notes.trim(),
     };
-    if (editing?.id) updateGroceryItem(editing.id, fields);
-    else addGroceryItem(fields);
+    if (editing?.id) {
+      updateGroceryItem(editing.id, fields);
+      if (form.markOut === true && !editing.checked) toggleGroceryItem(editing.id);
+      if (form.markOut === false && editing.checked) toggleGroceryItem(editing.id);
+    } else {
+      addGroceryItem(fields);
+    }
     setEditing(null);
-  };
-
-  const toggleZone = (id) => {
-    setOpenZones((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
   };
 
   return (
@@ -257,76 +281,96 @@ export function GroceryView() {
 
       <p className="fridge-lede">
         {stockedCount
-          ? `${stockedCount} things in the kitchen — open a door to look around.`
-          : 'Your virtual fridge is empty. Add what you have on hand.'}
+          ? `${stockedCount} things inside — pull a handle to open.`
+          : 'Empty fridge. Add what you have on hand.'}
       </p>
 
-      <div className={`fridge-appliance ${door === 'closed' ? 'is-closed' : `is-open is-open--${door}`}`}>
-        {door === 'closed' ? (
-          <div className="fridge-doors" role="group" aria-label="Open the fridge">
-            <button
-              type="button"
-              className="fridge-door fridge-door--freezer"
-              onClick={() => setDoor('freezer')}
-            >
-              <span className="fridge-door__label">Freezer</span>
-              <span className="fridge-door__hint">
-                {freezer?.items.length || 0} items · tap to open
-              </span>
-              <span className="fridge-door__handle" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="fridge-door fridge-door--fridge"
-              onClick={() => setDoor('fridge')}
-            >
-              <span className="fridge-door__label">Fridge</span>
-              <span className="fridge-door__hint">
-                {cold.reduce((n, s) => n + s.items.length, 0)} items · tap to open
-              </span>
-              <span className="fridge-door__handle" aria-hidden="true" />
-            </button>
-          </div>
-        ) : (
-          <div className="fridge-interior">
-            <div className="fridge-interior__bar">
-              <button type="button" className="chip" onClick={() => setDoor('closed')}>
-                Close door
-              </button>
-              <div className="fridge-interior__tabs">
-                <button
-                  type="button"
-                  className={`chip ${door === 'freezer' ? 'is-on' : ''}`}
-                  onClick={() => setDoor('freezer')}
-                >
-                  Freezer
-                </button>
-                <button
-                  type="button"
-                  className={`chip ${door === 'fridge' ? 'is-on' : ''}`}
-                  onClick={() => setDoor('fridge')}
-                >
-                  Fridge
-                </button>
-              </div>
+      <div
+        className={`fridge-stage is-${door}`}
+        data-door={door}
+      >
+        <div className="fridge-body" aria-label="Virtual fridge">
+          <div className="fridge-body__frame" aria-hidden="true" />
+          <div className="fridge-body__vent" aria-hidden="true" />
+
+          <div className="fridge-cavity">
+            <div className={`fridge-cavity__light ${door !== 'closed' ? 'is-on' : ''}`} aria-hidden="true" />
+
+            <div className={`fridge-bay fridge-bay--freezer ${door === 'freezer' ? 'is-shown' : ''}`}>
+              <ShelfRow
+                label="Freezer"
+                items={freezerItems}
+                onEdit={setEditing}
+                onAdd={() => setEditing({ zone: 'freezer', kind: 'frozen' })}
+              />
             </div>
 
-            <div className="fridge-interior__glow" aria-hidden="true" />
-
-            {(door === 'freezer' ? [freezer] : cold).map((section) =>
-              section ? (
-                <ZoneShelf
-                  key={section.id}
-                  section={section}
-                  open={door === 'freezer' ? true : openZones.has(section.id)}
-                  onToggleOpen={() => toggleZone(section.id)}
-                  onEdit={setEditing}
-                  onToggle={toggleGroceryItem}
-                  onAdd={() => setEditing({ zone: section.id })}
-                />
-              ) : null
-            )}
+            <div className={`fridge-bay fridge-bay--cold ${door === 'fridge' ? 'is-shown' : ''}`}>
+              <ShelfRow
+                label="Top shelf"
+                items={[...doorItems, ...fridgeItems.slice(0, Math.ceil(fridgeItems.length / 2))]}
+                onEdit={setEditing}
+                onAdd={() => setEditing({ zone: 'fridge' })}
+              />
+              <ShelfRow
+                label="Middle shelf"
+                items={fridgeItems.slice(Math.ceil(fridgeItems.length / 2))}
+                onEdit={setEditing}
+                onAdd={() => setEditing({ zone: 'fridge' })}
+              />
+              <ShelfRow
+                label="Dairy drawer"
+                items={dairyItems}
+                drawer
+                onEdit={setEditing}
+                onAdd={() => setEditing({ zone: 'dairy', kind: 'dairy' })}
+              />
+              <ShelfRow
+                label="Produce drawer"
+                items={produceItems}
+                drawer
+                onEdit={setEditing}
+                onAdd={() => setEditing({ zone: 'produce', kind: 'produce' })}
+              />
+            </div>
           </div>
+
+          <button
+            type="button"
+            className={`fridge-hinge-door fridge-hinge-door--freezer ${door === 'freezer' ? 'is-open' : ''}`}
+            aria-expanded={door === 'freezer'}
+            aria-label={door === 'freezer' ? 'Close freezer' : `Open freezer, ${freezerItems.length} items`}
+            onClick={() => openDoor('freezer')}
+          >
+            <span className="fridge-hinge-door__face">
+              <span className="fridge-hinge-door__brand">Freezer</span>
+              <span className="fridge-hinge-door__count">{freezerItems.length}</span>
+              <span className="fridge-hinge-door__handle" aria-hidden="true" />
+              <span className="fridge-hinge-door__seal" aria-hidden="true" />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={`fridge-hinge-door fridge-hinge-door--fridge ${door === 'fridge' ? 'is-open' : ''}`}
+            aria-expanded={door === 'fridge'}
+            aria-label={door === 'fridge' ? 'Close fridge' : `Open fridge, ${coldCount} items`}
+            onClick={() => openDoor('fridge')}
+          >
+            <span className="fridge-hinge-door__face">
+              <span className="fridge-hinge-door__brand">Fridge</span>
+              <span className="fridge-hinge-door__count">{coldCount}</span>
+              <span className="fridge-hinge-door__handle" aria-hidden="true" />
+              <span className="fridge-hinge-door__dispense" aria-hidden="true" />
+              <span className="fridge-hinge-door__seal" aria-hidden="true" />
+            </span>
+          </button>
+        </div>
+
+        {door !== 'closed' && (
+          <button type="button" className="fridge-close-hint" onClick={() => setDoor('closed')}>
+            Close door
+          </button>
         )}
       </div>
 
@@ -348,14 +392,17 @@ export function GroceryView() {
             </button>
           </div>
           {showOut && (
-            <ul className="fridge-chip-list fridge-chip-list--out">
+            <ul className="fridge-out-list">
               {grouped.out.map((item) => (
-                <FridgeChip
-                  key={item.id}
-                  item={item}
-                  onEdit={() => setEditing(item)}
-                  onToggle={toggleGroceryItem}
-                />
+                <li key={item.id}>
+                  <button type="button" className="fridge-out-row" onClick={() => setEditing(item)}>
+                    <span>{item.name}</span>
+                    <span className="fridge-out-row__meta">{item.brand || 'Out'}</span>
+                  </button>
+                  <button type="button" className="text-btn" onClick={() => toggleGroceryItem(item.id)}>
+                    Back
+                  </button>
+                </li>
               ))}
             </ul>
           )}
