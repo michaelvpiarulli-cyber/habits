@@ -16,13 +16,17 @@ import {
   bookProgress,
   budgetProgress,
   clampPage,
-  groupGroceryItems,
   groupTasks,
   moneyForMonth,
-  normalizeGroceryAisle,
   pipelineCounts,
   roundMoney,
 } from '../src/lib/life.js';
+import {
+  groupFridgeItems,
+  mergePhotoFridge,
+  normalizeFridgeZone,
+  PHOTO_FRIDGE_ITEMS,
+} from '../src/lib/fridge.js';
 
 let failed = 0;
 
@@ -82,30 +86,44 @@ test('groupTasks splits overdue, today, upcoming, undated, and done', () => {
   assert.equal(grouped.open.length, 4);
 });
 
-test('groupGroceryItems splits by aisle and keeps checked separate', () => {
-  const grouped = groupGroceryItems([
-    stamp('a', { name: 'Spinach', aisle: 'produce', checked: false }),
-    stamp('b', { name: 'Milk', aisle: 'dairy', checked: false }),
-    stamp('c', { name: 'Apples', aisle: 'produce', checked: false }),
-    stamp('d', { name: 'Eggs', aisle: 'dairy', checked: true, checkedAt: '2026-08-16T12:00:00.000Z' }),
-    stamp('e', { name: 'Gone', aisle: 'pantry', checked: false, deleted: true }),
-    stamp('f', { name: 'Mystery', aisle: 'weird', checked: false }),
+test('groupFridgeItems splits by zone and keeps finished food separate', () => {
+  const grouped = groupFridgeItems([
+    stamp('a', { name: 'Spinach', zone: 'produce', kind: 'produce', checked: false }),
+    stamp('b', { name: 'Milk', zone: 'dairy', kind: 'dairy', checked: false }),
+    stamp('c', { name: 'Apples', zone: 'produce', kind: 'produce', checked: false }),
+    stamp('d', { name: 'Eggs', zone: 'dairy', kind: 'dairy', checked: true, checkedAt: '2026-08-16T12:00:00.000Z' }),
+    stamp('e', { name: 'Gone', zone: 'fridge', checked: false, deleted: true }),
+    stamp('f', { name: 'Otter Pops', zone: 'freezer', kind: 'frozen', checked: false }),
+    stamp('g', { name: 'Legacy aisle', aisle: 'beverages', checked: false }),
   ]);
   assert.deepEqual(
     grouped.sections.map((s) => s.id),
-    ['produce', 'dairy', 'other']
+    ['freezer', 'fridge', 'dairy', 'produce', 'door']
   );
   assert.deepEqual(
-    grouped.sections[0].items.map((i) => i.id),
+    grouped.sections.find((s) => s.id === 'produce').items.map((i) => i.id),
     ['c', 'a']
   );
   assert.deepEqual(
-    grouped.checked.map((i) => i.id),
+    grouped.out.map((i) => i.id),
     ['d']
   );
-  assert.equal(grouped.open.length, 4);
-  assert.equal(normalizeGroceryAisle('dairy'), 'dairy');
-  assert.equal(normalizeGroceryAisle('weird'), 'other');
+  assert.equal(grouped.stocked.length, 5);
+  assert.equal(normalizeFridgeZone('beverages'), 'fridge');
+  assert.equal(normalizeFridgeZone('weird'), 'fridge');
+});
+
+test('photo fridge seed covers freezer, fridge, dairy, produce, and door', () => {
+  assert.ok(PHOTO_FRIDGE_ITEMS.length >= 40);
+  const zones = new Set(PHOTO_FRIDGE_ITEMS.map((item) => item.zone));
+  assert.ok(zones.has('freezer'));
+  assert.ok(zones.has('fridge'));
+  assert.ok(zones.has('dairy'));
+  assert.ok(zones.has('produce'));
+  assert.ok(zones.has('door'));
+  const { list, added } = mergePhotoFridge([]);
+  assert.equal(added.length, PHOTO_FRIDGE_ITEMS.length);
+  assert.equal(mergePhotoFridge(list).added.length, 0);
 });
 
 test('book progress is current/total and finishing clamps to the last page', () => {

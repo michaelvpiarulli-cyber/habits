@@ -311,19 +311,24 @@ create index if not exists tasks_user_due_idx
   on public.tasks (user_id, due_date);
 
 -- ------------------------------------------------------------ grocery_items --
--- Shopping list items grouped by aisle. Checked items stay until cleared.
+-- Virtual fridge inventory: where it lives (zone) and what kind of food it is.
+-- checked means finished / out; clear soft-deletes those rows.
 
 create table if not exists public.grocery_items (
   id           uuid primary key,
   user_id      uuid        not null references auth.users (id) on delete cascade,
   name         text        not null,
+  brand        text,
   quantity     text,
-  aisle        text        not null default 'other'
-                 check (aisle in (
-                   'produce', 'dairy', 'meat', 'bakery', 'frozen',
-                   'pantry', 'beverages', 'household', 'other'
+  zone         text        not null default 'fridge'
+                 check (zone in ('freezer', 'fridge', 'dairy', 'produce', 'door')),
+  kind         text        not null default 'other'
+                 check (kind in (
+                   'dairy', 'produce', 'meat', 'beverage', 'frozen',
+                   'condiment', 'bakery', 'leftover', 'other'
                  )),
   notes        text,
+  expires_on   date,
   checked      boolean     not null default false,
   checked_at   timestamptz,
   deleted      boolean     not null default false,
@@ -331,8 +336,8 @@ create table if not exists public.grocery_items (
   updated_at   timestamptz not null default now()
 );
 
-create index if not exists grocery_items_user_aisle_idx
-  on public.grocery_items (user_id, aisle)
+create index if not exists grocery_items_user_zone_idx
+  on public.grocery_items (user_id, zone)
   where not deleted;
 
 -- -------------------------------------------------------- calendar_events --

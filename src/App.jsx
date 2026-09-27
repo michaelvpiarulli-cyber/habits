@@ -30,7 +30,7 @@ const MORE_PAGES = {
   habits: { View: HabitsView, title: 'Habits' },
   identity: { View: IdentityView, title: 'Identity' },
   books: { View: BooksView, title: 'Books' },
-  grocery: { View: GroceryView, title: 'Grocery' },
+  grocery: { View: GroceryView, title: 'Fridge' },
   jobs: { View: JobsView, title: 'Jobs' },
   money: { View: MoneyView, title: 'Money' },
   mail: { View: MailView, title: 'Mail' },

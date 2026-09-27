@@ -1,26 +1,31 @@
--- Tally — grocery list table
+-- Tally — grocery / virtual fridge table
 -- Run this once in the Supabase dashboard: SQL Editor → New query → paste → Run.
 -- Safe to re-run. Existing habit / life tables are untouched.
 --
 -- Same contract as the rest of Tally: client-generated uuids, soft deletes,
 -- last-write-wins via updated_at, and RLS so a signed-in user can only ever
 -- touch their own rows.
+--
+-- If you already ran an older aisle-based version, also run add-fridge.sql.
 
 -- ------------------------------------------------------------ grocery_items --
--- Shopping list items grouped by aisle. Checked items stay until cleared so
--- you can uncheck a miss; clear-checked soft-deletes them.
+-- Virtual fridge inventory grouped by zone (freezer, shelves, drawers, door).
 
 create table if not exists public.grocery_items (
   id           uuid primary key,
   user_id      uuid        not null references auth.users (id) on delete cascade,
   name         text        not null,
+  brand        text,
   quantity     text,
-  aisle        text        not null default 'other'
-                 check (aisle in (
-                   'produce', 'dairy', 'meat', 'bakery', 'frozen',
-                   'pantry', 'beverages', 'household', 'other'
+  zone         text        not null default 'fridge'
+                 check (zone in ('freezer', 'fridge', 'dairy', 'produce', 'door')),
+  kind         text        not null default 'other'
+                 check (kind in (
+                   'dairy', 'produce', 'meat', 'beverage', 'frozen',
+                   'condiment', 'bakery', 'leftover', 'other'
                  )),
   notes        text,
+  expires_on   date,
   checked      boolean     not null default false,
   checked_at   timestamptz,
   deleted      boolean     not null default false,
@@ -28,8 +33,8 @@ create table if not exists public.grocery_items (
   updated_at   timestamptz not null default now()
 );
 
-create index if not exists grocery_items_user_aisle_idx
-  on public.grocery_items (user_id, aisle)
+create index if not exists grocery_items_user_zone_idx
+  on public.grocery_items (user_id, zone)
   where not deleted;
 
 alter table public.grocery_items enable row level security;
@@ -54,7 +59,6 @@ end $$;
 
 grant select, insert, update, delete on public.grocery_items to anon, authenticated;
 
--- Extend purge_deleted so grocery tombstones age out with the rest.
 create or replace function public.purge_deleted(older_than interval default '90 days')
 returns void
 language sql

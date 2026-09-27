@@ -19,7 +19,7 @@ const GROUPS = [
     label: 'Life',
     pages: [
       { id: 'books', label: 'Books' },
-      { id: 'grocery', label: 'Grocery' },
+      { id: 'grocery', label: 'Fridge' },
       { id: 'money', label: 'Money' },
       { id: 'identity', label: 'Identity' },
     ],

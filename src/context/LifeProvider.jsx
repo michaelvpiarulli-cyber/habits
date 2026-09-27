@@ -38,7 +38,8 @@ import {
   taskFromRow,
   taskToRow,
 } from '../lib/lifeMappers';
-import { clampPage, living, normalizeGroceryAisle, roundMoney } from '../lib/life';
+import { clampPage, living, roundMoney } from '../lib/life';
+import { mergePhotoFridge, normalizeFridgeKind, normalizeFridgeZone } from '../lib/fridge';
 
 const KINDS = [
   'tasks',
@@ -76,7 +77,7 @@ const isRlsViolation = (error) =>
 const isUniqueViolation = (error) =>
   error?.code === '23505' || /duplicate key/i.test(error?.message || '');
 const MISSING_TABLE_SQL = {
-  grocery_items: 'supabase/add-grocery.sql',
+  grocery_items: 'supabase/add-grocery.sql (then supabase/add-fridge.sql if upgrading)',
 };
 const missingTableMessage = (table) => {
   const sql = MISSING_TABLE_SQL[table] || 'supabase/add-life-dashboard.sql';
@@ -180,10 +181,15 @@ export function LifeProvider({ children }) {
         );
       }
     }
+    const fridgeSeed = mergePhotoFridge(next.grocery);
+    next = { ...next, grocery: fridgeSeed.list };
     setStore(next);
     setStorageScope(desiredScope);
     setSyncState(user ? 'syncing' : 'idle');
-  }, [desiredScope, storageScope, user]);
+    if (user && fridgeSeed.added.length) {
+      fridgeSeed.added.forEach((row) => markDirty('grocery', row.id));
+    }
+  }, [desiredScope, storageScope, user, markDirty]);
 
   useEffect(() => {
     if (!user || storageScope !== user.id) return;
@@ -572,9 +578,12 @@ export function LifeProvider({ children }) {
     (fields) =>
       addRecord('grocery', {
         name: fields.name.trim(),
+        brand: fields.brand || '',
         quantity: fields.quantity || '',
-        aisle: normalizeGroceryAisle(fields.aisle),
+        zone: normalizeFridgeZone(fields.zone || fields.aisle),
+        kind: normalizeFridgeKind(fields.kind),
         notes: fields.notes || '',
+        expiresOn: fields.expiresOn || null,
         checked: false,
         checkedAt: null,
       }),
@@ -585,7 +594,10 @@ export function LifeProvider({ children }) {
     (id, patch) =>
       updateRecord('grocery', id, {
         ...patch,
-        ...(patch.aisle !== undefined ? { aisle: normalizeGroceryAisle(patch.aisle) } : {}),
+        ...(patch.zone !== undefined || patch.aisle !== undefined
+          ? { zone: normalizeFridgeZone(patch.zone || patch.aisle) }
+          : {}),
+        ...(patch.kind !== undefined ? { kind: normalizeFridgeKind(patch.kind) } : {}),
       }),
     [updateRecord]
   );
@@ -602,13 +614,24 @@ export function LifeProvider({ children }) {
     [updateRecord]
   );
 
-  const clearCheckedGroceryItems = useCallback(() => {
+  const clearOutGroceryItems = useCallback(() => {
     for (const item of latest.current.grocery) {
       if (!item.deleted && item.checked) {
         updateRecord('grocery', item.id, { deleted: true });
       }
     }
   }, [updateRecord]);
+
+  const seedFridgeFromPhotos = useCallback(() => {
+    const { added } = mergePhotoFridge(latest.current.grocery);
+    if (!added.length) return 0;
+    setStore((prev) => {
+      const merged = mergePhotoFridge(prev.grocery);
+      return { ...prev, grocery: merged.list };
+    });
+    added.forEach((row) => markDirty('grocery', row.id));
+    return added.length;
+  }, [markDirty]);
 
   const snapshot = useCallback(
     () => ({
@@ -639,8 +662,8 @@ export function LifeProvider({ children }) {
     );
     const budgets = living(store.budgets);
     const groceryItems = living(store.grocery).sort((a, b) => {
-      const aisle = (a.aisle || '').localeCompare(b.aisle || '');
-      if (aisle) return aisle;
+      const zone = (a.zone || a.aisle || '').localeCompare(b.zone || b.aisle || '');
+      if (zone) return zone;
       return (a.name || '').localeCompare(b.name || '');
     });
 
@@ -680,7 +703,8 @@ export function LifeProvider({ children }) {
       updateGroceryItem,
       toggleGroceryItem,
       deleteGroceryItem: (id) => deleteRecord('grocery', id),
-      clearCheckedGroceryItems,
+      clearOutGroceryItems,
+      seedFridgeFromPhotos,
       snapshot,
       syncState,
       syncError,
@@ -702,7 +726,8 @@ export function LifeProvider({ children }) {
     addGroceryItem,
     updateGroceryItem,
     toggleGroceryItem,
-    clearCheckedGroceryItems,
+    clearOutGroceryItems,
+    seedFridgeFromPhotos,
     deleteRecord,
     updateRecord,
     snapshot,
