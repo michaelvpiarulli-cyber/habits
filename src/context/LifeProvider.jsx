@@ -1,5 +1,6 @@
 /**
- * Life-dashboard collections: tasks, calendar events, books, jobs, money.
+ * Life-dashboard collections: tasks, calendar events, books, jobs, money,
+ * grocery.
  *
  * Same local-first contract as DataProvider — localStorage is the source of
  * truth, Supabase is a merge on sign-in and a debounced push of dirty rows.
@@ -30,14 +31,25 @@ import {
   entryToRow,
   eventFromRow,
   eventToRow,
+  groceryFromRow,
+  groceryToRow,
   jobFromRow,
   jobToRow,
   taskFromRow,
   taskToRow,
 } from '../lib/lifeMappers';
-import { clampPage, living, roundMoney } from '../lib/life';
+import { clampPage, living, normalizeGroceryAisle, roundMoney } from '../lib/life';
 
-const KINDS = ['tasks', 'events', 'books', 'jobs', 'accounts', 'entries', 'budgets'];
+const KINDS = [
+  'tasks',
+  'events',
+  'books',
+  'jobs',
+  'accounts',
+  'entries',
+  'budgets',
+  'grocery',
+];
 
 const TABLES = {
   tasks: { table: 'tasks', from: taskFromRow, to: taskToRow },
@@ -47,6 +59,7 @@ const TABLES = {
   accounts: { table: 'finance_accounts', from: accountFromRow, to: accountToRow },
   entries: { table: 'finance_entries', from: entryFromRow, to: entryToRow },
   budgets: { table: 'finance_budgets', from: budgetFromRow, to: budgetToRow },
+  grocery: { table: 'grocery_items', from: groceryFromRow, to: groceryToRow },
 };
 
 const KEY = (kind) => `tally-${kind}`;
@@ -62,8 +75,13 @@ const isRlsViolation = (error) =>
   error?.code === '42501' || /row-level security/i.test(error?.message || '');
 const isUniqueViolation = (error) =>
   error?.code === '23505' || /duplicate key/i.test(error?.message || '');
-const missingTableMessage = (table) =>
-  `${table}: missing in Supabase — run supabase/add-life-dashboard.sql in the SQL editor, then Sync now`;
+const MISSING_TABLE_SQL = {
+  grocery_items: 'supabase/add-grocery.sql',
+};
+const missingTableMessage = (table) => {
+  const sql = MISSING_TABLE_SQL[table] || 'supabase/add-life-dashboard.sql';
+  return `${table}: missing in Supabase — run ${sql} in the SQL editor, then Sync now`;
+};
 
 function emptyStore() {
   return Object.fromEntries(KINDS.map((kind) => [kind, []]));
@@ -550,6 +568,48 @@ export function LifeProvider({ children }) {
     [addRecord]
   );
 
+  const addGroceryItem = useCallback(
+    (fields) =>
+      addRecord('grocery', {
+        name: fields.name.trim(),
+        quantity: fields.quantity || '',
+        aisle: normalizeGroceryAisle(fields.aisle),
+        notes: fields.notes || '',
+        checked: false,
+        checkedAt: null,
+      }),
+    [addRecord]
+  );
+
+  const updateGroceryItem = useCallback(
+    (id, patch) =>
+      updateRecord('grocery', id, {
+        ...patch,
+        ...(patch.aisle !== undefined ? { aisle: normalizeGroceryAisle(patch.aisle) } : {}),
+      }),
+    [updateRecord]
+  );
+
+  const toggleGroceryItem = useCallback(
+    (id) => {
+      const item = latest.current.grocery.find((row) => row.id === id);
+      if (!item) return;
+      updateRecord('grocery', id, {
+        checked: !item.checked,
+        checkedAt: item.checked ? null : nowISO(),
+      });
+    },
+    [updateRecord]
+  );
+
+  const clearCheckedGroceryItems = useCallback(() => {
+    for (const item of latest.current.grocery) {
+      if (!item.deleted && item.checked) {
+        updateRecord('grocery', item.id, { deleted: true });
+      }
+    }
+  }, [updateRecord]);
+
   const snapshot = useCallback(
     () => ({
       tasks: store.tasks,
@@ -559,6 +619,7 @@ export function LifeProvider({ children }) {
       accounts: store.accounts,
       entries: store.entries,
       budgets: store.budgets,
+      grocery: store.grocery,
     }),
     [store]
   );
@@ -577,6 +638,11 @@ export function LifeProvider({ children }) {
       b.day.localeCompare(a.day) || b.createdAt.localeCompare(a.createdAt)
     );
     const budgets = living(store.budgets);
+    const groceryItems = living(store.grocery).sort((a, b) => {
+      const aisle = (a.aisle || '').localeCompare(b.aisle || '');
+      if (aisle) return aisle;
+      return (a.name || '').localeCompare(b.name || '');
+    });
 
     return {
       tasks,
@@ -586,6 +652,7 @@ export function LifeProvider({ children }) {
       accounts,
       entries,
       budgets,
+      groceryItems,
       addTask,
       updateTask,
       toggleTask,
@@ -609,6 +676,11 @@ export function LifeProvider({ children }) {
       addBudget,
       updateBudget: (id, patch) => updateRecord('budgets', id, patch),
       deleteBudget: (id) => deleteRecord('budgets', id),
+      addGroceryItem,
+      updateGroceryItem,
+      toggleGroceryItem,
+      deleteGroceryItem: (id) => deleteRecord('grocery', id),
+      clearCheckedGroceryItems,
       snapshot,
       syncState,
       syncError,
@@ -627,6 +699,10 @@ export function LifeProvider({ children }) {
     addAccount,
     addEntry,
     addBudget,
+    addGroceryItem,
+    updateGroceryItem,
+    toggleGroceryItem,
+    clearCheckedGroceryItems,
     deleteRecord,
     updateRecord,
     snapshot,

@@ -16,8 +16,10 @@ import {
   bookProgress,
   budgetProgress,
   clampPage,
+  groupGroceryItems,
   groupTasks,
   moneyForMonth,
+  normalizeGroceryAisle,
   pipelineCounts,
   roundMoney,
 } from '../src/lib/life.js';
@@ -78,6 +80,32 @@ test('groupTasks splits overdue, today, upcoming, undated, and done', () => {
     ['e']
   );
   assert.equal(grouped.open.length, 4);
+});
+
+test('groupGroceryItems splits by aisle and keeps checked separate', () => {
+  const grouped = groupGroceryItems([
+    stamp('a', { name: 'Spinach', aisle: 'produce', checked: false }),
+    stamp('b', { name: 'Milk', aisle: 'dairy', checked: false }),
+    stamp('c', { name: 'Apples', aisle: 'produce', checked: false }),
+    stamp('d', { name: 'Eggs', aisle: 'dairy', checked: true, checkedAt: '2026-08-16T12:00:00.000Z' }),
+    stamp('e', { name: 'Gone', aisle: 'pantry', checked: false, deleted: true }),
+    stamp('f', { name: 'Mystery', aisle: 'weird', checked: false }),
+  ]);
+  assert.deepEqual(
+    grouped.sections.map((s) => s.id),
+    ['produce', 'dairy', 'other']
+  );
+  assert.deepEqual(
+    grouped.sections[0].items.map((i) => i.id),
+    ['c', 'a']
+  );
+  assert.deepEqual(
+    grouped.checked.map((i) => i.id),
+    ['d']
+  );
+  assert.equal(grouped.open.length, 4);
+  assert.equal(normalizeGroceryAisle('dairy'), 'dairy');
+  assert.equal(normalizeGroceryAisle('weird'), 'other');
 });
 
 test('book progress is current/total and finishing clamps to the last page', () => {

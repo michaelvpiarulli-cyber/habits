@@ -12,6 +12,7 @@ import { IdentityView } from './components/IdentityView';
 import { TasksView } from './components/TasksView';
 import { CalendarView } from './components/CalendarView';
 import { BooksView } from './components/BooksView';
+import { GroceryView } from './components/GroceryView';
 import { JobsView } from './components/JobsView';
 import { MoneyView } from './components/MoneyView';
 import { MailView } from './components/MailView';
@@ -29,6 +30,7 @@ const MORE_PAGES = {
   habits: { View: HabitsView, title: 'Habits' },
   identity: { View: IdentityView, title: 'Identity' },
   books: { View: BooksView, title: 'Books' },
+  grocery: { View: GroceryView, title: 'Grocery' },
   jobs: { View: JobsView, title: 'Jobs' },
   money: { View: MoneyView, title: 'Money' },
   mail: { View: MailView, title: 'Mail' },

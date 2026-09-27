@@ -1,6 +1,7 @@
 /**
- * Domain rules for the life-dashboard collections: tasks, books, jobs, money.
- * Pure functions so the views stay thin and the tests do not need a browser.
+ * Domain rules for the life-dashboard collections: tasks, books, jobs, money,
+ * grocery. Pure functions so the views stay thin and the tests do not need a
+ * browser.
  */
 
 import { addDays } from './dates.js';
@@ -59,6 +60,51 @@ export const EXPENSE_CATEGORIES = [
 ];
 
 export const INCOME_CATEGORIES = ['Pay', 'Gift', 'Other'];
+
+export const GROCERY_AISLES = [
+  ['produce', 'Produce'],
+  ['dairy', 'Dairy'],
+  ['meat', 'Meat & seafood'],
+  ['bakery', 'Bakery'],
+  ['frozen', 'Frozen'],
+  ['pantry', 'Pantry'],
+  ['beverages', 'Beverages'],
+  ['household', 'Household'],
+  ['other', 'Other'],
+];
+
+const GROCERY_AISLE_IDS = new Set(GROCERY_AISLES.map(([id]) => id));
+
+export function normalizeGroceryAisle(aisle) {
+  return GROCERY_AISLE_IDS.has(aisle) ? aisle : 'other';
+}
+
+/**
+ * Open grocery items grouped by aisle order, with checked items in their own
+ * list so the shopping set stays short.
+ */
+export function groupGroceryItems(items) {
+  const open = living(items).filter((item) => !item.checked);
+  const checked = living(items)
+    .filter((item) => item.checked)
+    .sort((a, b) =>
+      (b.checkedAt || b.updatedAt || '').localeCompare(a.checkedAt || a.updatedAt || '')
+    );
+
+  const byAisle = Object.fromEntries(GROCERY_AISLES.map(([id]) => [id, []]));
+  for (const item of open) {
+    const aisle = normalizeGroceryAisle(item.aisle);
+    byAisle[aisle].push(item);
+  }
+
+  const byName = (a, b) => (a.name || '').localeCompare(b.name || '');
+  const sections = GROCERY_AISLES.map(([id, label]) => {
+    const list = byAisle[id].sort(byName);
+    return list.length ? { id, label, items: list } : null;
+  }).filter(Boolean);
+
+  return { sections, open, checked };
+}
 
 export function roundMoney(n) {
   return Math.round((Number(n) || 0) * 100) / 100;

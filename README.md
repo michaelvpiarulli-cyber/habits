@@ -13,7 +13,8 @@ Edit or delete any of them on **More → Habits**.
 
 Food is logged on **More → Calories** (breakfast, lunch, dinner, snacks). Type a food
 name to pull calories and macros from a built-in list plus USDA FoodData Central.
-Day totals still roll up for the Protein habit.
+Day totals still roll up for the Protein habit. The shopping list lives on
+**More → Grocery** — add items by aisle, check them off as you go, then clear checked.
 
 ## How habits are tracked
 
@@ -45,9 +46,10 @@ Supabase adds sign-in and cross-device sync on top of that; it is not required.
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. In the dashboard, open **SQL Editor → New query**, paste all of [`supabase/schema.sql`](supabase/schema.sql), and run it.
-   That creates the habit, goal, nutrition, lift-log, task, calendar, book, job, and finance tables
+   That creates the habit, goal, nutrition, lift-log, task, grocery, calendar, book, job, and finance tables
    with row-level security, so each account can only ever read or write its own rows.
-   If the project already has the older schema, run [`supabase/add-life-dashboard.sql`](supabase/add-life-dashboard.sql) instead.
+   If the project already has the older schema, run [`supabase/add-life-dashboard.sql`](supabase/add-life-dashboard.sql)
+   and [`supabase/add-grocery.sql`](supabase/add-grocery.sql) instead.
 3. Copy `.env.example` to `.env.local` and fill in the project URL and publishable (anon) key from
    **Project Settings → API**.
 4. Restart `npm run dev`, then use **Sign in → Create account** in the app.
