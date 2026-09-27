@@ -207,3 +207,36 @@ export const budgetToRow = (b, userId) => ({
   created_at: b.createdAt,
   updated_at: b.updatedAt,
 });
+
+export const groceryFromRow = (r) => ({
+  id: r.id,
+  name: r.name,
+  brand: r.brand || '',
+  quantity: r.quantity || '',
+  zone: r.zone || r.aisle || 'fridge',
+  kind: r.kind || 'other',
+  notes: r.notes || '',
+  expiresOn: r.expires_on || null,
+  checked: !!r.checked,
+  checkedAt: r.checked_at || null,
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const groceryToRow = (g, userId) => ({
+  id: g.id,
+  user_id: userId,
+  name: g.name,
+  brand: g.brand || null,
+  quantity: g.quantity || null,
+  zone: g.zone || g.aisle || 'fridge',
+  kind: g.kind || 'other',
+  notes: g.notes || null,
+  expires_on: g.expiresOn || null,
+  checked: !!g.checked,
+  checked_at: g.checkedAt || null,
+  deleted: !!g.deleted,
+  created_at: g.createdAt,
+  updated_at: g.updatedAt,
+});

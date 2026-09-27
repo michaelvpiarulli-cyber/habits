@@ -1,6 +1,7 @@
 /**
- * Domain rules for the life-dashboard collections: tasks, books, jobs, money.
- * Pure functions so the views stay thin and the tests do not need a browser.
+ * Domain rules for the life-dashboard collections: tasks, books, jobs, money,
+ * fridge. Pure functions so the views stay thin and the tests do not need a
+ * browser.
  */
 
 import { addDays } from './dates.js';
