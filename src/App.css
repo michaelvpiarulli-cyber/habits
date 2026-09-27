@@ -5051,13 +5051,13 @@ form.field {
 
 .fridge-hinge-door--freezer {
   top: 14px;
-  height: 34%;
+  height: calc(34% - 2px);
 }
 
 .fridge-hinge-door--fridge {
   top: calc(14px + 34% + 4px);
-  bottom: 14px;
-  height: auto;
+  height: calc(66% - 32px);
+  bottom: auto;
 }
 
 .fridge-hinge-door__pivot {
@@ -5073,10 +5073,11 @@ form.field {
 
 .fridge-hinge-door.is-open {
   pointer-events: none;
+  z-index: 12;
 }
 
 .fridge-hinge-door.is-open .fridge-hinge-door__pivot {
-  transform: perspective(1000px) rotateY(-128deg);
+  transform: perspective(1100px) rotateY(-122deg);
 }
 
 .fridge-hinge-door:not(.is-open):hover .fridge-hinge-door__pivot {
