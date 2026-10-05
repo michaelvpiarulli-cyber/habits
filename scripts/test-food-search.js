@@ -111,6 +111,14 @@ test('mcdonalds chipotle and chick-fil-a search', () => {
   assert.ok(searchLocalFoods('starbucks latte').length >= 1);
 });
 
+test('wahoos fish tacos are in the local library', () => {
+  const hits = searchLocalFoods('wahood');
+  assert.ok(hits.length >= 3, `expected Wahoo's hits for wahood, got ${hits.length}`);
+  assert.ok(hits.every((hit) => /wahoo/i.test(hit.brand)));
+  const fish = searchLocalFoods('wahoo fish taco');
+  assert.ok(fish.some((hit) => /fish/i.test(hit.name)));
+});
+
 test('parseFoodQuery reads 3 eggs', () => {
   assert.deepEqual(parseFoodQuery('3 eggs'), { quantity: 3, foodQuery: 'eggs' });
   assert.deepEqual(parseFoodQuery('2x banana'), { quantity: 2, foodQuery: 'banana' });
