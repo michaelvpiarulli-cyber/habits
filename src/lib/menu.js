@@ -1,11 +1,11 @@
 import { STARTER_HABITS } from './habits.js';
 
 /**
- * Today is a menu. Habits sit on a course the way dishes sit on a ticket —
- * starters first, mains to close the day, desserts you named as the treat.
+ * Course metadata for nutrition/menu internals (editor, food pairing).
+ * The daily habits dashboard is a flat due list — do not use this as layout.
  *
- * A stored `course` wins. Everything else is inferred so a fresh install
- * already looks like a menu instead of a flat checklist.
+ * A stored `course` wins. Everything else is inferred from kind, cadence,
+ * and a few obvious names.
  */
 
 export const COURSES = [
