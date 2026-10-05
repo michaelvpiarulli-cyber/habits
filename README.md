@@ -40,33 +40,31 @@ Streaks skip days a habit was never due, and today never counts against you unti
 npm install && npm run dev
 ```
 
-It works with no configuration at all — everything saves to `localStorage`, no account needed.
-Supabase adds sign-in and cross-device sync on top of that; it is not required.
+It works with no configuration at all — everything saves to `localStorage`.
+With Supabase configured (the shipped defaults already point at the Habits project),
+every device shares **one household database** — no sign-in, no accounts.
 
-## Turning on sync
+## Shared household sync
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. In the dashboard, open **SQL Editor → New query**, paste all of [`supabase/schema.sql`](supabase/schema.sql), and run it.
-   That creates the habit, goal, nutrition, lift-log, task, fridge/grocery, calendar, book, job, and finance tables
-   with row-level security, so each account can only ever read or write its own rows.
-   If the project already has the older schema, run [`supabase/add-life-dashboard.sql`](supabase/add-life-dashboard.sql),
-   [`supabase/add-grocery.sql`](supabase/add-grocery.sql), and [`supabase/add-fridge.sql`](supabase/add-fridge.sql) instead.
-3. Copy `.env.example` to `.env.local` and fill in the project URL and publishable (anon) key from
-   **Project Settings → API**.
-4. Restart `npm run dev`, then use **Sign in → Create account** in the app.
+This is a personal build: one database for every phone and laptop.
 
-Whatever is already on the device merges into the account on first sign-in — nothing is replaced.
+1. Create a project at [supabase.com](https://supabase.com) (or keep using the linked Habits project).
+2. In the dashboard, open **SQL Editor → New query**, paste [`supabase/schema.sql`](supabase/schema.sql) (and any later `supabase/add-*.sql` files you need), then run [`supabase/add-household-open.sql`](supabase/add-household-open.sql).
+   That seeds a fixed household owner and opens sync for the public anon key so devices can share data without logging in.
+3. Optional: copy `.env.example` to `.env.local` if you want to override the shipped Supabase URL/key.
+4. Restart `npm run dev`. Open **Settings** to see sync status — there is no Sign in.
+
+Anyone with the deployed URL can read and write the same household data. That is intentional for a single-person app.
 
 ## Deploying to Vercel
 
 ```bash
-npx vercel
+npx vercel --prod
 ```
 
-Then add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` under **Project Settings → Environment
-Variables** and redeploy. Both are safe to expose in the browser: the anon key is public by design,
-and row-level security is what actually protects the data. Optionally add `VITE_GOOGLE_CLIENT_ID`
-so Gmail and Google Calendar can connect.
+The app ships Supabase defaults for the Habits project, so production sync works without extra env.
+Optionally set `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (or `VITE_GOOGLE_CLIENT_ID`) under
+**Project Settings → Environment Variables** and redeploy.
 
 `vercel.json` rewrites all routes to `index.html`.
 

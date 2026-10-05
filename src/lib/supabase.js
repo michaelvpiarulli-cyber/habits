@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Habits / Tally Supabase project. The publishable key is public by design —
- * row-level security (see supabase/schema.sql) protects each user's data.
+ * Habits / Tally Supabase project. The publishable key is public by design.
+ * This personal build uses one shared household database (see
+ * supabase/add-household-open.sql) — no per-device login.
  *
  * These defaults win over stale Vercel env that still pointed at the Bible app
  * project. Env vars are only used when they already target this Habits project.

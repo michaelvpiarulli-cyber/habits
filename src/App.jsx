@@ -96,9 +96,9 @@ export default function App() {
           onClick={() => setAccountOpen(true)}
         >
           <span
-            className={`account__dot account__dot--${syncAvailable && auth.user ? syncState : 'local'}`}
+            className={`account__dot account__dot--${syncAvailable ? syncState : 'local'}`}
           />
-          {auth.user ? 'Account' : syncAvailable ? 'Sign in' : 'Settings'}
+          Settings
         </button>
       </header>
 
@@ -134,7 +134,7 @@ export default function App() {
 
       <BottomNav tab={tab} onChange={onTab} />
 
-      {accountOpen && <AccountMenu auth={auth} theme={theme} onClose={() => setAccountOpen(false)} />}
+      {accountOpen && <AccountMenu theme={theme} onClose={() => setAccountOpen(false)} />}
     </div>
   );
 }
