@@ -10,7 +10,6 @@ import {
 } from '../lib/dates';
 import { describeCadence, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
 import { feelTap } from '../lib/haptic';
-import { groupByCourse } from '../lib/menu';
 import { nextTreat } from '../lib/rewards';
 import { atRiskToday, bestStreak, countInWeek, countPerfectDays, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
@@ -166,9 +165,7 @@ function HabitRow({
   editing,
   setEditing,
   nextUp = false,
-  variant = 'full',
 }) {
-  const compact = variant === 'menu';
   const { logFor, doneSetFor, keptSetFor, toggleDay, bumpDay, setValue, valueFor } = useData();
 
   const log = logFor(habit.id, day);
@@ -209,16 +206,6 @@ function HabitRow({
   }, [habit, day, valueFor]);
 
   const activate = () => {
-    if (compact && habit.kind === 'amount') {
-      if (!complete) {
-        feelTap('close');
-        setValue(habit, day, targetOf(habit));
-      } else {
-        feelTap('undo');
-        setValue(habit, day, 0);
-      }
-      return;
-    }
     if (needsEntry) {
       setEditing(isEditing ? null : habit.id);
       return;
@@ -268,16 +255,16 @@ function HabitRow({
   return (
     <li
       id={`habit-${habit.id}`}
-      className={`row ${compact ? 'row--menu' : ''} ${complete ? 'is-complete' : ''} ${atRisk ? 'is-at-risk' : ''} ${inking ? 'is-inking' : ''} ${nextUp ? 'is-up-next' : ''}`}
+      className={`row ${complete ? 'is-complete' : ''} ${atRisk ? 'is-at-risk' : ''} ${inking ? 'is-inking' : ''} ${nextUp ? 'is-up-next' : ''}`}
     >
-      {atRisk && !compact && <p className="row__warn">Don’t miss twice</p>}
+      {atRisk && <p className="row__warn">Don’t miss twice</p>}
       <div className="row__main">
         <HabitMark
           habit={habit}
           fraction={fractionOf(habit, log)}
           complete={complete}
           due
-          size={compact ? 'sm' : 'md'}
+          size="md"
           inking={inking}
           onActivate={activateMark}
           label={
@@ -296,19 +283,15 @@ function HabitRow({
             {habit.emoji && <span aria-hidden="true">{habit.emoji} </span>}
             {habit.name}
           </span>
-          {!compact && (
-            <>
-              <span className="row__status">
-                {status}
-                {habit.cue && <span className="row__cue"> · {habit.cue}</span>}
-                {nearBest && <span className="row__cue"> · {best - streak} from best</span>}
-              </span>
-              <ChainTrail habit={habit} doneSet={keptSet} day={day} />
-            </>
-          )}
+          <span className="row__status">
+            {status}
+            {habit.cue && <span className="row__cue"> · {habit.cue}</span>}
+            {nearBest && <span className="row__cue"> · {best - streak} from best</span>}
+          </span>
+          <ChainTrail habit={habit} doneSet={keptSet} day={day} />
         </button>
 
-        {!compact && streak > 0 && (
+        {streak > 0 && (
           <span className={`row__streak ${inking ? 'is-pop' : ''}`} title={`${streak} in a row`}>
             <b>{streak}</b>
             <span className="row__streak-unit">{unit}</span>
@@ -364,7 +347,6 @@ export function TodayView({ onOpen }) {
   const [editing, setEditing] = useState(null);
   const [showRest, setShowRest] = useState(false);
   const [showDone, setShowDone] = useState(false);
-  const [openCourse, setOpenCourse] = useState(null);
   const [pendingJump, setPendingJump] = useState(null);
   const calendarToday = todayISO();
   const [day, setDay] = useState(calendarToday);
@@ -414,30 +396,7 @@ export function TodayView({ onOpen }) {
 
   const stillOpen = dueToday.filter((h) => !doneSets.get(h.id)?.has(day));
   const alreadyDone = dueToday.filter((h) => doneSets.get(h.id)?.has(day));
-  const courses = groupByCourse(dueToday);
-  const upNextId = groupByCourse(stillOpen)[0]?.habits[0]?.id;
-  const focused = openCourse ? courses.find((c) => c.id === openCourse) : null;
-  const focusedOpen = focused
-    ? focused.habits.filter((h) => stillOpen.some((open) => open.id === h.id))
-    : [];
-  const focusedDone = focused
-    ? focused.habits.filter((h) => alreadyDone.some((done) => done.id === h.id))
-    : [];
-
-  const openPlate = (id) => {
-    setEditing(null);
-    setOpenCourse(id);
-    const course = courses.find((c) => c.id === id);
-    const left = course
-      ? course.habits.filter((h) => stillOpen.some((open) => open.id === h.id)).length
-      : 0;
-    setShowDone(left === 0);
-  };
-
-  const closePlate = () => {
-    setEditing(null);
-    setOpenCourse(null);
-  };
+  const upNextId = stillOpen[0]?.id;
 
   const jumpTo = (id) => {
     const inDone = alreadyDone.some((h) => h.id === id);
@@ -457,10 +416,9 @@ export function TodayView({ onOpen }) {
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setPendingJump(null);
-  }, [pendingJump, showRest, showDone, openCourse]);
+  }, [pendingJump, showRest, showDone]);
 
   useEffect(() => {
-    setOpenCourse(null);
     setShowDone(false);
   }, [day]);
 
@@ -551,120 +509,64 @@ export function TodayView({ onOpen }) {
             </div>
           ) : (
             dueToday.length > 0 && (
-              focused ? (
-                <section className="menu-focus">
-                  <button
-                    type="button"
-                    className="menu-focus__back"
-                    onClick={closePlate}
-                  >
-                    ‹ Menu
-                  </button>
-                  <header className="menu-focus__head">
-                    <h2 className="menu-focus__title">{focused.name}</h2>
-                    <p className="menu-focus__count">{focusedOpen.length} left</p>
-                  </header>
-                  {focusedOpen.length > 0 && (
-                    <ul className="rows">
-                      {focusedOpen.map((h) => (
-                        <HabitRow
-                          key={h.id}
-                          habit={h}
-                          day={day}
-                          calendarToday={calendarToday}
-                          editing={editing}
-                          setEditing={setEditing}
-                          nextUp={h.id === upNextId && stillOpen.length > 1}
-                        />
-                      ))}
-                    </ul>
-                  )}
-                  {focusedDone.length > 0 && focusedOpen.length === 0 && (
-                    <ul className="rows">
-                      {focusedDone.map((h) => (
-                        <HabitRow
-                          key={h.id}
-                          habit={h}
-                          day={day}
-                          calendarToday={calendarToday}
-                          editing={editing}
-                          setEditing={setEditing}
-                        />
-                      ))}
-                    </ul>
-                  )}
-                  {focusedDone.length > 0 && focusedOpen.length > 0 && (
-                    <section className="rest">
-                      <button
-                        type="button"
-                        className="rest__toggle"
-                        aria-expanded={showDone}
-                        onClick={() => setShowDone((open) => !open)}
-                      >
-                        <span className="eyebrow">Done</span>
-                        <span className="rest__count">{focusedDone.length}</span>
-                      </button>
-                      {showDone && (
-                        <ul className="rows rows--muted">
-                          {focusedDone.map((h) => (
-                            <HabitRow
-                              key={h.id}
-                              habit={h}
-                              day={day}
-                              calendarToday={calendarToday}
-                              editing={editing}
-                              setEditing={setEditing}
-                            />
-                          ))}
-                        </ul>
-                      )}
-                    </section>
-                  )}
-                </section>
-              ) : (
-                <div className="menu" aria-label="Today’s menu">
-                  {courses.map((course) => {
-                    const left = course.habits.filter((h) =>
-                      stillOpen.some((open) => open.id === h.id)
-                    ).length;
-                    const closed = left === 0;
-                    const editingHere = course.habits.some((h) => h.id === editing);
-                    return (
-                      <section
-                        key={course.id}
-                        className={`menu-card ${closed ? 'is-closed' : ''} ${editingHere ? 'is-editing' : ''}`}
-                      >
-                        <button
-                          type="button"
-                          className="menu-card__head"
-                          onClick={() => openPlate(course.id)}
-                          aria-label={`${course.name}, ${left} left`}
-                        >
-                          <span className="menu-card__name">{course.name}</span>
-                          <span className="menu-card__count">{left}</span>
-                          <span className="menu-card__chevron" aria-hidden="true">
-                            ›
-                          </span>
-                        </button>
-                        <ul className="rows rows--menu">
-                          {course.habits.map((h) => (
-                            <HabitRow
-                              key={h.id}
-                              habit={h}
-                              day={day}
-                              calendarToday={calendarToday}
-                              editing={editing}
-                              setEditing={setEditing}
-                              nextUp={h.id === upNextId && stillOpen.length > 1}
-                              variant="menu"
-                            />
-                          ))}
-                        </ul>
-                      </section>
-                    );
-                  })}
-                </div>
-              )
+              <div className="today__habits" aria-label="Today’s habits">
+                {stillOpen.length > 0 && (
+                  <ul className="rows">
+                    {stillOpen.map((h) => (
+                      <HabitRow
+                        key={h.id}
+                        habit={h}
+                        day={day}
+                        calendarToday={calendarToday}
+                        editing={editing}
+                        setEditing={setEditing}
+                        nextUp={h.id === upNextId && stillOpen.length > 1}
+                      />
+                    ))}
+                  </ul>
+                )}
+                {alreadyDone.length > 0 && stillOpen.length === 0 && (
+                  <ul className="rows">
+                    {alreadyDone.map((h) => (
+                      <HabitRow
+                        key={h.id}
+                        habit={h}
+                        day={day}
+                        calendarToday={calendarToday}
+                        editing={editing}
+                        setEditing={setEditing}
+                      />
+                    ))}
+                  </ul>
+                )}
+                {alreadyDone.length > 0 && stillOpen.length > 0 && (
+                  <section className="rest">
+                    <button
+                      type="button"
+                      className="rest__toggle"
+                      aria-expanded={showDone}
+                      onClick={() => setShowDone((open) => !open)}
+                    >
+                      <span className="eyebrow">Done</span>
+                      <span className="rest__count">{alreadyDone.length}</span>
+                    </button>
+                    {showDone && (
+                      <ul className="rows rows--muted">
+                        {alreadyDone.map((h) => (
+                          <HabitRow
+                            key={h.id}
+                            habit={h}
+                            day={day}
+                            calendarToday={calendarToday}
+                            editing={editing}
+                            setEditing={setEditing}
+                          />
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                )}
+              </div>
             )
           )}
 
