@@ -7,8 +7,9 @@
 }
 
 .app {
-  max-width: 640px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding-bottom: calc(var(--nav-height) + 18px + env(safe-area-inset-bottom));
 }
 
@@ -2729,8 +2730,9 @@ form.field {
   }
 
   .main {
-    max-width: 940px;
-    margin: 0 auto;
+    max-width: none;
+    margin: 0;
+    width: 100%;
     padding: 0 34px;
   }
 
@@ -6439,10 +6441,12 @@ body.is-side-nav-open {
 
 @media (min-width: 900px) {
   .app {
+    width: 100%;
     max-width: none;
     display: grid;
-    grid-template-columns: 0 minmax(0, 720px);
-    justify-content: center;
+    /* Content column grows to fill the viewport; no centered 720px gutters. */
+    grid-template-columns: 0 minmax(0, 1fr);
+    justify-content: stretch;
     align-items: start;
     gap: 0;
     /* No reserved left padding — SideNav owns the only left rail. */
@@ -6452,7 +6456,7 @@ body.is-side-nav-open {
   }
 
   .app.is-nav-open {
-    grid-template-columns: var(--side-nav-width) minmax(0, 720px);
+    grid-template-columns: var(--side-nav-width) minmax(0, 1fr);
   }
 
   .side-nav__scrim {
@@ -6489,8 +6493,9 @@ body.is-side-nav-open {
   .app__shell {
     grid-column: 2;
     grid-row: 1;
-    max-width: 720px;
+    max-width: none;
     width: 100%;
+    min-width: 0;
     border-left: 1px solid transparent;
   }
 
