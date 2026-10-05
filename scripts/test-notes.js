@@ -56,10 +56,11 @@ test('noteBlocks splits on blank lines', () => {
   assert.deepEqual(noteBlocks('   '), []);
 });
 
-test('isNoteEmpty requires both title and body blank', () => {
+test('isNoteEmpty requires title, body, and cover blank', () => {
   assert.equal(isNoteEmpty({ title: '', body: '' }), true);
   assert.equal(isNoteEmpty({ title: 'A', body: '' }), false);
   assert.equal(isNoteEmpty({ title: '', body: 'B' }), false);
+  assert.equal(isNoteEmpty({ title: '', body: '', coverUrl: 'data:image/jpeg;base64,x' }), false);
 });
 
 test('sortNotes pins first then newest updatedAt', () => {

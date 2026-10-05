@@ -40,7 +40,11 @@ export function noteBlocks(body) {
 }
 
 export function isNoteEmpty(note) {
-  return !(note?.title || '').trim() && !(note?.body || '').trim();
+  return (
+    !(note?.title || '').trim() &&
+    !(note?.body || '').trim() &&
+    !(note?.coverUrl || '').trim()
+  );
 }
 
 /**

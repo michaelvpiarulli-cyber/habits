@@ -5,6 +5,7 @@ import { useData } from './context/DataProvider';
 import { useLife } from './context/LifeProvider';
 import { TodayView } from './components/TodayView';
 import { CaloriesView } from './components/CaloriesView';
+import { ProgressView } from './components/ProgressView';
 import { GoalsView } from './components/GoalsView';
 import { HabitsView } from './components/HabitsView';
 import { IdentityView } from './components/IdentityView';
@@ -35,7 +36,8 @@ const MORE_PAGES = {
   creativity: { View: CreativityView, title: 'Creativity' },
   calories: { View: CaloriesView, title: 'Calories' },
   goals: { View: GoalsView, title: 'Goals' },
-  habits: { View: HabitsView, title: 'Habits' },
+  habits: { View: HabitsView, title: 'Edit habits' },
+  progress: { View: ProgressView, title: 'Progress' },
   identity: { View: IdentityView, title: 'Identity' },
   books: { View: BooksView, title: 'Books' },
   grocery: { View: GroceryView, title: 'Fridge' },

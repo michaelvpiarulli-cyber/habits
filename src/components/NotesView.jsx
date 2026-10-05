@@ -2,26 +2,30 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLife } from '../context/LifeProvider';
 import { useData } from '../context/DataProvider';
 import { relativeDay } from '../lib/dates';
+import { fileToCoverDataUrl, isCoverDataUrl } from '../lib/covers';
 import { isNoteEmpty, noteSnippet, noteTitle } from '../lib/notes';
 
 /**
- * Notion-quiet notes: a list of pages, then a full-bleed page with a large
- * title and a calm body. Saves on blur / short debounce — no Save button
- * choreography.
+ * Notion-quiet pages: optional cover image, large title, calm body.
+ * Saves on blur / short debounce — no Save button choreography.
  */
 function NoteEditor({ note, onChange, onClose, onDelete, onTogglePin }) {
   const [title, setTitle] = useState(note.title || '');
   const [body, setBody] = useState(note.body || '');
+  const [coverUrl, setCoverUrl] = useState(note.coverUrl || '');
+  const [coverError, setCoverError] = useState('');
+  const [coverBusy, setCoverBusy] = useState(false);
   const titleRef = useRef(null);
   const bodyRef = useRef(null);
   const pending = useRef(null);
-  const latest = useRef({ title, body });
-  latest.current = { title, body };
+  const latest = useRef({ title, body, coverUrl });
+  latest.current = { title, body, coverUrl };
 
   useEffect(() => {
     setTitle(note.title || '');
     setBody(note.body || '');
-  }, [note.id, note.title, note.body]);
+    setCoverUrl(note.coverUrl || '');
+  }, [note.id, note.title, note.body, note.coverUrl]);
 
   useEffect(() => {
     if (!(note.title || '').trim()) {
@@ -42,8 +46,12 @@ function NoteEditor({ note, onChange, onClose, onDelete, onTogglePin }) {
   const flush = () => {
     clearTimeout(pending.current);
     const next = latest.current;
-    if (next.title !== (note.title || '') || next.body !== (note.body || '')) {
-      onChange({ title: next.title, body: next.body });
+    if (
+      next.title !== (note.title || '') ||
+      next.body !== (note.body || '') ||
+      next.coverUrl !== (note.coverUrl || '')
+    ) {
+      onChange({ title: next.title, body: next.body, coverUrl: next.coverUrl });
     }
   };
 
@@ -54,6 +62,24 @@ function NoteEditor({ note, onChange, onClose, onDelete, onTogglePin }) {
   };
 
   useEffect(() => () => flush(), [note.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onCover = async (file) => {
+    if (!file) return;
+    setCoverBusy(true);
+    setCoverError('');
+    try {
+      const next = await fileToCoverDataUrl(file);
+      setCoverUrl(next);
+      schedule({ coverUrl: next });
+      flush();
+    } catch (err) {
+      setCoverError(err?.message || 'Could not use that image.');
+    } finally {
+      setCoverBusy(false);
+    }
+  };
+
+  const hasCover = isCoverDataUrl(coverUrl) || (coverUrl && coverUrl.startsWith('http'));
 
   return (
     <div className="note-page">
@@ -69,6 +95,33 @@ function NoteEditor({ note, onChange, onClose, onDelete, onTogglePin }) {
           ← Pages
         </button>
         <div className="note-page__actions">
+          <label className={`text-btn ${coverBusy ? 'is-disabled' : ''}`}>
+            {coverBusy ? 'Working…' : hasCover ? 'Replace cover' : 'Add cover'}
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              disabled={coverBusy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                onCover(file);
+              }}
+            />
+          </label>
+          {hasCover && (
+            <button
+              type="button"
+              className="text-btn"
+              onClick={() => {
+                setCoverUrl('');
+                schedule({ coverUrl: '' });
+                flush();
+              }}
+            >
+              Remove cover
+            </button>
+          )}
           <button type="button" className="text-btn" onClick={onTogglePin} aria-pressed={!!note.pinned}>
             {note.pinned ? 'Unpin' : 'Pin'}
           </button>
@@ -84,6 +137,13 @@ function NoteEditor({ note, onChange, onClose, onDelete, onTogglePin }) {
         </div>
       </header>
 
+      {hasCover && (
+        <div className="note-page__cover" aria-hidden="true">
+          <img src={coverUrl} alt="" />
+        </div>
+      )}
+      {coverError && <p className="note note--bad note-page__cover-error">{coverError}</p>}
+
       <div className="note-page__sheet">
         <input
           ref={titleRef}
@@ -95,7 +155,7 @@ function NoteEditor({ note, onChange, onClose, onDelete, onTogglePin }) {
           }}
           onBlur={flush}
           placeholder="Untitled"
-          aria-label="Note title"
+          aria-label="Page title"
         />
         <textarea
           ref={bodyRef}
@@ -107,7 +167,7 @@ function NoteEditor({ note, onChange, onClose, onDelete, onTogglePin }) {
           }}
           onBlur={flush}
           placeholder="Write something…"
-          aria-label="Note body"
+          aria-label="Page body"
           rows={14}
         />
       </div>
@@ -172,8 +232,8 @@ export function NotesView({ initialNoteId = null, onEditingChange, onLeaveEditor
         <div className="empty">
           <p className="empty__title">A quiet page.</p>
           <p className="empty__body">
-            Capture plans, lists, or anything beyond the habit loop. Title at the top, words
-            underneath — that is the whole editor.
+            Capture plans, lists, or anything beyond the habit loop. Optional cover on top, title,
+            then words — that is the whole editor.
           </p>
           <button type="button" className="btn btn--primary" onClick={create}>
             New page
@@ -183,30 +243,40 @@ export function NotesView({ initialNoteId = null, onEditingChange, onLeaveEditor
 
       {notes.length > 0 && (
         <ul className="page-list" aria-label="Pages">
-          {notes.map((note) => (
-            <li key={note.id}>
-              <button type="button" className="page-row" onClick={() => setOpenId(note.id)}>
-                <span className="page-row__mark" aria-hidden="true">
-                  {note.pinned ? '◆' : '○'}
-                </span>
-                <span className="page-row__copy">
-                  <span className="page-row__title">{noteTitle(note)}</span>
-                  {(noteSnippet(note.body) || note.updatedAt) && (
-                    <span className="page-row__meta">
-                      {noteSnippet(note.body) || relativeDay(note.updatedAt?.slice(0, 10))}
+          {notes.map((note) => {
+            const thumb =
+              isCoverDataUrl(note.coverUrl) || (note.coverUrl && note.coverUrl.startsWith('http'));
+            return (
+              <li key={note.id}>
+                <button type="button" className="page-row" onClick={() => setOpenId(note.id)}>
+                  {thumb ? (
+                    <span className="page-row__thumb" aria-hidden="true">
+                      <img src={note.coverUrl} alt="" />
+                    </span>
+                  ) : (
+                    <span className="page-row__mark" aria-hidden="true">
+                      {note.pinned ? '◆' : '○'}
                     </span>
                   )}
-                </span>
-              </button>
-            </li>
-          ))}
+                  <span className="page-row__copy">
+                    <span className="page-row__title">{noteTitle(note)}</span>
+                    {(noteSnippet(note.body) || note.updatedAt) && (
+                      <span className="page-row__meta">
+                        {noteSnippet(note.body) || relativeDay(note.updatedAt?.slice(0, 10))}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 
       {dayNotes?.length > 0 && (
         <section className="section life-section">
           <h2 className="eyebrow">Day notes</h2>
-          <p className="section__note">Reflections written on Today stay with their day.</p>
+          <p className="section__note">Reflections written on Habits stay with their day.</p>
           <ul className="page-list page-list--quiet">
             {dayNotes.slice(0, 8).map((n) => (
               <li key={n.id}>
