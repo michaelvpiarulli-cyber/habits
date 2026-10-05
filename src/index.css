@@ -1,8 +1,8 @@
 /**
  * Tally — fun, still spare.
  *
- * Warm paper, round corners, two inks (sky + coral) that mix to violet
- * on a perfect day. Colour does the celebrating; the layout stays quiet.
+ * Light: warm paper. Dark: true black like a coding IDE — layered charcoal
+ * cards, thin rules, off-white ink. Colour does the celebrating; layout stays quiet.
  */
 
 :root {
@@ -49,30 +49,31 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* True-black dark — as dark as an IDE chrome, not charcoal-brown. */
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --paper: #14110e;
-  --card: #1e1a16;
-  --sunk: #2a241f;
-  --rule: #3a332c;
+  --paper: #000000;
+  --card: #121212;
+  --sunk: #181818;
+  --rule: #2d2d2d;
 
-  --ink: #f6f1ea;
-  --ink-soft: #a89f94;
+  --ink: #e0e0e0;
+  --ink-soft: #808080;
 
-  --blue: #7eb6ff;
-  --blue-deep: #c5dcff;
-  --blue-wash: #24344a;
-  --pink: #ff9b8f;
-  --pink-wash: #3a2421;
-  --violet: #c4b5fd;
-  --gold: #e8c547;
+  --blue: #60a5fa;
+  --blue-deep: #93c5fd;
+  --blue-wash: #0b1220;
+  --pink: #f87171;
+  --pink-wash: #1f1212;
+  --violet: #a78bfa;
+  --gold: #fbbf24;
 
-  --on-ink: #14110e;
-  --on-pink: #14110e;
-  --scrim: rgba(0, 0, 0, 0.7);
-  --shadow: rgba(0, 0, 0, 0.4);
-  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --on-ink: #000000;
+  --on-pink: #000000;
+  --scrim: rgba(0, 0, 0, 0.72);
+  --shadow: rgba(0, 0, 0, 0.55);
+  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.65);
 }
 
 * {
@@ -100,8 +101,14 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Flat true black — no warm wash, barely a tint at the top. */
 :root[data-theme='dark'] body {
-  background-image: radial-gradient(900px 420px at 50% -8%, color-mix(in srgb, var(--blue) 18%, transparent), transparent 58%);
+  background-color: #000000;
+  background-image: radial-gradient(
+    720px 280px at 50% -12%,
+    color-mix(in srgb, var(--blue) 10%, transparent),
+    transparent 60%
+  );
 }
 
 :root[data-reward='gold'] body {
@@ -112,8 +119,8 @@ body {
 
 :root[data-theme='dark'][data-reward='gold'] body {
   background-image:
-    radial-gradient(640px 280px at 88% -6%, color-mix(in srgb, var(--gold) 16%, transparent), transparent 55%),
-    radial-gradient(900px 420px at 50% -8%, color-mix(in srgb, var(--blue) 18%, transparent), transparent 58%);
+    radial-gradient(640px 280px at 88% -6%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 55%),
+    radial-gradient(720px 280px at 50% -12%, color-mix(in srgb, var(--blue) 10%, transparent), transparent 60%);
 }
 
 h1,
