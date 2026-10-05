@@ -216,7 +216,10 @@ export function TasksView() {
   return (
     <div className="view">
       <header className="view__head view__head--row">
-        <h1 className="view__title">Tasks</h1>
+        <div>
+          <p className="eyebrow">Focus</p>
+          <h1 className="view__title">Todos</h1>
+        </div>
         <button type="button" className="text-btn" onClick={() => setEditing({})}>
           New
         </button>

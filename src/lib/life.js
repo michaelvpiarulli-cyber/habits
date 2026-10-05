@@ -22,7 +22,7 @@ export const TASK_PRIORITIES = [
 
 export const BOOK_STATUSES = [
   ['reading', 'Reading'],
-  ['queued', 'Up next'],
+  ['queued', 'Want to read'],
   ['paused', 'Paused'],
   ['done', 'Finished'],
 ];

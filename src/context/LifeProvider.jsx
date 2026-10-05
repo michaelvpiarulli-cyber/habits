@@ -35,12 +35,15 @@ import {
   groceryToRow,
   jobFromRow,
   jobToRow,
+  boardCardFromRow,
+  boardCardToRow,
   lifeNoteFromRow,
   lifeNoteToRow,
   taskFromRow,
   taskToRow,
 } from '../lib/lifeMappers';
 import { clampPage, living, roundMoney } from '../lib/life';
+import { normalizeBoardColumn } from '../lib/boards';
 import { sortNotes } from '../lib/notes';
 import { mergePhotoFridge, normalizeFridgeKind, normalizeFridgeZone } from '../lib/fridge';
 
@@ -54,6 +57,7 @@ const KINDS = [
   'budgets',
   'grocery',
   'notes',
+  'boardCards',
 ];
 
 const TABLES = {
@@ -66,6 +70,7 @@ const TABLES = {
   budgets: { table: 'finance_budgets', from: budgetFromRow, to: budgetToRow },
   grocery: { table: 'grocery_items', from: groceryFromRow, to: groceryToRow },
   notes: { table: 'life_notes', from: lifeNoteFromRow, to: lifeNoteToRow },
+  boardCards: { table: 'board_cards', from: boardCardFromRow, to: boardCardToRow },
 };
 
 const KEY = (kind) => `tally-${kind}`;
@@ -84,6 +89,7 @@ const isUniqueViolation = (error) =>
 const MISSING_TABLE_SQL = {
   grocery_items: 'supabase/add-grocery.sql (then supabase/add-fridge.sql if upgrading)',
   life_notes: 'supabase/add-life-notes.sql',
+  board_cards: 'supabase/add-boards-and-covers.sql',
 };
 const missingTableMessage = (table) => {
   const sql = MISSING_TABLE_SQL[table] || 'supabase/add-life-dashboard.sql';
@@ -508,6 +514,7 @@ export function LifeProvider({ children }) {
         startedOn: fields.startedOn || (fields.status === 'reading' ? todayISO() : null),
         finishedOn: fields.status === 'done' ? fields.finishedOn || todayISO() : null,
         notes: fields.notes || '',
+        coverUrl: fields.coverUrl || '',
       }),
     [addRecord]
   );
@@ -615,6 +622,32 @@ export function LifeProvider({ children }) {
 
   const deleteNote = useCallback((id) => deleteRecord('notes', id), [deleteRecord]);
 
+  const addBoardCard = useCallback(
+    (fields) =>
+      addRecord('boardCards', {
+        title: fields.title.trim(),
+        notes: fields.notes || '',
+        column: normalizeBoardColumn(fields.column),
+        dueDate: fields.dueDate || null,
+        sortOrder: Number(fields.sortOrder) || 0,
+      }),
+    [addRecord]
+  );
+
+  const updateBoardCard = useCallback(
+    (id, patch) =>
+      updateRecord('boardCards', id, {
+        ...patch,
+        ...(patch.column !== undefined ? { column: normalizeBoardColumn(patch.column) } : {}),
+      }),
+    [updateRecord]
+  );
+
+  const deleteBoardCard = useCallback(
+    (id) => deleteRecord('boardCards', id),
+    [deleteRecord]
+  );
+
   const updateGroceryItem = useCallback(
     (id, patch) =>
       updateRecord('grocery', id, {
@@ -669,6 +702,7 @@ export function LifeProvider({ children }) {
       budgets: store.budgets,
       grocery: store.grocery,
       notes: store.notes,
+      boardCards: store.boardCards,
     }),
     [store]
   );
@@ -693,6 +727,7 @@ export function LifeProvider({ children }) {
       return (a.name || '').localeCompare(b.name || '');
     });
     const notes = sortNotes(store.notes);
+    const boardCards = living(store.boardCards);
 
     return {
       tasks,
@@ -704,6 +739,7 @@ export function LifeProvider({ children }) {
       budgets,
       groceryItems,
       notes,
+      boardCards,
       addTask,
       updateTask,
       toggleTask,
@@ -736,6 +772,9 @@ export function LifeProvider({ children }) {
       addNote,
       updateNote,
       deleteNote,
+      addBoardCard,
+      updateBoardCard,
+      deleteBoardCard,
       snapshot,
       syncState,
       syncError,
@@ -762,6 +801,9 @@ export function LifeProvider({ children }) {
     addNote,
     updateNote,
     deleteNote,
+    addBoardCard,
+    updateBoardCard,
+    deleteBoardCard,
     deleteRecord,
     updateRecord,
     snapshot,

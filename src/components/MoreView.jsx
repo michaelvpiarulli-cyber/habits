@@ -2,46 +2,35 @@ import { useMemo } from 'react';
 import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
 import { todayISO } from '../lib/dates';
+import { groupBoardCards } from '../lib/boards';
 import { childrenOf, isHit, targetOf, topLevelGoals } from '../lib/goals';
 import { lifePulse, noteSnippet, noteTitle, recentNotes } from '../lib/notes';
+import { LIFE_SPACES } from '../lib/spaces';
 import { isDue } from '../lib/streaks';
 
-const GROUPS = [
-  {
-    label: 'Daily',
-    pages: [
-      { id: 'notes', label: 'Notes', detail: 'Pages and day reflections' },
-      { id: 'goals', label: 'Goals', detail: 'Destinations and steps' },
-      { id: 'habits', label: 'Habits', detail: 'Edit the daily set' },
-      { id: 'calories', label: 'Calories', detail: 'Meals and macros' },
-    ],
-  },
-  {
-    label: 'Work',
-    pages: [
-      { id: 'tasks', label: 'Tasks', detail: 'Inbox and due dates' },
-      { id: 'jobs', label: 'Jobs', detail: 'Applications' },
-      { id: 'mail', label: 'Mail', detail: 'Gmail inbox' },
-    ],
-  },
-  {
-    label: 'Life',
-    pages: [
-      { id: 'books', label: 'Books', detail: 'Currently reading' },
-      { id: 'grocery', label: 'Fridge', detail: 'What is in stock' },
-      { id: 'money', label: 'Money', detail: 'Accounts and spend' },
-      { id: 'identity', label: 'Identity', detail: 'Who you are becoming' },
-    ],
-  },
-];
+const SPACE_DETAILS = {
+  habits: 'Daily set and streaks',
+  goals: 'Destinations and steps',
+  tasks: 'Inbox with due dates',
+  creativity: 'Sparks and quiet rooms',
+  boards: 'Backlog · Doing · Done',
+  notes: 'Pages and day reflections',
+  books: 'Reading · want · finished',
+  grocery: 'What is in stock',
+  money: 'Accounts and spend',
+  identity: 'Who you are becoming',
+  calories: 'Meals and macros',
+  jobs: 'Applications',
+  mail: 'Gmail inbox',
+};
 
 /**
- * Life workspace — Notion’s calm hierarchy without the gray sludge.
- * One pulse, recent notes, open goals, then a dense page list.
+ * Life workspace — Notion’s calm hierarchy: spaces, then pages.
+ * Pulse, recent notes, open goals, then Focus / Create / Read / House.
  */
 export function MoreView({ onOpen }) {
   const { activeHabits, doneSets, goals, goalProgress, noteFor } = useData();
-  const { notes } = useLife();
+  const { notes, tasks, books, boardCards } = useLife();
   const today = todayISO();
 
   const dueHabits = useMemo(
@@ -53,6 +42,12 @@ export function MoreView({ onOpen }) {
   const openGoals = parents.filter((g) => !isHit(g, goalProgress(g), goals));
   const hitGoals = parents.length - openGoals.length;
   const previewNotes = recentNotes(notes, 4);
+  const openTodos = tasks.filter((t) => !t.done).length;
+  const readingCount = books.filter((b) => b.status === 'reading' || b.status === 'paused').length;
+  const boardOpen = useMemo(
+    () => groupBoardCards(boardCards).filter((c) => c.id !== 'done').reduce((n, c) => n + c.cards.length, 0),
+    [boardCards]
+  );
   const pulse = lifePulse({
     habitDone: doneHabits,
     habitDue: dueHabits.length,
@@ -68,12 +63,23 @@ export function MoreView({ onOpen }) {
         <p className="eyebrow">Workspace</p>
         <h1 className="view__title">Life</h1>
         <p className="life-home__lede">
-          Notes, goals, and the rest of the house — calm pages, not another dashboard.
+          Spaces for focus, create, read, and house — calm pages, not another dashboard.
         </p>
       </header>
 
       <section className="life-pulse" aria-label="Today’s pulse">
         <p className="life-pulse__summary">{pulse.summary}</p>
+        {(openTodos > 0 || readingCount > 0 || boardOpen > 0) && (
+          <p className="life-pulse__extras">
+            {[
+              openTodos ? `${openTodos} todo${openTodos === 1 ? '' : 's'}` : null,
+              readingCount ? `${readingCount} reading` : null,
+              boardOpen ? `${boardOpen} on board` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        )}
         {pulse.habitDue > 0 && (
           <div
             className="life-pulse__bar"
@@ -174,16 +180,19 @@ export function MoreView({ onOpen }) {
         )}
       </section>
 
-      {GROUPS.map((group) => (
-        <section key={group.label} className="more-group">
-          <h2 className="eyebrow">{group.label}</h2>
+      {LIFE_SPACES.map((space) => (
+        <section key={space.id} className="life-space">
+          <header className="life-space__head">
+            <h2 className="life-space__title">{space.label}</h2>
+            <p className="life-space__blurb">{space.blurb}</p>
+          </header>
           <ul className="more-list more-list--dense">
-            {group.pages.map((page) => (
+            {space.pages.map((page) => (
               <li key={page.id}>
                 <button type="button" className="more-row" onClick={() => onOpen('more', page.id)}>
                   <span className="more-row__copy">
                     <span className="more-row__label">{page.label}</span>
-                    <span className="more-row__detail">{page.detail}</span>
+                    <span className="more-row__detail">{SPACE_DETAILS[page.id] || ''}</span>
                   </span>
                   <span aria-hidden="true">›</span>
                 </button>

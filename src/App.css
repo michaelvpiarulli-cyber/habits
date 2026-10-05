@@ -5581,3 +5581,379 @@ form.field {
     animation: none;
   }
 }
+
+/* =========================================================================
+   Life spaces — Focus / Create / Read / House
+   ========================================================================= */
+
+.life-pulse__extras {
+  margin-top: 6px;
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+}
+
+.life-space {
+  margin-top: 22px;
+}
+
+.life-space__head {
+  margin-bottom: 8px;
+}
+
+.life-space__title {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+.life-space__blurb {
+  margin-top: 4px;
+  font-size: 0.813rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  max-width: 28rem;
+}
+
+/* Boards */
+
+.boards-view__lede,
+.books-view__lede,
+.creativity-view__lede {
+  margin: -4px 0 18px;
+  max-width: 32rem;
+  font-size: 0.938rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.board-columns {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 720px) {
+  .board-columns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.board-column {
+  padding: 12px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--card) 92%, var(--sunk));
+  border: 1px solid color-mix(in srgb, var(--rule) 75%, transparent);
+}
+
+.board-column__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.board-column__title {
+  font-size: 0.813rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.board-column__count {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.board-column__empty {
+  width: 100%;
+  padding: 14px 12px;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  border: 1px dashed color-mix(in srgb, var(--rule) 90%, transparent);
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  background: transparent;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.board-column__empty:hover {
+  background: var(--sunk);
+  color: var(--ink);
+}
+
+.board-column__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.board-card {
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
+  overflow: hidden;
+  animation: board-card-in 200ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes board-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.board-card.is-overdue .board-card__meta {
+  color: var(--pink);
+}
+
+.board-card__body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 12px 8px;
+  text-align: left;
+}
+
+.board-card__title {
+  font-size: 0.938rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.board-card__meta,
+.board-card__notes {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
+.board-card__notes {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-card__moves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 10px 10px;
+}
+
+/* Creativity hub */
+
+.creativity-capture {
+  margin-bottom: 22px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--card) 88%, var(--blue-wash));
+  border: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
+}
+
+.creativity-capture__input {
+  width: 100%;
+  margin: 6px 0 12px;
+  padding: 12px 14px;
+  min-height: 6.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rule) 80%, transparent);
+  resize: vertical;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.creativity-capture__input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 55%, transparent);
+}
+
+.creativity-doors {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 520px) {
+  .creativity-doors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.creativity-door {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  text-align: left;
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
+  transition: background 140ms ease, transform 140ms ease;
+}
+
+.creativity-door:hover {
+  background: var(--sunk);
+}
+
+.creativity-door:active {
+  transform: scale(0.995);
+}
+
+.creativity-door__label {
+  font-weight: 500;
+  font-size: 0.938rem;
+}
+
+.creativity-door__meta {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+/* Book shelves + covers */
+
+.book-shelf {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.book-shelf-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 1px 0 var(--rule);
+}
+
+.book-shelf-card__cover {
+  width: 72px;
+  height: 108px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ink) 8%, var(--sunk));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--ink) 12%, transparent);
+  transition: transform 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.book-shelf-card__cover:hover {
+  transform: translateY(-2px);
+}
+
+.book-shelf-card__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.book-shelf-card__spine {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 8px 6px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--blue) 22%, var(--sunk)),
+    color-mix(in srgb, var(--ink) 14%, var(--card))
+  );
+}
+
+.book-shelf-card__spine-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  max-height: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.book-shelf-card__body {
+  min-width: 0;
+}
+
+.book-cover-field__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.book-cover-thumb {
+  width: 64px;
+  height: 96px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--sunk);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rule) 80%, transparent);
+}
+
+.book-cover-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.book-cover-thumb__empty {
+  font-size: 0.65rem;
+  color: var(--ink-soft);
+  text-align: center;
+  padding: 4px;
+  line-height: 1.3;
+}
+
+.book-cover-field__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip--file {
+  cursor: pointer;
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-card {
+    animation: none;
+  }
+
+  .book-shelf-card__cover,
+  .creativity-door {
+    transition: none;
+  }
+}

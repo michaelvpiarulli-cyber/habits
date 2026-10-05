@@ -79,6 +79,7 @@ export const bookFromRow = (r) => ({
   startedOn: r.started_on || null,
   finishedOn: r.finished_on || null,
   notes: r.notes || '',
+  coverUrl: r.cover_url || '',
   deleted: !!r.deleted,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
@@ -95,6 +96,7 @@ export const bookToRow = (b, userId) => ({
   started_on: b.startedOn || null,
   finished_on: b.finishedOn || null,
   notes: b.notes || null,
+  cover_url: b.coverUrl || null,
   deleted: !!b.deleted,
   created_at: b.createdAt,
   updated_at: b.updatedAt,
@@ -264,4 +266,29 @@ export const lifeNoteToRow = (n, userId) => ({
   deleted: !!n.deleted,
   created_at: n.createdAt,
   updated_at: n.updatedAt,
+});
+
+export const boardCardFromRow = (r) => ({
+  id: r.id,
+  title: r.title,
+  notes: r.notes || '',
+  column: r.column_id || 'backlog',
+  dueDate: r.due_date || null,
+  sortOrder: Number(r.sort_order) || 0,
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const boardCardToRow = (c, userId) => ({
+  id: c.id,
+  user_id: userId,
+  title: c.title,
+  notes: c.notes || null,
+  column_id: c.column || 'backlog',
+  due_date: c.dueDate || null,
+  sort_order: Number(c.sortOrder) || 0,
+  deleted: !!c.deleted,
+  created_at: c.createdAt,
+  updated_at: c.updatedAt,
 });

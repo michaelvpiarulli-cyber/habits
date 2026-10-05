@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLife } from '../context/LifeProvider';
 import { todayISO } from '../lib/dates';
+import { fileToCoverDataUrl, isCoverDataUrl } from '../lib/covers';
 import { BOOK_STATUSES, bookProgress } from '../lib/life';
 import { FormSheet } from './FormSheet';
 
 function BookForm({ book, onSave, onClose }) {
+  const fileRef = useRef(null);
   const [form, setForm] = useState(() => ({
     title: book?.title || '',
     author: book?.author || '',
@@ -12,8 +14,26 @@ function BookForm({ book, onSave, onClose }) {
     currentPage: book?.currentPage || '',
     status: book?.status || 'reading',
     notes: book?.notes || '',
+    coverUrl: book?.coverUrl || '',
   }));
+  const [coverError, setCoverError] = useState('');
+  const [coverBusy, setCoverBusy] = useState(false);
   const set = (patch) => setForm((current) => ({ ...current, ...patch }));
+
+  const onCover = async (file) => {
+    setCoverError('');
+    if (!file) return;
+    setCoverBusy(true);
+    try {
+      const coverUrl = await fileToCoverDataUrl(file);
+      set({ coverUrl });
+    } catch (err) {
+      setCoverError(err.message || 'Could not use that image.');
+    } finally {
+      setCoverBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
 
   return (
     <FormSheet title={book ? 'Edit book' : 'New book'} onClose={onClose}>
@@ -24,6 +44,40 @@ function BookForm({ book, onSave, onClose }) {
           onSave(form);
         }}
       >
+        <div className="field book-cover-field">
+          <span className="field__label">Cover</span>
+          <div className="book-cover-field__row">
+            <div
+              className={`book-cover-thumb ${form.coverUrl ? 'has-image' : ''}`}
+              aria-hidden="true"
+            >
+              {form.coverUrl ? (
+                <img src={form.coverUrl} alt="" />
+              ) : (
+                <span className="book-cover-thumb__empty">No cover</span>
+              )}
+            </div>
+            <div className="book-cover-field__actions">
+              <label className="chip chip--file">
+                {coverBusy ? 'Working…' : form.coverUrl ? 'Replace' : 'Upload'}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  disabled={coverBusy}
+                  onChange={(e) => onCover(e.target.files?.[0])}
+                />
+              </label>
+              {form.coverUrl && (
+                <button type="button" className="chip" onClick={() => set({ coverUrl: '' })}>
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+          {coverError && <p className="note note--bad">{coverError}</p>}
+        </div>
         <div className="field">
           <label className="field__label" htmlFor="book-title">
             Title
@@ -73,7 +127,7 @@ function BookForm({ book, onSave, onClose }) {
         </div>
         <div className="field">
           <label className="field__label" htmlFor="book-status">
-            Status
+            Shelf
           </label>
           <select
             id="book-status"
@@ -98,34 +152,42 @@ function BookForm({ book, onSave, onClose }) {
 
 function BookCard({ book, onPage, onEdit, onDelete }) {
   const pct = Math.round(bookProgress(book) * 100);
+  const cover = isCoverDataUrl(book.coverUrl) || (book.coverUrl && book.coverUrl.startsWith('http'));
   return (
-    <li className="card">
-      <div className="card__head">
-        <div>
-          <p className="card__name">{book.title}</p>
-          <p className="card__meta">{book.author || 'No author'}</p>
-        </div>
-      </div>
-      <div className="goal__bar" role="img" aria-label={`${pct} percent`}>
-        <span className="goal__fill" style={{ width: `${pct}%` }} />
-      </div>
-      <p className="card__meta">
-        {book.status === 'done'
-          ? 'Finished'
-          : `${book.currentPage}${book.totalPages ? ` of ${book.totalPages}` : ''} pages`}
-      </p>
-      <div className="goal__actions">
-        {book.status !== 'done' && (
-          <button type="button" className="chip" onClick={() => onPage(book.currentPage + 10)}>
-            +10 pages
-          </button>
+    <li className="book-shelf-card">
+      <button type="button" className="book-shelf-card__cover" onClick={onEdit} aria-label={`Edit ${book.title}`}>
+        {cover ? (
+          <img src={book.coverUrl} alt="" />
+        ) : (
+          <span className="book-shelf-card__spine">
+            <span className="book-shelf-card__spine-title">{book.title}</span>
+          </span>
         )}
-        <button type="button" className="chip" onClick={onEdit}>
-          Edit
-        </button>
-        <button type="button" className="chip chip--danger" onClick={onDelete}>
-          Delete
-        </button>
+      </button>
+      <div className="book-shelf-card__body">
+        <p className="card__name">{book.title}</p>
+        <p className="card__meta">{book.author || 'No author'}</p>
+        <div className="goal__bar" role="img" aria-label={`${pct} percent`}>
+          <span className="goal__fill" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="card__meta">
+          {book.status === 'done'
+            ? 'Finished'
+            : `${book.currentPage}${book.totalPages ? ` of ${book.totalPages}` : ''} pages`}
+        </p>
+        <div className="goal__actions">
+          {book.status !== 'done' && (
+            <button type="button" className="chip" onClick={() => onPage(book.currentPage + 10)}>
+              +10 pages
+            </button>
+          )}
+          <button type="button" className="chip" onClick={onEdit}>
+            Edit
+          </button>
+          <button type="button" className="chip chip--danger" onClick={onDelete}>
+            Delete
+          </button>
+        </div>
       </div>
     </li>
   );
@@ -146,6 +208,7 @@ export function BooksView() {
       currentPage: Number(form.currentPage) || 0,
       status: form.status,
       notes: form.notes,
+      coverUrl: form.coverUrl || '',
       startedOn: form.status === 'reading' ? todayISO() : null,
       finishedOn: form.status === 'done' ? todayISO() : null,
     };
@@ -155,20 +218,28 @@ export function BooksView() {
   };
 
   return (
-    <div className="view">
+    <div className="view books-view">
       <header className="view__head view__head--row">
-        <h1 className="view__title">Books</h1>
+        <div>
+          <p className="eyebrow">Read</p>
+          <h1 className="view__title">Books</h1>
+        </div>
         <button type="button" className="text-btn" onClick={() => setEditing({})}>
           New
         </button>
       </header>
+      <p className="books-view__lede">Want to read, reading, and finished — with covers if you have them.</p>
 
-      {books.length === 0 && <p className="quiet">No books yet.</p>}
+      {books.length === 0 && (
+        <button type="button" className="life-empty-row" onClick={() => setEditing({})}>
+          Add a book and drop a cover on the shelf.
+        </button>
+      )}
 
       {reading.length > 0 && (
         <section className="section">
-          <h2 className="eyebrow">In progress</h2>
-          <ul className="cards">
+          <h2 className="eyebrow">Reading</h2>
+          <ul className="book-shelf">
             {reading.map((book) => (
               <BookCard
                 key={book.id}
@@ -184,8 +255,8 @@ export function BooksView() {
 
       {queued.length > 0 && (
         <section className="section">
-          <h2 className="eyebrow">Up next</h2>
-          <ul className="cards">
+          <h2 className="eyebrow">Want to read</h2>
+          <ul className="book-shelf">
             {queued.map((book) => (
               <BookCard
                 key={book.id}
@@ -202,7 +273,7 @@ export function BooksView() {
       {done.length > 0 && (
         <section className="section">
           <h2 className="eyebrow">Finished</h2>
-          <ul className="cards">
+          <ul className="book-shelf">
             {done.map((book) => (
               <BookCard
                 key={book.id}

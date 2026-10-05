@@ -17,6 +17,8 @@ import { JobsView } from './components/JobsView';
 import { MoneyView } from './components/MoneyView';
 import { MailView } from './components/MailView';
 import { NotesView } from './components/NotesView';
+import { BoardsView } from './components/BoardsView';
+import { CreativityView } from './components/CreativityView';
 import { MoreView } from './components/MoreView';
 import { SubpageBar } from './components/FormSheet';
 import { BottomNav } from './components/BottomNav';
@@ -27,6 +29,8 @@ import './App.css';
 
 const MORE_PAGES = {
   notes: { View: NotesView, title: 'Notes' },
+  boards: { View: BoardsView, title: 'Boards' },
+  creativity: { View: CreativityView, title: 'Creativity' },
   calories: { View: CaloriesView, title: 'Calories' },
   goals: { View: GoalsView, title: 'Goals' },
   habits: { View: HabitsView, title: 'Habits' },
@@ -36,7 +40,7 @@ const MORE_PAGES = {
   jobs: { View: JobsView, title: 'Jobs' },
   money: { View: MoneyView, title: 'Money' },
   mail: { View: MailView, title: 'Mail' },
-  tasks: { View: TasksView, title: 'Tasks' },
+  tasks: { View: TasksView, title: 'Todos' },
 };
 
 export default function App() {
@@ -121,7 +125,9 @@ export default function App() {
                   onEditingChange: setNotesEditing,
                   onLeaveEditor: () => setMoreParams(null),
                 }
-              : {})}
+              : morePage === 'creativity'
+                ? { onOpen }
+                : {})}
           />
         )}
       </main>
