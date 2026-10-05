@@ -175,7 +175,13 @@ function NoteEditor({ note, onChange, onClose, onDelete, onTogglePin }) {
   );
 }
 
-export function NotesView({ initialNoteId = null, onEditingChange, onLeaveEditor }) {
+export function NotesView({
+  initialNoteId = null,
+  initialCreate = false,
+  onEditingChange,
+  onLeaveEditor,
+  onConsumedIntent,
+}) {
   const { notes, addNote, updateNote, deleteNote } = useLife();
   const { notes: dayNotes } = useData();
   const [openId, setOpenId] = useState(initialNoteId);
@@ -184,6 +190,13 @@ export function NotesView({ initialNoteId = null, onEditingChange, onLeaveEditor
   useEffect(() => {
     if (initialNoteId) setOpenId(initialNoteId);
   }, [initialNoteId]);
+
+  useEffect(() => {
+    if (!initialCreate) return;
+    const note = addNote({ title: '', body: '' });
+    setOpenId(note.id);
+    onConsumedIntent?.();
+  }, [initialCreate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     onEditingChange?.(Boolean(open));
@@ -230,10 +243,9 @@ export function NotesView({ initialNoteId = null, onEditingChange, onLeaveEditor
 
       {notes.length === 0 && (
         <div className="empty">
-          <p className="empty__title">A quiet page.</p>
+          <p className="empty__title">Start a page</p>
           <p className="empty__body">
-            Capture plans, lists, or anything beyond the habit loop. Optional cover on top, title,
-            then words — that is the whole editor.
+            Plans, lists, or anything beyond the habit loop. Optional cover, title, then words.
           </p>
           <button type="button" className="btn btn--primary" onClick={create}>
             New page

@@ -55,13 +55,17 @@ export function HabitsView() {
           <h1 className="view__title">Habits</h1>
         </div>
         <button type="button" className="text-btn" onClick={() => setEditing('new')}>
-          New
+          New habit
         </button>
       </header>
 
       {activeHabits.length === 0 ? (
         <div className="empty">
-          <p className="empty__body">Nothing tracked yet. Add your first habit above.</p>
+          <p className="empty__title">Nothing to track yet</p>
+          <p className="empty__body">Add your first habit — it shows on the Habits dashboard every day it’s due.</p>
+          <button type="button" className="btn btn--primary" onClick={() => setEditing('new')}>
+            New habit
+          </button>
         </div>
       ) : (
         <ul className="lines">

@@ -21,7 +21,6 @@ import { BoardsView } from './components/BoardsView';
 import { CreativityView } from './components/CreativityView';
 import { MoreView } from './components/MoreView';
 import { SideNav } from './components/SideNav';
-import { SubpageBar } from './components/FormSheet';
 import { BottomNav } from './components/BottomNav';
 import { AccountMenu } from './components/AccountMenu';
 import { RewardSkin } from './components/RewardSkin';
@@ -101,6 +100,8 @@ export default function App() {
     else onTab(nextTab);
   };
 
+  const clearMoreParams = () => setMoreParams(null);
+
   useEffect(() => {
     if (!navOpen) return undefined;
     const onKey = (e) => e.key === 'Escape' && setSidebarOpen(false);
@@ -126,6 +127,36 @@ export default function App() {
 
   const more = morePage ? MORE_PAGES[morePage] : null;
   const MoreViewComp = more?.View;
+
+  const moreProps =
+    morePage === 'notes'
+      ? {
+          initialNoteId: moreParams?.noteId || null,
+          initialCreate: Boolean(moreParams?.create),
+          onEditingChange: setNotesEditing,
+          onLeaveEditor: clearMoreParams,
+          onConsumedIntent: clearMoreParams,
+        }
+      : morePage === 'boards'
+        ? {
+            initialCardId: moreParams?.cardId || null,
+            initialCreate: Boolean(moreParams?.create),
+            onConsumedIntent: clearMoreParams,
+          }
+        : morePage === 'tasks'
+          ? {
+              initialTaskId: moreParams?.taskId || null,
+              initialCreate: Boolean(moreParams?.create),
+              onConsumedIntent: clearMoreParams,
+            }
+          : morePage === 'books'
+            ? {
+                initialCreate: Boolean(moreParams?.create),
+                onConsumedIntent: clearMoreParams,
+              }
+            : morePage === 'creativity'
+              ? { onOpen }
+              : {};
 
   return (
     <div className={`app ${navOpen ? 'is-nav-open' : 'is-nav-closed'}`}>
@@ -170,35 +201,11 @@ export default function App() {
           </button>
         </header>
 
-        <main className="main">
-          {tab === 'more' && more && !(morePage === 'notes' && notesEditing) && (
-            <SubpageBar
-              title={more.title}
-              onBack={() => {
-                setMorePage(null);
-                setMoreParams(null);
-                setNotesEditing(false);
-              }}
-            />
-          )}
+        <main className={`main ${morePage && notesEditing ? 'main--flush' : ''}`}>
           {tab === 'today' && <TodayView onOpen={onOpen} />}
           {tab === 'calendar' && <CalendarView />}
-          {tab === 'more' && !more && (
-            <MoreView onOpen={onOpen} />
-          )}
-          {tab === 'more' && MoreViewComp && (
-            <MoreViewComp
-              {...(morePage === 'notes'
-                ? {
-                    initialNoteId: moreParams?.noteId || null,
-                    onEditingChange: setNotesEditing,
-                    onLeaveEditor: () => setMoreParams(null),
-                  }
-                : morePage === 'creativity'
-                  ? { onOpen }
-                  : {})}
-            />
-          )}
+          {tab === 'more' && !more && <MoreView onOpen={onOpen} />}
+          {tab === 'more' && MoreViewComp && <MoreViewComp {...moreProps} />}
         </main>
 
         <BottomNav tab={tab === 'calendar' ? 'more' : tab} onChange={onTab} />

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLife } from '../context/LifeProvider';
 import { todayISO } from '../lib/dates';
 import { fileToCoverDataUrl, isCoverDataUrl } from '../lib/covers';
@@ -193,12 +193,18 @@ function BookCard({ book, onPage, onEdit, onDelete }) {
   );
 }
 
-export function BooksView() {
+export function BooksView({ initialCreate = false, onConsumedIntent }) {
   const { books, addBook, updateBook, setBookPage, deleteBook } = useLife();
   const [editing, setEditing] = useState(null);
   const reading = books.filter((book) => book.status === 'reading' || book.status === 'paused');
   const queued = books.filter((book) => book.status === 'queued');
   const done = books.filter((book) => book.status === 'done');
+
+  useEffect(() => {
+    if (!initialCreate) return;
+    setEditing({});
+    onConsumedIntent?.();
+  }, [initialCreate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = (form) => {
     const fields = {
@@ -221,19 +227,23 @@ export function BooksView() {
     <div className="view books-view">
       <header className="view__head view__head--row">
         <div>
-          <p className="eyebrow">Read</p>
+          <p className="eyebrow">Planning</p>
           <h1 className="view__title">Books</h1>
         </div>
         <button type="button" className="text-btn" onClick={() => setEditing({})}>
-          New
+          New book
         </button>
       </header>
       <p className="books-view__lede">Want to read, reading, and finished — with covers if you have them.</p>
 
       {books.length === 0 && (
-        <button type="button" className="life-empty-row" onClick={() => setEditing({})}>
-          Add a book and drop a cover on the shelf.
-        </button>
+        <div className="empty">
+          <p className="empty__title">Empty shelf</p>
+          <p className="empty__body">Add a book and drop a cover so it shows up in Planning.</p>
+          <button type="button" className="btn btn--primary" onClick={() => setEditing({})}>
+            New book
+          </button>
+        </div>
       )}
 
       {reading.length > 0 && (

@@ -30,10 +30,11 @@
   --shadow: rgba(28, 25, 21, 0.08);
   --shadow-float: 0 10px 30px rgba(28, 25, 21, 0.1);
 
-  --nav-height: 64px;
+  --nav-height: 56px;
   --gutter: 18px;
-  --radius: 16px;
-  --radius-sm: 10px;
+  /* Squared Notion-like chrome — rects, quiet edges, less pill float. */
+  --radius: 4px;
+  --radius-sm: 2px;
   --radius-pill: 999px;
 
   --sans: 'IBM Plex Sans', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;

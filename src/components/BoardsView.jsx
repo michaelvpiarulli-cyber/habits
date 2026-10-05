@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLife } from '../context/LifeProvider';
 import { relativeDay, todayISO } from '../lib/dates';
 import { BOARD_COLUMNS, groupBoardCards, nextBoardSortOrder } from '../lib/boards';
@@ -237,7 +237,11 @@ function TableView({ cards, today, onEdit }) {
 /**
  * Planning database — table or board layout, optional images per row.
  */
-export function BoardsView() {
+export function BoardsView({
+  initialCardId = null,
+  initialCreate = false,
+  onConsumedIntent,
+}) {
   const { boardCards, addBoardCard, updateBoardCard, deleteBoardCard } = useLife();
   const today = todayISO();
   const columns = useMemo(() => groupBoardCards(boardCards), [boardCards]);
@@ -253,6 +257,19 @@ export function BoardsView() {
       return 'table';
     }
   });
+
+  useEffect(() => {
+    if (initialCardId) {
+      const card = boardCards.find((c) => c.id === initialCardId);
+      if (card) setEditing(card);
+      onConsumedIntent?.();
+      return;
+    }
+    if (initialCreate) {
+      setEditing({});
+      onConsumedIntent?.();
+    }
+  }, [initialCardId, initialCreate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setView = (next) => {
     setLayout(next);
@@ -309,12 +326,12 @@ export function BoardsView() {
             </button>
           </div>
           <button type="button" className="text-btn" onClick={() => setEditing({})}>
-            New
+            New row
           </button>
         </div>
       </header>
       <p className="boards-view__lede">
-        A customizable table — switch to board columns when you want the kanban.
+        Table by default — switch to columns when you want the kanban. Rows can carry an image.
       </p>
 
       {layout === 'table' ? (

@@ -10,7 +10,6 @@ import {
 } from '../lib/dates';
 import { describeCadence, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
 import { feelTap } from '../lib/haptic';
-import { groupByCourse } from '../lib/menu';
 import { nextTreat } from '../lib/rewards';
 import { atRiskToday, bestStreak, countInWeek, countPerfectDays, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
@@ -166,9 +165,7 @@ function HabitRow({
   editing,
   setEditing,
   nextUp = false,
-  variant = 'full',
 }) {
-  const compact = variant === 'menu';
   const { logFor, doneSetFor, keptSetFor, toggleDay, bumpDay, setValue, valueFor } = useData();
 
   const log = logFor(habit.id, day);
@@ -209,16 +206,6 @@ function HabitRow({
   }, [habit, day, valueFor]);
 
   const activate = () => {
-    if (compact && habit.kind === 'amount') {
-      if (!complete) {
-        feelTap('close');
-        setValue(habit, day, targetOf(habit));
-      } else {
-        feelTap('undo');
-        setValue(habit, day, 0);
-      }
-      return;
-    }
     if (needsEntry) {
       setEditing(isEditing ? null : habit.id);
       return;
@@ -268,16 +255,16 @@ function HabitRow({
   return (
     <li
       id={`habit-${habit.id}`}
-      className={`row ${compact ? 'row--menu' : ''} ${complete ? 'is-complete' : ''} ${atRisk ? 'is-at-risk' : ''} ${inking ? 'is-inking' : ''} ${nextUp ? 'is-up-next' : ''}`}
+      className={`row ${complete ? 'is-complete' : ''} ${atRisk ? 'is-at-risk' : ''} ${inking ? 'is-inking' : ''} ${nextUp ? 'is-up-next' : ''}`}
     >
-      {atRisk && !compact && <p className="row__warn">Don’t miss twice</p>}
+      {atRisk && <p className="row__warn">Don’t miss twice</p>}
       <div className="row__main">
         <HabitMark
           habit={habit}
           fraction={fractionOf(habit, log)}
           complete={complete}
           due
-          size={compact ? 'sm' : 'md'}
+          size="md"
           inking={inking}
           onActivate={activateMark}
           label={
@@ -296,19 +283,15 @@ function HabitRow({
             {habit.emoji && <span aria-hidden="true">{habit.emoji} </span>}
             {habit.name}
           </span>
-          {!compact && (
-            <>
-              <span className="row__status">
-                {status}
-                {habit.cue && <span className="row__cue"> · {habit.cue}</span>}
-                {nearBest && <span className="row__cue"> · {best - streak} from best</span>}
-              </span>
-              <ChainTrail habit={habit} doneSet={keptSet} day={day} />
-            </>
-          )}
+          <span className="row__status">
+            {status}
+            {habit.cue && <span className="row__cue"> · {habit.cue}</span>}
+            {nearBest && <span className="row__cue"> · {best - streak} from best</span>}
+          </span>
+          <ChainTrail habit={habit} doneSet={keptSet} day={day} />
         </button>
 
-        {!compact && streak > 0 && (
+        {streak > 0 && (
           <span className={`row__streak ${inking ? 'is-pop' : ''}`} title={`${streak} in a row`}>
             <b>{streak}</b>
             <span className="row__streak-unit">{unit}</span>
@@ -364,7 +347,6 @@ export function TodayView({ onOpen }) {
   const [editing, setEditing] = useState(null);
   const [showRest, setShowRest] = useState(false);
   const [showDone, setShowDone] = useState(false);
-  const [openCourse, setOpenCourse] = useState(null);
   const [pendingJump, setPendingJump] = useState(null);
   const calendarToday = todayISO();
   const [day, setDay] = useState(calendarToday);

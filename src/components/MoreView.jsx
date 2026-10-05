@@ -1,25 +1,27 @@
 import { useMemo } from 'react';
 import { useLife } from '../context/LifeProvider';
-import { groupBoardCards } from '../lib/boards';
+import { relativeDay, todayISO } from '../lib/dates';
+import { BOARD_COLUMNS } from '../lib/boards';
 import { noteSnippet, noteTitle, recentNotes } from '../lib/notes';
+import { focusTodos, openBoardPulse, planningPulse } from '../lib/planning';
 import { QUICK_CREATES } from '../lib/spaces';
 
+const COLUMN_LABEL = Object.fromEntries(BOARD_COLUMNS);
+
 /**
- * Planning home — Notion-quiet front door for pages, boards, and books.
- * Habits live on their own dashboard; extras stay in the sidebar under More.
+ * Planning home — daily/weekly overview for pages, boards, and todos.
+ * SideNav is the map; this is the desk, not a second directory.
  */
 export function MoreView({ onOpen }) {
   const { notes, tasks, books, boardCards } = useLife();
-  const previewNotes = recentNotes(notes, 4);
-  const openTodos = tasks.filter((t) => !t.done).length;
-  const readingCount = books.filter((b) => b.status === 'reading' || b.status === 'paused').length;
-  const boardOpen = useMemo(
-    () =>
-      groupBoardCards(boardCards)
-        .filter((c) => c.id !== 'done')
-        .reduce((n, c) => n + c.cards.length, 0),
-    [boardCards]
+  const today = todayISO();
+  const pulse = useMemo(
+    () => planningPulse({ notes, tasks, books, boardCards }),
+    [notes, tasks, books, boardCards]
   );
+  const todos = useMemo(() => focusTodos(tasks, today, 5), [tasks, today]);
+  const boardRows = useMemo(() => openBoardPulse(boardCards, 4), [boardCards]);
+  const previewNotes = useMemo(() => recentNotes(notes, 4), [notes]);
 
   return (
     <div className="view life-home planning-home">
@@ -27,53 +29,112 @@ export function MoreView({ onOpen }) {
         <p className="eyebrow">Workspace</p>
         <h1 className="view__title">Planning</h1>
         <p className="life-home__lede">
-          Pages, boards, and books — a calm place to plan. Habits stay on the Habits dashboard.
+          Today and this week at a glance — open a page, move a board row, clear a todo.
+          Habits stay on the Habits dashboard.
         </p>
       </header>
 
       <section className="life-pulse" aria-label="Planning pulse">
-        <p className="life-pulse__summary">
-          {[
-            `${notes.length} page${notes.length === 1 ? '' : 's'}`,
-            openTodos ? `${openTodos} todo${openTodos === 1 ? '' : 's'}` : null,
-            readingCount ? `${readingCount} reading` : null,
-            boardOpen ? `${boardOpen} on board` : null,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
+        <p className="life-pulse__summary">{pulse.summary}</p>
+        <div className="life-pulse__links">
+          <button type="button" className="text-btn" onClick={() => onOpen('today')}>
+            Habits
+          </button>
+          <button type="button" className="text-btn" onClick={() => onOpen('calendar')}>
+            Calendar
+          </button>
+        </div>
       </section>
 
       <section className="section life-section">
         <div className="section__head">
-          <h2 className="eyebrow">New</h2>
+          <h2 className="eyebrow">Focus</h2>
+          <button type="button" className="text-btn" onClick={() => onOpen('more', 'tasks')}>
+            {pulse.openTodos ? 'All todos' : 'New todo'}
+          </button>
         </div>
-        <ul className="life-quick">
-          {QUICK_CREATES.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className="life-quick__card"
-                onClick={() => onOpen('more', item.id)}
-              >
-                <span className="life-quick__space">{item.space}</span>
-                <span className="life-quick__label">{item.label}</span>
-                <span className="life-quick__detail">{item.detail}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        {todos.length === 0 ? (
+          <button
+            type="button"
+            className="life-empty-row"
+            onClick={() => onOpen('more', 'tasks', { create: true })}
+          >
+            Nothing waiting — add a todo with a due date.
+          </button>
+        ) : (
+          <ul className="plan-focus-list" aria-label="Open todos">
+            {todos.map((task) => {
+              const overdue = task.dueDate && task.dueDate < today;
+              return (
+                <li key={task.id}>
+                  <button
+                    type="button"
+                    className={`plan-focus-row ${overdue ? 'is-overdue' : ''}`}
+                    onClick={() => onOpen('more', 'tasks', { taskId: task.id })}
+                  >
+                    <span className="plan-focus-row__title">{task.title}</span>
+                    <span className="plan-focus-row__meta">
+                      {task.dueDate
+                        ? `${overdue ? 'Due ' : ''}${relativeDay(task.dueDate)}`
+                        : 'No date'}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="section life-section">
+        <div className="section__head">
+          <h2 className="eyebrow">Board pulse</h2>
+          <button type="button" className="text-btn" onClick={() => onOpen('more', 'boards')}>
+            {pulse.boardOpen ? 'Open board' : 'New row'}
+          </button>
+        </div>
+        {boardRows.length === 0 ? (
+          <button
+            type="button"
+            className="life-empty-row"
+            onClick={() => onOpen('more', 'boards', { create: true })}
+          >
+            Add a board row — status, due date, optional image.
+          </button>
+        ) : (
+          <ul className="plan-focus-list" aria-label="Open board rows">
+            {boardRows.map((card) => (
+              <li key={card.id}>
+                <button
+                  type="button"
+                  className="plan-focus-row"
+                  onClick={() => onOpen('more', 'boards', { cardId: card.id })}
+                >
+                  <span className="plan-focus-row__title">{card.title}</span>
+                  <span className="plan-focus-row__meta">
+                    {COLUMN_LABEL[card.column] || card.column}
+                    {card.dueDate ? ` · ${relativeDay(card.dueDate)}` : ''}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="section life-section">
         <div className="section__head">
           <h2 className="eyebrow">Recent pages</h2>
           <button type="button" className="text-btn" onClick={() => onOpen('more', 'notes')}>
-            {notes.length ? 'All' : 'New'}
+            {notes.length ? 'All pages' : 'New page'}
           </button>
         </div>
         {previewNotes.length === 0 ? (
-          <button type="button" className="life-empty-row" onClick={() => onOpen('more', 'notes')}>
+          <button
+            type="button"
+            className="life-empty-row"
+            onClick={() => onOpen('more', 'notes', { create: true })}
+          >
             Start a page — plans, lists, anything beyond the habit loop.
           </button>
         ) : (
@@ -99,6 +160,26 @@ export function MoreView({ onOpen }) {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="section life-section">
+        <div className="section__head">
+          <h2 className="eyebrow">New</h2>
+        </div>
+        <ul className="life-quick life-quick--row">
+          {QUICK_CREATES.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                className="life-quick__card"
+                onClick={() => onOpen('more', item.id, item.create ? { create: true } : null)}
+              >
+                <span className="life-quick__label">{item.label}</span>
+                <span className="life-quick__detail">{item.detail}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );

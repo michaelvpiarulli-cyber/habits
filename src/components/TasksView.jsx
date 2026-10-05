@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLife } from '../context/LifeProvider';
 import { useGoogle } from '../context/GoogleProvider';
 import { formatClock, relativeDay, todayISO } from '../lib/dates';
@@ -162,7 +162,11 @@ function TaskRow({ task, today, onToggle, onEdit }) {
   );
 }
 
-export function TasksView() {
+export function TasksView({
+  initialTaskId = null,
+  initialCreate = false,
+  onConsumedIntent,
+}) {
   const { tasks, addTask, updateTask, toggleTask, deleteTask } = useLife();
   const google = useGoogle();
   const today = todayISO();
@@ -170,6 +174,19 @@ export function TasksView() {
   const [editing, setEditing] = useState(null);
   const [showDone, setShowDone] = useState(false);
   const [googleNote, setGoogleNote] = useState('');
+
+  useEffect(() => {
+    if (initialTaskId) {
+      const task = tasks.find((t) => t.id === initialTaskId);
+      if (task) setEditing(task);
+      onConsumedIntent?.();
+      return;
+    }
+    if (initialCreate) {
+      setEditing({});
+      onConsumedIntent?.();
+    }
+  }, [initialTaskId, initialCreate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = async (form) => {
     let googleEventId = editing?.googleEventId || '';
@@ -217,11 +234,11 @@ export function TasksView() {
     <div className="view">
       <header className="view__head view__head--row">
         <div>
-          <p className="eyebrow">Focus</p>
+          <p className="eyebrow">Planning</p>
           <h1 className="view__title">Todos</h1>
         </div>
         <button type="button" className="text-btn" onClick={() => setEditing({})}>
-          New
+          New todo
         </button>
       </header>
 
@@ -249,7 +266,12 @@ export function TasksView() {
       {sections.every(([, list]) => list.length === 0) && (
         <div className="empty">
           <p className="empty__title">Nothing waiting</p>
-          <p className="empty__body">Add a task with a due date and it will show on the calendar.</p>
+          <p className="empty__body">
+            Add a todo with a due date — it shows here, on Planning, and on the calendar.
+          </p>
+          <button type="button" className="btn btn--primary" onClick={() => setEditing({})}>
+            New todo
+          </button>
         </div>
       )}
 

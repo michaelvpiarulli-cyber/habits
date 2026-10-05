@@ -73,12 +73,12 @@ export const LIFE_SPACES = [
   },
 ];
 
-/** Quick creates on the Planning home. */
+/** Quiet create actions on the Planning home (open the surface ready to add). */
 export const QUICK_CREATES = [
-  { id: 'notes', label: 'Page', detail: 'Blank doc', space: 'Planning' },
-  { id: 'boards', label: 'Board card', detail: 'Backlog → Done', space: 'Planning' },
-  { id: 'tasks', label: 'Todo', detail: 'With a due date', space: 'Planning' },
-  { id: 'books', label: 'Book', detail: 'Cover + shelf', space: 'Planning' },
+  { id: 'notes', label: 'New page', detail: 'Cover + title', create: true },
+  { id: 'boards', label: 'New board row', detail: 'Table or columns', create: true },
+  { id: 'tasks', label: 'New todo', detail: 'With a due date', create: true },
+  { id: 'books', label: 'New book', detail: 'Cover + shelf', create: true },
 ];
 
 export function spaceForPage(pageId) {

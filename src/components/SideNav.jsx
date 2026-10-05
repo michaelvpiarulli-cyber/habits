@@ -28,6 +28,10 @@ export function SideNav({ tab, morePage, onNavigate, open, onClose, onToggle }) 
   const moreSpace = LIFE_SPACES.find((s) => s.id === 'more-tools');
   const habitTools = LIFE_SPACES.find((s) => s.id === 'habits-tools');
 
+  useEffect(() => {
+    if (activeSpace === 'more-tools') setMoreOpen(true);
+  }, [activeSpace]);
+
   const go = (target) => {
     onNavigate(target);
     // Mobile drawer closes after navigate; desktop stays open unless collapsed.
