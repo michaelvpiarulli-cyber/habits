@@ -38,25 +38,31 @@
 
 .nav-toggle {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   border: 1px solid var(--rule);
   background: var(--card);
-  color: var(--ink);
-  border-radius: var(--radius-pill);
-  padding: 6px 12px;
-  font-family: var(--mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  box-shadow: 0 1px 0 var(--rule);
-  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+  color: var(--ink-soft);
+  border-radius: 8px;
+  box-shadow: none;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }
 
 .nav-toggle:hover {
   background: var(--sunk);
+  color: var(--ink);
 }
 
 .nav-toggle:active {
-  transform: scale(0.98);
+  transform: none;
+}
+
+.nav-toggle__icon {
+  display: block;
 }
 
 .wordmark {
@@ -5354,14 +5360,6 @@ form.field {
    Life workspace — Notion-calm pages inside Tally’s paper press
    ========================================================================= */
 
-.life-home__lede {
-  margin-top: 8px;
-  max-width: 34rem;
-  font-size: 0.938rem;
-  line-height: 1.45;
-  color: var(--ink-soft);
-}
-
 .life-pulse {
   margin: 0 0 22px;
   padding: 14px 16px;
@@ -5997,7 +5995,7 @@ form.field {
 }
 
 /* =========================================================================
-   Left Tools sidebar — spaces map
+   Notion-like retractable sidebar
    ========================================================================= */
 
 .side-nav__scrim {
@@ -6026,8 +6024,8 @@ form.field {
   flex-direction: column;
   width: min(var(--side-nav-width), 88vw);
   height: 100dvh;
-  padding: calc(12px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--paper) 94%, var(--card));
+  padding: calc(10px + env(safe-area-inset-top)) 10px calc(16px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--paper) 96%, var(--card));
   border-right: 1px solid var(--rule);
   box-shadow: 8px 0 28px color-mix(in srgb, var(--ink) 12%, transparent);
   transform: translateX(-105%);
@@ -6055,6 +6053,7 @@ form.field {
 
 :root[data-theme='dark'] .life-pulse,
 :root[data-theme='dark'] .life-space-tile,
+:root[data-theme='dark'] .planning-surface,
 :root[data-theme='dark'] .creativity-capture {
   background: #121212;
   border-color: #2d2d2d;
@@ -6066,63 +6065,103 @@ form.field {
 
 .side-nav__head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 4px 6px 8px;
 }
 
-.side-nav__title {
+.side-nav__brand {
+  min-width: 0;
+}
+
+.side-nav__wordmark {
   font-family: var(--display);
-  font-size: 1.55rem;
+  font-size: 1.2rem;
   font-weight: 400;
-  letter-spacing: 0.01em;
-  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
 }
 
-.side-nav__close {
-  display: inline;
-}
-
-.side-nav__hint {
-  margin: 0 0 14px;
-  font-size: 0.813rem;
-  line-height: 1.4;
+.side-nav__collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--ink-soft);
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.side-nav__collapse:hover {
+  background: var(--sunk);
+  color: var(--ink);
 }
 
 .side-nav__scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding-right: 4px;
+  padding-right: 2px;
   overscroll-behavior: contain;
 }
 
 .side-nav__group {
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--rule) 80%, transparent);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
 }
 
 .side-nav__group:last-child {
-  border-bottom: 0;
   margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .side-nav__group-label {
-  font-family: var(--mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  display: block;
+  margin: 0 0 4px 8px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   color: var(--ink-soft);
 }
 
-.side-nav__group-blurb {
-  margin: 3px 0 8px;
-  font-size: 0.75rem;
-  line-height: 1.35;
+.side-nav__fold {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  margin-bottom: 2px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.side-nav__fold:hover {
+  background: var(--sunk);
+}
+
+.side-nav__fold .side-nav__group-label {
+  margin: 0;
+}
+
+.side-nav__chevron {
+  font-size: 0.625rem;
   color: var(--ink-soft);
+  transform: rotate(-90deg);
+  transition: transform 140ms ease;
+}
+
+.side-nav__chevron.is-open {
+  transform: none;
 }
 
 .side-nav__list {
@@ -6131,7 +6170,7 @@ form.field {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .side-nav__item {
@@ -6140,10 +6179,13 @@ form.field {
   flex-direction: column;
   align-items: flex-start;
   gap: 1px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   text-align: left;
-  border-radius: var(--radius-sm);
-  transition: background 140ms ease;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  transition: background 120ms ease;
 }
 
 .side-nav__item:hover {
@@ -6155,18 +6197,19 @@ form.field {
 }
 
 .side-nav__item-label {
-  font-size: 0.938rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.3;
 }
 
 .side-nav__item-detail {
-  font-size: 0.719rem;
+  font-size: 0.6875rem;
   color: var(--ink-soft);
   line-height: 1.3;
 }
 
-.side-nav__group.is-active-space .side-nav__group-label {
+.side-nav__group.is-active-space > .side-nav__group-label,
+.side-nav__group.is-active-space .side-nav__fold .side-nav__group-label {
   color: var(--blue);
 }
 
@@ -6174,14 +6217,19 @@ body.is-side-nav-open {
   overflow: hidden;
 }
 
-/* Life home dashboard */
+/* Planning home */
 
-.life-home__tools-btn {
-  margin-top: 14px;
+.life-home__lede {
+  margin: 6px 0 0;
+  max-width: 36em;
+  font-size: 0.938rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
 }
 
 .life-home__lede strong {
   font-weight: 600;
+  color: var(--ink);
 }
 
 .life-quick {
@@ -6199,13 +6247,14 @@ body.is-side-nav-open {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  min-height: 88px;
+  min-height: 84px;
   padding: 12px 13px;
   text-align: left;
-  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--rule) 80%, transparent);
+  border-radius: 10px;
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
-  transition: background 140ms ease, transform 140ms ease;
+  box-shadow: none;
+  transition: background 140ms ease, border-color 140ms ease;
 }
 
 .life-quick__card:hover {
@@ -6213,19 +6262,18 @@ body.is-side-nav-open {
 }
 
 .life-quick__card:active {
-  transform: scale(0.99);
+  transform: none;
 }
 
 .life-quick__space {
-  font-family: var(--mono);
-  font-size: 0.5625rem;
-  letter-spacing: 0.07em;
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
 
 .life-quick__label {
-  font-size: 1rem;
+  font-size: 0.975rem;
   font-weight: 500;
   line-height: 1.25;
 }
@@ -6236,81 +6284,64 @@ body.is-side-nav-open {
   line-height: 1.35;
 }
 
-.life-space-grid {
+.planning-surfaces {
   list-style: none;
   margin: 10px 0 0;
   padding: 0;
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.life-space-tile {
+.planning-surface {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
-  padding: 14px 16px;
+  gap: 2px;
+  padding: 12px 14px;
   text-align: left;
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--card) 88%, var(--blue-wash));
-  border: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
-  transition: background 140ms ease, transform 140ms ease;
+  border: 0;
+  border-radius: 8px;
+  background: var(--card);
+  color: inherit;
+  transition: background 140ms ease;
 }
 
-.life-space-tile:hover {
+.planning-surface:hover {
   background: var(--sunk);
 }
 
-.life-space-tile:active {
-  transform: scale(0.995);
+.planning-surface__label {
+  font-size: 0.975rem;
+  font-weight: 500;
+  line-height: 1.25;
 }
 
-.life-space-tile__label {
-  font-family: var(--display);
-  font-size: 1.25rem;
-  font-weight: 400;
-  letter-spacing: 0.01em;
-  line-height: 1.15;
-}
-
-.life-space-tile__blurb {
-  font-size: 0.813rem;
+.planning-surface__detail {
+  font-size: 0.781rem;
   color: var(--ink-soft);
-  line-height: 1.4;
-}
-
-.life-space-tile__pages {
-  margin-top: 2px;
-  font-size: 0.75rem;
-  color: var(--ink);
   line-height: 1.35;
-}
-
-.life-space--compact {
-  margin-top: 14px;
-}
-
-.life-space--compact .life-space__title {
-  font-size: 1.1rem;
 }
 
 @media (min-width: 900px) {
   .app {
     max-width: none;
     display: grid;
-    grid-template-columns: var(--side-nav-width) minmax(0, 720px);
+    grid-template-columns: 0 minmax(0, 720px);
     justify-content: center;
     align-items: start;
     gap: 0;
     padding-bottom: calc(var(--nav-height) + 18px + env(safe-area-inset-bottom));
+    transition: grid-template-columns 220ms cubic-bezier(0.2, 0.7, 0.3, 1);
   }
 
-  /* Scrim + aside both land in column 1; shell in column 2. */
+  .app.is-nav-open {
+    grid-template-columns: var(--side-nav-width) minmax(0, 720px);
+  }
+
   .side-nav__scrim {
     display: none;
-    grid-column: 1;
-    grid-row: 1;
   }
 
   .side-nav {
@@ -6318,16 +6349,17 @@ body.is-side-nav-open {
     grid-row: 1;
     position: sticky;
     top: 0;
-    transform: none;
     width: var(--side-nav-width);
     height: 100dvh;
     box-shadow: none;
-    border-right: 0;
     z-index: 15;
+    transform: translateX(-105%);
+    pointer-events: none;
   }
 
   .side-nav.is-open {
     transform: none;
+    pointer-events: auto;
   }
 
   .app__shell {
@@ -6335,15 +6367,11 @@ body.is-side-nav-open {
     grid-row: 1;
     max-width: 720px;
     width: 100%;
-    border-left: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
+    border-left: 1px solid transparent;
   }
 
-  .side-nav__close {
-    display: none;
-  }
-
-  .nav-toggle {
-    display: none;
+  .app.is-nav-open .app__shell {
+    border-left-color: color-mix(in srgb, var(--rule) 70%, transparent);
   }
 
   body.is-side-nav-open {
@@ -6351,17 +6379,20 @@ body.is-side-nav-open {
   }
 
   .life-quick {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .life-space-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .nav {
+    /* Sidebar handles primary nav on desktop; keep a quiet dual tab. */
+    max-width: 360px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .side-nav,
-  .side-nav__scrim {
+  .side-nav__scrim,
+  .app,
+  .side-nav__chevron {
     transition: none;
   }
 }

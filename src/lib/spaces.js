@@ -1,20 +1,30 @@
 /**
- * Life workspace — spaces group tools. The left sidebar is the map.
+ * Tally navigation — Habits dashboard + Notion-style planning pages.
+ * Secondary tools stay reachable but out of the way.
  */
 
 export const CORE_NAV = [
-  { id: 'today', kind: 'tab', label: 'Today', detail: 'Daily habit loop' },
-  { id: 'record', kind: 'tab', label: 'Record', detail: 'Streaks and progress' },
-  { id: 'calendar', kind: 'tab', label: 'Plan', detail: 'Calendar and schedule' },
+  { id: 'today', kind: 'tab', label: 'Habits', detail: 'Daily dashboard' },
+];
+
+/** Primary planning surfaces — pages, boards/tables, calendar. */
+export const PLANNING_NAV = [
+  { id: 'planning', kind: 'tab', label: 'Planning', detail: 'Pages and boards' },
+  { id: 'notes', kind: 'page', label: 'Pages', detail: 'Docs with images' },
+  { id: 'boards', kind: 'page', label: 'Boards', detail: 'Tables and columns' },
+  { id: 'tasks', kind: 'page', label: 'Todos', detail: 'Due dates' },
+  { id: 'books', kind: 'page', label: 'Books', detail: 'Covers and shelves' },
+  { id: 'calendar', kind: 'tab', label: 'Calendar', detail: 'Month view' },
 ];
 
 export const PAGE_DETAILS = {
-  habits: 'Daily set and streaks',
+  habits: 'Edit the daily set',
   goals: 'Destinations and steps',
+  progress: 'Streaks and history',
   tasks: 'Inbox with due dates',
   creativity: 'Sparks and quiet rooms',
-  boards: 'Backlog · Doing · Done',
-  notes: 'Pages and day reflections',
+  boards: 'Table or board columns',
+  notes: 'Pages with covers',
   books: 'Reading · want · finished',
   grocery: 'What is in stock',
   money: 'Accounts and spend',
@@ -24,38 +34,35 @@ export const PAGE_DETAILS = {
   mail: 'Gmail inbox',
 };
 
+/** Kept for LifeProvider / older call sites that iterate spaces. */
 export const LIFE_SPACES = [
   {
-    id: 'focus',
-    label: 'Focus',
-    blurb: 'Habits, goals, and todos with due dates.',
+    id: 'planning',
+    label: 'Planning',
+    blurb: 'Pages, boards, todos, and books.',
     pages: [
-      { id: 'habits', label: 'Habits' },
-      { id: 'goals', label: 'Goals' },
+      { id: 'notes', label: 'Pages' },
+      { id: 'boards', label: 'Boards' },
       { id: 'tasks', label: 'Todos' },
+      { id: 'books', label: 'Books' },
     ],
   },
   {
-    id: 'create',
-    label: 'Create',
-    blurb: 'Ideas, boards, and drafts.',
+    id: 'habits-tools',
+    label: 'Habits',
+    blurb: 'Edit habits and longer goals.',
+    pages: [
+      { id: 'habits', label: 'Edit habits' },
+      { id: 'goals', label: 'Goals' },
+      { id: 'progress', label: 'Progress' },
+    ],
+  },
+  {
+    id: 'more-tools',
+    label: 'More',
+    blurb: 'Extras when you need them.',
     pages: [
       { id: 'creativity', label: 'Creativity' },
-      { id: 'boards', label: 'Boards' },
-      { id: 'notes', label: 'Notes' },
-    ],
-  },
-  {
-    id: 'read',
-    label: 'Read',
-    blurb: 'Want to read, reading, and finished.',
-    pages: [{ id: 'books', label: 'Books' }],
-  },
-  {
-    id: 'house',
-    label: 'House',
-    blurb: 'Fridge, money, identity, and the rest.',
-    pages: [
       { id: 'grocery', label: 'Fridge' },
       { id: 'money', label: 'Money' },
       { id: 'identity', label: 'Identity' },
@@ -66,14 +73,12 @@ export const LIFE_SPACES = [
   },
 ];
 
-/** Quick-create shortcuts shown on the Life home dashboard. */
+/** Quick creates on the Planning home. */
 export const QUICK_CREATES = [
-  { id: 'tasks', label: 'Todo', detail: 'With a due date', space: 'Focus' },
-  { id: 'notes', label: 'Note', detail: 'A blank page', space: 'Create' },
-  { id: 'boards', label: 'Board card', detail: 'Backlog → Doing → Done', space: 'Create' },
-  { id: 'creativity', label: 'Spark', detail: 'Catch an idea', space: 'Create' },
-  { id: 'books', label: 'Book', detail: 'Cover + shelf', space: 'Read' },
-  { id: 'habits', label: 'Habit', detail: 'Edit the daily set', space: 'Focus' },
+  { id: 'notes', label: 'Page', detail: 'Blank doc', space: 'Planning' },
+  { id: 'boards', label: 'Board card', detail: 'Backlog → Done', space: 'Planning' },
+  { id: 'tasks', label: 'Todo', detail: 'With a due date', space: 'Planning' },
+  { id: 'books', label: 'Book', detail: 'Cover + shelf', space: 'Planning' },
 ];
 
 export function spaceForPage(pageId) {

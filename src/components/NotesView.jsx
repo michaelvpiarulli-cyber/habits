@@ -66,7 +66,7 @@ function NoteEditor({ note, onChange, onClose, onDelete, onTogglePin }) {
             onClose();
           }}
         >
-          ← Notes
+          ← Pages
         </button>
         <div className="note-page__actions">
           <button type="button" className="text-btn" onClick={onTogglePin} aria-pressed={!!note.pinned}>
@@ -161,7 +161,7 @@ export function NotesView({ initialNoteId = null, onEditingChange, onLeaveEditor
       <header className="view__head view__head--row">
         <div>
           <p className="eyebrow">{notes.length ? `${notes.length} pages` : 'Notebook'}</p>
-          <h1 className="view__title">Notes</h1>
+          <h1 className="view__title">Pages</h1>
         </div>
         <button type="button" className="text-btn" onClick={create}>
           New
@@ -172,17 +172,17 @@ export function NotesView({ initialNoteId = null, onEditingChange, onLeaveEditor
         <div className="empty">
           <p className="empty__title">A quiet page.</p>
           <p className="empty__body">
-            Capture plans, sermons, travel, or anything that does not belong on Today. Title at the
-            top, words underneath — that is the whole editor.
+            Capture plans, lists, or anything beyond the habit loop. Title at the top, words
+            underneath — that is the whole editor.
           </p>
           <button type="button" className="btn btn--primary" onClick={create}>
-            New note
+            New page
           </button>
         </div>
       )}
 
       {notes.length > 0 && (
-        <ul className="page-list" aria-label="Notes">
+        <ul className="page-list" aria-label="Pages">
           {notes.map((note) => (
             <li key={note.id}>
               <button type="button" className="page-row" onClick={() => setOpenId(note.id)}>

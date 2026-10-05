@@ -5,7 +5,6 @@ import { useData } from './context/DataProvider';
 import { useLife } from './context/LifeProvider';
 import { TodayView } from './components/TodayView';
 import { CaloriesView } from './components/CaloriesView';
-import { ProgressView } from './components/ProgressView';
 import { GoalsView } from './components/GoalsView';
 import { HabitsView } from './components/HabitsView';
 import { IdentityView } from './components/IdentityView';
@@ -28,8 +27,10 @@ import { RewardSkin } from './components/RewardSkin';
 import { NativeShell } from './components/NativeShell';
 import './App.css';
 
+const SIDEBAR_KEY = 'tally.sidebar.open';
+
 const MORE_PAGES = {
-  notes: { View: NotesView, title: 'Notes' },
+  notes: { View: NotesView, title: 'Pages' },
   boards: { View: BoardsView, title: 'Boards' },
   creativity: { View: CreativityView, title: 'Creativity' },
   calories: { View: CaloriesView, title: 'Calories' },
@@ -44,6 +45,20 @@ const MORE_PAGES = {
   tasks: { View: TasksView, title: 'Todos' },
 };
 
+function readSidebarOpen() {
+  try {
+    const stored = localStorage.getItem(SIDEBAR_KEY);
+    if (stored === '0') return false;
+    if (stored === '1') return true;
+  } catch {
+    /* ignore */
+  }
+  if (typeof window !== 'undefined') {
+    return window.matchMedia('(min-width: 900px)').matches;
+  }
+  return false;
+}
+
 export default function App() {
   const auth = useAuth();
   const theme = useTheme();
@@ -54,7 +69,16 @@ export default function App() {
   const [moreParams, setMoreParams] = useState(null);
   const [notesEditing, setNotesEditing] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(readSidebarOpen);
+
+  const setSidebarOpen = (next) => {
+    setNavOpen(next);
+    try {
+      localStorage.setItem(SIDEBAR_KEY, next ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  };
 
   const onOpen = (next, page = null, params = null) => {
     setTab(next);
@@ -77,7 +101,7 @@ export default function App() {
 
   useEffect(() => {
     if (!navOpen) return undefined;
-    const onKey = (e) => e.key === 'Escape' && setNavOpen(false);
+    const onKey = (e) => e.key === 'Escape' && setSidebarOpen(false);
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [navOpen]);
@@ -102,7 +126,7 @@ export default function App() {
   const MoreViewComp = more?.View;
 
   return (
-    <div className={`app ${navOpen ? 'is-nav-open' : ''}`}>
+    <div className={`app ${navOpen ? 'is-nav-open' : 'is-nav-closed'}`}>
       <NativeShell isDark={theme.isDark} />
       <RewardSkin />
 
@@ -110,7 +134,8 @@ export default function App() {
         tab={tab}
         morePage={morePage}
         open={navOpen}
-        onClose={() => setNavOpen(false)}
+        onClose={() => setSidebarOpen(false)}
+        onToggle={() => setSidebarOpen(!navOpen)}
         onNavigate={onNavigate}
       />
 
@@ -122,9 +147,10 @@ export default function App() {
               className="nav-toggle"
               aria-expanded={navOpen}
               aria-controls="side-nav"
-              onClick={() => setNavOpen(true)}
+              aria-label={navOpen ? 'Collapse sidebar' : 'Open sidebar'}
+              onClick={() => setSidebarOpen(!navOpen)}
             >
-              Tools
+              <SidebarToggleIcon />
             </button>
             <h1 className="wordmark">
               Tally<span className="wordmark__dot" aria-hidden="true">.</span>
@@ -154,10 +180,9 @@ export default function App() {
             />
           )}
           {tab === 'today' && <TodayView onOpen={onOpen} />}
-          {tab === 'record' && <ProgressView onOpen={onOpen} />}
           {tab === 'calendar' && <CalendarView />}
           {tab === 'more' && !more && (
-            <MoreView onOpen={onOpen} onOpenTools={() => setNavOpen(true)} />
+            <MoreView onOpen={onOpen} onOpenTools={() => setSidebarOpen(true)} />
           )}
           {tab === 'more' && MoreViewComp && (
             <MoreViewComp
@@ -174,10 +199,19 @@ export default function App() {
           )}
         </main>
 
-        <BottomNav tab={tab} onChange={onTab} />
+        <BottomNav tab={tab === 'calendar' ? 'more' : tab} onChange={onTab} />
       </div>
 
       {accountOpen && <AccountMenu theme={theme} onClose={() => setAccountOpen(false)} />}
     </div>
+  );
+}
+
+function SidebarToggleIcon() {
+  return (
+    <svg className="nav-toggle__icon" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+      <rect x="2" y="3" width="14" height="12" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M7 3v12" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
   );
 }

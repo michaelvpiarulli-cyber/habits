@@ -1,21 +1,17 @@
 # Tally
 
-A habit tracker with a satisfying daily loop — same stack as before, Vite + React +
-Supabase + Vercel. Calories, tasks, and the rest of life still live here; they
-are not the front door.
+A habit tracker with a Notion-quiet shell — Vite + React + Supabase + Vercel / Railway.
 
-**Today** is the loop: check what’s due, keep the chain, close a perfect day.
-**Record** is streaks and the contact sheet. **Plan** is the month. Everything
-else lives under **More**.
+**Habits** is the home dashboard: what’s due today, keep the chain, close a perfect day.
+**Planning** is the rest — pages, boards/tables, todos, books, and calendar — opened from a
+retractable sidebar (Notion-like). Extra tools (calories, fridge, money, etc.) stay folded
+under **More** in the sidebar.
 
 Five habits ship as the starting set: whole foods, walk after meals, sleep, protein, weigh in.
-Edit or delete any of them on **More → Habits**.
+Edit them from the sidebar → **Edit habits**.
 
-Food is logged on **More → Calories** (breakfast, lunch, dinner, snacks). Type a food
-name to pull calories and macros from a built-in list plus USDA FoodData Central.
-Day totals still roll up for the Protein habit. **More → Fridge** is a virtual
-fridge — open the freezer or fridge door, browse by shelf/drawer, and mark food out
-when it’s gone.
+Food is logged under sidebar **More → Calories**. Day totals still roll up for the Protein habit.
+**Fridge** is a virtual fridge under the same More fold.
 
 ## How habits are tracked
 

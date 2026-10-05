@@ -151,14 +151,14 @@ export function BoardsView() {
     <div className="view boards-view">
       <header className="view__head view__head--row">
         <div>
-          <p className="eyebrow">Create</p>
+          <p className="eyebrow">Planning</p>
           <h1 className="view__title">Boards</h1>
         </div>
         <button type="button" className="text-btn" onClick={() => setEditing({})}>
           New
         </button>
       </header>
-      <p className="boards-view__lede">Three columns. Move work when it moves you.</p>
+      <p className="boards-view__lede">A simple table of columns — backlog, doing, done.</p>
 
       <div className="board-columns">
         {columns.map((col) => (

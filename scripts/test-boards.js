@@ -78,10 +78,10 @@ test('nextBoardSortOrder is max in column + 1', () => {
   assert.equal(nextBoardSortOrder(cards, 'done'), 0);
 });
 
-test('LIFE_SPACES covers focus create read house', () => {
+test('LIFE_SPACES covers planning habits-tools more-tools', () => {
   assert.deepEqual(
     LIFE_SPACES.map((s) => s.id),
-    ['focus', 'create', 'read', 'house']
+    ['planning', 'habits-tools', 'more-tools']
   );
   const pages = LIFE_SPACES.flatMap((s) => s.pages.map((p) => p.id));
   for (const need of ['habits', 'tasks', 'boards', 'creativity', 'books', 'notes']) {
@@ -90,10 +90,11 @@ test('LIFE_SPACES covers focus create read house', () => {
 });
 
 test('spaceForPage and QUICK_CREATES map tools into spaces', () => {
-  assert.equal(spaceForPage('boards')?.id, 'create');
-  assert.equal(spaceForPage('tasks')?.id, 'focus');
+  assert.equal(spaceForPage('boards')?.id, 'planning');
+  assert.equal(spaceForPage('tasks')?.id, 'planning');
+  assert.equal(spaceForPage('habits')?.id, 'habits-tools');
   assert.equal(spaceForPage('nope'), null);
-  assert.equal(QUICK_CREATES.length >= 6, true);
+  assert.equal(QUICK_CREATES.length >= 4, true);
   assert.equal(
     QUICK_CREATES.every((item) => LIFE_SPACES.some((s) => s.pages.some((p) => p.id === item.id))),
     true

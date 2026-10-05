@@ -1,31 +1,16 @@
 import { useMemo } from 'react';
-import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
-import { todayISO } from '../lib/dates';
 import { groupBoardCards } from '../lib/boards';
-import { isHit, topLevelGoals } from '../lib/goals';
-import { lifePulse, noteSnippet, noteTitle, recentNotes } from '../lib/notes';
-import { LIFE_SPACES, PAGE_DETAILS, QUICK_CREATES } from '../lib/spaces';
-import { isDue } from '../lib/streaks';
+import { noteSnippet, noteTitle, recentNotes } from '../lib/notes';
+import { QUICK_CREATES } from '../lib/spaces';
 
 /**
- * Life home — a clear dashboard: pulse, quick creates, then space shortcuts.
- * The left Tools sidebar is the full map; this page is the front door.
+ * Planning home — Notion-quiet front door for pages, boards, and books.
+ * Habits live on their own dashboard; extras stay in the sidebar under More.
  */
 export function MoreView({ onOpen, onOpenTools }) {
-  const { activeHabits, doneSets, goals, goalProgress, noteFor } = useData();
   const { notes, tasks, books, boardCards } = useLife();
-  const today = todayISO();
-
-  const dueHabits = useMemo(
-    () => activeHabits.filter((h) => isDue(h, today) && h.cadence !== 'per_week'),
-    [activeHabits, today]
-  );
-  const doneHabits = dueHabits.filter((h) => doneSets.get(h.id)?.has(today)).length;
-  const parents = topLevelGoals(goals);
-  const openGoals = parents.filter((g) => !isHit(g, goalProgress(g), goals));
-  const hitGoals = parents.length - openGoals.length;
-  const previewNotes = recentNotes(notes, 3);
+  const previewNotes = recentNotes(notes, 4);
   const openTodos = tasks.filter((t) => !t.done).length;
   const readingCount = books.filter((b) => b.status === 'reading' || b.status === 'paused').length;
   const boardOpen = useMemo(
@@ -35,59 +20,33 @@ export function MoreView({ onOpen, onOpenTools }) {
         .reduce((n, c) => n + c.cards.length, 0),
     [boardCards]
   );
-  const pulse = lifePulse({
-    habitDone: doneHabits,
-    habitDue: dueHabits.length,
-    openGoals: openGoals.length,
-    hitGoals,
-    notesCount: notes.length,
-    dayNote: Boolean(noteFor(today)),
-  });
 
   return (
-    <div className="view life-home">
+    <div className="view life-home planning-home">
       <header className="view__head">
         <p className="eyebrow">Workspace</p>
-        <h1 className="view__title">Life</h1>
+        <h1 className="view__title">Planning</h1>
         <p className="life-home__lede">
-          Everything lives in <strong>Tools</strong> on the left — spaces for Focus, Create, Read,
-          and House. Use a shortcut below to start something new.
+          Pages, boards, and books — a calm place to plan. Habits stay on the Habits dashboard.
         </p>
-        {onOpenTools && (
-          <button type="button" className="btn btn--primary life-home__tools-btn" onClick={onOpenTools}>
-            Open all tools
-          </button>
-        )}
       </header>
 
-      <section className="life-pulse" aria-label="Today’s pulse">
-        <p className="life-pulse__summary">{pulse.summary}</p>
-        {(openTodos > 0 || readingCount > 0 || boardOpen > 0) && (
-          <p className="life-pulse__extras">
-            {[
-              openTodos ? `${openTodos} todo${openTodos === 1 ? '' : 's'}` : null,
-              readingCount ? `${readingCount} reading` : null,
-              boardOpen ? `${boardOpen} on board` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-        )}
-        {pulse.habitDue > 0 && (
-          <div
-            className="life-pulse__bar"
-            role="img"
-            aria-label={`${pulse.habitDone} of ${pulse.habitDue} habits done`}
-            style={{ '--fill': `${pulse.habitPct || 0}%` }}
-          >
-            <span className="life-pulse__fill" />
-          </div>
-        )}
+      <section className="life-pulse" aria-label="Planning pulse">
+        <p className="life-pulse__summary">
+          {[
+            `${notes.length} page${notes.length === 1 ? '' : 's'}`,
+            openTodos ? `${openTodos} todo${openTodos === 1 ? '' : 's'}` : null,
+            readingCount ? `${readingCount} reading` : null,
+            boardOpen ? `${boardOpen} on board` : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
       </section>
 
       <section className="section life-section">
         <div className="section__head">
-          <h2 className="eyebrow">Create</h2>
+          <h2 className="eyebrow">New</h2>
         </div>
         <ul className="life-quick">
           {QUICK_CREATES.map((item) => (
@@ -108,45 +67,57 @@ export function MoreView({ onOpen, onOpenTools }) {
 
       <section className="section life-section">
         <div className="section__head">
-          <h2 className="eyebrow">Spaces</h2>
+          <h2 className="eyebrow">Surfaces</h2>
           {onOpenTools && (
             <button type="button" className="text-btn" onClick={onOpenTools}>
               Sidebar
             </button>
           )}
         </div>
-        <ul className="life-space-grid">
-          {LIFE_SPACES.map((space) => (
-            <li key={space.id}>
-              <button
-                type="button"
-                className="life-space-tile"
-                onClick={() => {
-                  const first = space.pages[0];
-                  if (first) onOpen('more', first.id);
-                }}
-              >
-                <span className="life-space-tile__label">{space.label}</span>
-                <span className="life-space-tile__blurb">{space.blurb}</span>
-                <span className="life-space-tile__pages">
-                  {space.pages.map((p) => p.label).join(' · ')}
-                </span>
-              </button>
-            </li>
-          ))}
+        <ul className="planning-surfaces">
+          <li>
+            <button type="button" className="planning-surface" onClick={() => onOpen('more', 'notes')}>
+              <span className="planning-surface__label">Pages</span>
+              <span className="planning-surface__detail">Docs, notes, images</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" className="planning-surface" onClick={() => onOpen('more', 'boards')}>
+              <span className="planning-surface__label">Boards</span>
+              <span className="planning-surface__detail">Table columns · backlog to done</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" className="planning-surface" onClick={() => onOpen('more', 'tasks')}>
+              <span className="planning-surface__label">Todos</span>
+              <span className="planning-surface__detail">Inbox with due dates</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" className="planning-surface" onClick={() => onOpen('more', 'books')}>
+              <span className="planning-surface__label">Books</span>
+              <span className="planning-surface__detail">Covers and shelves</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" className="planning-surface" onClick={() => onOpen('calendar')}>
+              <span className="planning-surface__label">Calendar</span>
+              <span className="planning-surface__detail">Month view</span>
+            </button>
+          </li>
         </ul>
       </section>
 
       <section className="section life-section">
         <div className="section__head">
-          <h2 className="eyebrow">Recent notes</h2>
+          <h2 className="eyebrow">Recent pages</h2>
           <button type="button" className="text-btn" onClick={() => onOpen('more', 'notes')}>
             {notes.length ? 'All' : 'New'}
           </button>
         </div>
         {previewNotes.length === 0 ? (
           <button type="button" className="life-empty-row" onClick={() => onOpen('more', 'notes')}>
-            Start a page — plans, sermons, anything off Today’s loop.
+            Start a page — plans, lists, anything beyond the habit loop.
           </button>
         ) : (
           <ul className="page-list">
@@ -171,36 +142,6 @@ export function MoreView({ onOpen, onOpenTools }) {
             ))}
           </ul>
         )}
-      </section>
-
-      <section className="section life-section life-section--browse">
-        <div className="section__head">
-          <h2 className="eyebrow">Browse all tools</h2>
-        </div>
-        {LIFE_SPACES.map((space) => (
-          <div key={space.id} className="life-space life-space--compact">
-            <header className="life-space__head">
-              <h3 className="life-space__title">{space.label}</h3>
-            </header>
-            <ul className="more-list more-list--dense">
-              {space.pages.map((page) => (
-                <li key={page.id}>
-                  <button
-                    type="button"
-                    className="more-row"
-                    onClick={() => onOpen('more', page.id)}
-                  >
-                    <span className="more-row__copy">
-                      <span className="more-row__label">{page.label}</span>
-                      <span className="more-row__detail">{PAGE_DETAILS[page.id] || ''}</span>
-                    </span>
-                    <span aria-hidden="true">›</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
       </section>
     </div>
   );

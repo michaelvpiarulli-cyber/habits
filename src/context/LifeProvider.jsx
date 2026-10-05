@@ -609,6 +609,7 @@ export function LifeProvider({ children }) {
         title: (fields.title || '').trim(),
         body: fields.body || '',
         emoji: fields.emoji || '',
+        coverUrl: fields.coverUrl || '',
         pinned: Boolean(fields.pinned),
         archived: Boolean(fields.archived),
       }),
@@ -629,6 +630,7 @@ export function LifeProvider({ children }) {
         notes: fields.notes || '',
         column: normalizeBoardColumn(fields.column),
         dueDate: fields.dueDate || null,
+        coverUrl: fields.coverUrl || '',
         sortOrder: Number(fields.sortOrder) || 0,
       }),
     [addRecord]
