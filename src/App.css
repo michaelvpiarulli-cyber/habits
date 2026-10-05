@@ -6516,8 +6516,9 @@ body.is-side-nav-open {
     backdrop-filter: blur(14px);
   }
 
-  /* Sidebar already carries the brand when open — avoid a second masthead. */
-  .app.is-nav-open .topbar .wordmark {
+  /* Sidebar already carries brand + collapse — avoid a second masthead/toggle. */
+  .app.is-nav-open .topbar .wordmark,
+  .app.is-nav-open .topbar .nav-toggle {
     display: none;
   }
 
