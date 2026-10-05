@@ -48,7 +48,7 @@
   border: 1px solid var(--rule);
   background: var(--card);
   color: var(--ink-soft);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   box-shadow: none;
   transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }
@@ -230,9 +230,9 @@
 
 .day-meter {
   margin-top: 14px;
-  height: 10px;
+  height: 8px;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   background: var(--sunk);
   overflow: hidden;
 }
@@ -278,11 +278,11 @@
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  padding: 7px 12px;
-  border: 0;
-  border-radius: var(--radius-pill);
+  padding: 6px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
   font-family: var(--mono);
   font-size: 0.625rem;
   letter-spacing: 0.04em;
@@ -457,7 +457,7 @@
   width: 100%;
   height: 28px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--sunk);
   overflow: hidden;
 }
@@ -527,17 +527,17 @@
 
 .day-nav__btn {
   flex: none;
-  width: 40px;
-  height: 40px;
-  margin-top: -6px;
-  border: 0;
-  border-radius: var(--radius-pill);
+  width: 36px;
+  height: 36px;
+  margin-top: -4px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
   color: var(--ink);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .day-nav__btn:disabled {
@@ -579,10 +579,10 @@
   gap: 14px;
   margin: 0 0 24px;
   padding: 14px 16px;
-  border: 0;
-  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .view__head .countdown {
@@ -679,8 +679,9 @@
   margin: 0;
   padding: 12px 12px 10px;
   background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 0 var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
   min-width: 0;
 }
 
@@ -1164,10 +1165,10 @@
   position: relative;
   counter-increment: statement;
   padding: 15px 15px 15px 46px;
-  border: 0;
-  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .statement::before {
@@ -1243,7 +1244,8 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
+  border-top: 1px solid var(--rule);
 }
 
 .rows--muted {
@@ -1252,24 +1254,25 @@
 
 .row {
   border: 0;
-  border-radius: var(--radius);
-  background: var(--card);
+  border-bottom: 1px solid color-mix(in srgb, var(--rule) 80%, transparent);
+  border-radius: 0;
+  background: transparent;
   scroll-margin-top: 72px;
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .row.is-complete {
-  background: var(--blue-wash);
+  background: color-mix(in srgb, var(--blue-wash) 70%, transparent);
   box-shadow: none;
 }
 
 .row.is-at-risk {
-  background: var(--pink-wash);
+  background: color-mix(in srgb, var(--pink-wash) 70%, transparent);
   box-shadow: none;
 }
 
 .row.is-up-next {
-  box-shadow: inset 0 0 0 1.5px var(--blue);
+  box-shadow: inset 3px 0 0 var(--blue);
 }
 
 .row.is-inking {
@@ -1369,8 +1372,8 @@
 .mark {
   position: relative;
   flex: none;
-  border: 2px solid var(--rule);
-  border-radius: 50%;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--sunk);
   overflow: hidden;
   color: var(--on-ink);
@@ -1493,11 +1496,11 @@
 }
 
 .entry__step {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   flex: none;
-  border: 0;
-  border-radius: var(--radius-pill);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--sunk);
   font-size: 1.125rem;
   line-height: 1;
@@ -1533,9 +1536,9 @@
 
 .entry__save {
   flex: none;
-  height: 38px;
-  padding: 0 14px;
-  border-radius: var(--radius-pill);
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
   background: var(--blue);
   color: var(--on-ink);
   font-size: 0.813rem;
@@ -1691,11 +1694,11 @@
 }
 
 .card {
-  padding: 16px;
-  border: 0;
-  border-radius: var(--radius);
+  padding: 14px 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .card__name {
@@ -1746,11 +1749,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
-  padding: 18px 20px;
-  border: 0;
-  border-radius: var(--radius);
+  padding: 16px 18px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .record-hero .figure__number {
@@ -1770,10 +1773,11 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 16px;
-  border-radius: var(--radius);
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
   opacity: 0.42;
 }
 
@@ -1798,7 +1802,7 @@
 .treat__mark {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
   background: var(--sunk);
@@ -1839,11 +1843,11 @@
 
 .trend {
   margin-top: 10px;
-  padding: 16px;
-  border: 0;
-  border-radius: var(--radius);
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .trend__figures {
@@ -1928,12 +1932,13 @@
 
 .lines {
   list-style: none;
-  padding: 4px 12px;
+  padding: 0;
   margin: 0;
   border: 0;
-  border-radius: var(--radius);
-  background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .lines--muted {
@@ -1944,8 +1949,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 2px;
-  border-bottom: 1px solid var(--rule);
+  padding: 12px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--rule) 80%, transparent);
 }
 
 .line__body {
@@ -1976,9 +1981,9 @@
 
 .line__action {
   flex: none;
-  padding: 6px 10px;
-  border: 0;
-  border-radius: var(--radius-pill);
+  padding: 5px 9px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--sunk);
   font-size: 0.75rem;
   color: var(--ink-soft);
@@ -1998,11 +2003,11 @@
 }
 
 .goal {
-  padding: 18px 16px 14px;
-  border: 0;
-  border-radius: var(--radius);
+  padding: 16px 14px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .goal.is-hit {
@@ -2085,10 +2090,10 @@
 }
 
 .goal__bar {
-  height: 8px;
+  height: 6px;
   margin: 12px 0 0;
   background: var(--sunk);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -2290,9 +2295,9 @@
 
 .reached__tick {
   flex: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
   background: var(--blue);
 }
 
@@ -2363,9 +2368,9 @@
   display: flex;
   flex-direction: column;
   background: var(--paper);
-  border-top: 3px solid var(--pink);
-  border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: 0 -8px 40px var(--shadow);
+  border-top: 2px solid var(--pink);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  box-shadow: 0 -2px 16px var(--shadow);
   animation: rise 220ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
@@ -2518,11 +2523,11 @@ form.field {
   grid-template-columns: 1fr;
   gap: 2px;
   padding: 11px 12px;
-  border: 0;
-  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
   cursor: pointer;
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .option input {
@@ -2556,24 +2561,24 @@ form.field {
 /* Segmented control */
 .segmented {
   display: flex;
-  border: 0;
-  border-radius: var(--radius-pill);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--sunk);
-  padding: 3px;
-  gap: 3px;
+  padding: 2px;
+  gap: 2px;
 }
 
 .segmented__item {
   flex: 1;
-  padding: 8px 6px;
+  padding: 7px 6px;
   text-align: center;
   font-size: 0.813rem;
   color: var(--ink-soft);
   background: transparent;
   cursor: pointer;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
 }
 
 .segmented__item:last-child {
@@ -2607,9 +2612,9 @@ form.field {
 }
 
 .weekday {
-  height: 40px;
-  border: 0;
-  border-radius: var(--radius-pill);
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   background: var(--sunk);
   font-size: 0.813rem;
   color: var(--ink-soft);
@@ -2643,13 +2648,13 @@ form.field {
 
 /* Buttons */
 .btn {
-  padding: 10px 14px;
-  border: 0;
-  border-radius: var(--radius);
+  padding: 9px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
   font-size: 0.875rem;
   font-weight: 600;
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .btn--primary {
@@ -3817,11 +3822,11 @@ form.field {
   margin: 6px 0 0;
   padding: 4px;
   border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--card);
   max-height: 280px;
   overflow: auto;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 12%, transparent);
+  box-shadow: var(--shadow-float);
   z-index: 5;
 }
 
@@ -4190,11 +4195,11 @@ form.field {
   position: relative;
   width: min(100%, 360px);
   padding: 28px 24px 22px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--violet);
   background: var(--card);
   text-align: center;
-  box-shadow: 0 18px 48px var(--shadow);
+  box-shadow: var(--shadow-float);
   animation: stamp 320ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
@@ -4623,12 +4628,12 @@ form.field {
 
 .more-list {
   list-style: none;
-  padding: 4px;
+  padding: 0;
   margin: 8px 0 0;
-  border: 0;
-  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
   overflow: hidden;
 }
 
@@ -5204,8 +5209,8 @@ form.field {
 .fridge-close-hint {
   display: block;
   margin: 12px auto 0;
-  padding: 8px 14px;
-  border-radius: var(--radius-pill);
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--rule);
   background: var(--card);
   color: var(--ink-soft);
@@ -5331,8 +5336,8 @@ form.field {
 
 .life-pulse__bar {
   margin-top: 10px;
-  height: 6px;
-  border-radius: var(--radius-pill);
+  height: 5px;
+  border-radius: var(--radius-sm);
   background: var(--sunk);
   overflow: hidden;
 }
@@ -5744,7 +5749,7 @@ form.field {
 .creativity-capture {
   margin-bottom: 22px;
   padding: 14px 16px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--card) 88%, var(--blue-wash));
   border: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
 }
@@ -5790,9 +5795,10 @@ form.field {
   gap: 2px;
   padding: 14px 16px;
   text-align: left;
-  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
   transition: background 140ms ease, transform 140ms ease;
 }
 
@@ -5830,9 +5836,10 @@ form.field {
   grid-template-columns: 72px minmax(0, 1fr);
   gap: 14px;
   padding: 12px;
-  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
-  box-shadow: 0 1px 0 var(--rule);
+  box-shadow: none;
 }
 
 .book-shelf-card__cover {
@@ -5840,10 +5847,11 @@ form.field {
   height: 108px;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: color-mix(in srgb, var(--ink) 8%, var(--sunk));
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--ink) 12%, transparent);
+  box-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
   transition: transform 160ms cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
@@ -5898,7 +5906,7 @@ form.field {
 .book-cover-thumb {
   width: 64px;
   height: 96px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--sunk);
   display: flex;
@@ -6314,10 +6322,10 @@ body.is-side-nav-open {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  padding: 12px 14px;
+  padding: 11px 12px;
   text-align: left;
-  border: 0;
-  border-radius: 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
   background: var(--card);
   color: inherit;
   transition: background 140ms ease;

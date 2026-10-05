@@ -27,14 +27,15 @@
   --on-ink: #fffcf8;
   --on-pink: #fffcf8;
   --scrim: rgba(28, 25, 21, 0.4);
-  --shadow: rgba(28, 25, 21, 0.08);
-  --shadow-float: 0 10px 30px rgba(28, 25, 21, 0.1);
+  --shadow: rgba(28, 25, 21, 0.06);
+  --shadow-float: 0 4px 16px rgba(28, 25, 21, 0.08);
 
-  --nav-height: 56px;
-  --gutter: 18px;
-  /* Squared Notion-like chrome — rects, quiet edges, less pill float. */
-  --radius: 4px;
+  --nav-height: 52px;
+  --gutter: 16px;
+  /* Squared Notion-like chrome — sharp rects, quiet edges, no pill float. */
+  --radius: 3px;
   --radius-sm: 2px;
+  /* Reserved for rare true capsules (progress thumbs). Prefer --radius for chrome. */
   --radius-pill: 999px;
 
   --sans: 'IBM Plex Sans', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -73,8 +74,8 @@
   --on-ink: #000000;
   --on-pink: #000000;
   --scrim: rgba(0, 0, 0, 0.72);
-  --shadow: rgba(0, 0, 0, 0.55);
-  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.65);
+  --shadow: rgba(0, 0, 0, 0.4);
+  --shadow-float: 0 4px 18px rgba(0, 0, 0, 0.45);
 }
 
 * {
