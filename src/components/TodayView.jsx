@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useData } from '../context/DataProvider';
+import { useLife } from '../context/LifeProvider';
 import {
   addDays,
   formatLong,
@@ -10,6 +11,7 @@ import {
 } from '../lib/dates';
 import { describeCadence, fractionOf, isComplete, targetOf, valueOf } from '../lib/habits';
 import { feelTap } from '../lib/haptic';
+import { planningPulse } from '../lib/planning';
 import { nextTreat } from '../lib/rewards';
 import { atRiskToday, bestStreak, countInWeek, countPerfectDays, currentStreak, isDue, isPerfectDay } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
@@ -344,6 +346,7 @@ function headlineFor({ habits, dueToday, allDone, doneCount, leftCount, viewingT
 
 export function TodayView({ onOpen }) {
   const { activeHabits, doneSets, keptSetFor } = useData();
+  const { notes, tasks, books, boardCards } = useLife();
   const [editing, setEditing] = useState(null);
   const [showRest, setShowRest] = useState(false);
   const [showDone, setShowDone] = useState(false);
@@ -351,6 +354,10 @@ export function TodayView({ onOpen }) {
   const calendarToday = todayISO();
   const [day, setDay] = useState(calendarToday);
   const habits = activeHabits;
+  const planPulse = useMemo(
+    () => planningPulse({ notes, tasks, books, boardCards }),
+    [notes, tasks, books, boardCards]
+  );
 
   // Never leave the picker on a future date if the calendar rolls over.
   useEffect(() => {
@@ -601,9 +608,33 @@ export function TodayView({ onOpen }) {
           )}
 
           <DayNote day={day} />
+
+          {onOpen && (
+            <section className="today-plan" aria-label="Planning">
+              <div className="section__head">
+                <h2 className="eyebrow">Planning</h2>
+                <button type="button" className="text-btn" onClick={() => onOpen('more')}>
+                  Open
+                </button>
+              </div>
+              <p className="today-plan__summary">{planPulse.summary}</p>
+              <div className="today-plan__actions">
+                <button type="button" className="text-btn" onClick={() => onOpen('more', 'tasks')}>
+                  Todos
+                </button>
+                <button type="button" className="text-btn" onClick={() => onOpen('more', 'notes')}>
+                  Pages
+                </button>
+                <button type="button" className="text-btn" onClick={() => onOpen('more', 'boards')}>
+                  Boards
+                </button>
+              </div>
+            </section>
+          )}
+
           {habits.length > 0 && onOpen && (
             <button type="button" className="text-btn today__add" onClick={() => onOpen('more', 'habits')}>
-              Add a habit
+              Edit habits
             </button>
           )}
         </div>
