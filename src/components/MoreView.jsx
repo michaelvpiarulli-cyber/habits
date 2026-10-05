@@ -26,29 +26,13 @@ export function MoreView({ onOpen }) {
   return (
     <div className="view life-home planning-home">
       <header className="view__head">
-        <p className="eyebrow">Workspace</p>
         <h1 className="view__title">Planning</h1>
-        <p className="life-home__lede">
-          Today and this week at a glance — open a page, move a board row, clear a todo.
-          Habits stay on the Habits dashboard.
-        </p>
+        <p className="life-home__lede">{pulse.summary}</p>
       </header>
-
-      <section className="life-pulse" aria-label="Planning pulse">
-        <p className="life-pulse__summary">{pulse.summary}</p>
-        <div className="life-pulse__links">
-          <button type="button" className="text-btn" onClick={() => onOpen('today')}>
-            Habits
-          </button>
-          <button type="button" className="text-btn" onClick={() => onOpen('calendar')}>
-            Calendar
-          </button>
-        </div>
-      </section>
 
       <section className="section life-section">
         <div className="section__head">
-          <h2 className="eyebrow">Focus</h2>
+          <h2 className="section-label">Focus</h2>
           <button type="button" className="text-btn" onClick={() => onOpen('more', 'tasks')}>
             {pulse.openTodos ? 'All todos' : 'New todo'}
           </button>
@@ -88,7 +72,7 @@ export function MoreView({ onOpen }) {
 
       <section className="section life-section">
         <div className="section__head">
-          <h2 className="eyebrow">Board pulse</h2>
+          <h2 className="section-label">Board</h2>
           <button type="button" className="text-btn" onClick={() => onOpen('more', 'boards')}>
             {pulse.boardOpen ? 'Open board' : 'New row'}
           </button>
@@ -124,7 +108,7 @@ export function MoreView({ onOpen }) {
 
       <section className="section life-section">
         <div className="section__head">
-          <h2 className="eyebrow">Recent pages</h2>
+          <h2 className="section-label">Pages</h2>
           <button type="button" className="text-btn" onClick={() => onOpen('more', 'notes')}>
             {notes.length ? 'All pages' : 'New page'}
           </button>
@@ -164,7 +148,7 @@ export function MoreView({ onOpen }) {
 
       <section className="section life-section">
         <div className="section__head">
-          <h2 className="eyebrow">New</h2>
+          <h2 className="section-label">New</h2>
         </div>
         <ul className="life-quick life-quick--row">
           {QUICK_CREATES.map((item) => (
@@ -175,7 +159,6 @@ export function MoreView({ onOpen }) {
                 onClick={() => onOpen('more', item.id, item.create ? { create: true } : null)}
               >
                 <span className="life-quick__label">{item.label}</span>
-                <span className="life-quick__detail">{item.detail}</span>
               </button>
             </li>
           ))}

@@ -303,14 +303,13 @@ export function BoardsView({
     <div className="view boards-view">
       <header className="view__head view__head--row">
         <div>
-          <p className="eyebrow">Planning</p>
           <h1 className="view__title">Boards</h1>
         </div>
         <div className="boards-view__actions">
           <div className="boards-view__toggle" role="group" aria-label="Layout">
             <button
               type="button"
-              className={`chip ${layout === 'table' ? 'is-on' : ''}`}
+              className={`seg-btn ${layout === 'table' ? 'is-on' : ''}`}
               aria-pressed={layout === 'table'}
               onClick={() => setView('table')}
             >
@@ -318,7 +317,7 @@ export function BoardsView({
             </button>
             <button
               type="button"
-              className={`chip ${layout === 'board' ? 'is-on' : ''}`}
+              className={`seg-btn ${layout === 'board' ? 'is-on' : ''}`}
               aria-pressed={layout === 'board'}
               onClick={() => setView('board')}
             >
@@ -330,9 +329,6 @@ export function BoardsView({
           </button>
         </div>
       </header>
-      <p className="boards-view__lede">
-        Table by default — switch to columns when you want the kanban. Rows can carry an image.
-      </p>
 
       {layout === 'table' ? (
         <TableView cards={flatCards} today={today} onEdit={setEditing} />

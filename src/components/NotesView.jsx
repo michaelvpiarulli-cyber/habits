@@ -233,7 +233,6 @@ export function NotesView({
     <div className="view">
       <header className="view__head view__head--row">
         <div>
-          <p className="eyebrow">{notes.length ? `${notes.length} pages` : 'Notebook'}</p>
           <h1 className="view__title">Pages</h1>
         </div>
         <button type="button" className="text-btn" onClick={create}>
@@ -287,7 +286,7 @@ export function NotesView({
 
       {dayNotes?.length > 0 && (
         <section className="section life-section">
-          <h2 className="eyebrow">Day notes</h2>
+          <h2 className="section-label">Day notes</h2>
           <p className="section__note">Reflections written on Habits stay with their day.</p>
           <ul className="page-list page-list--quiet">
             {dayNotes.slice(0, 8).map((n) => (

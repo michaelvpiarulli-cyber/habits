@@ -612,7 +612,7 @@ export function TodayView({ onOpen }) {
           {onOpen && (
             <section className="today-plan" aria-label="Planning">
               <div className="section__head">
-                <h2 className="eyebrow">Planning</h2>
+                <h2 className="section-label">Planning</h2>
                 <button type="button" className="text-btn" onClick={() => onOpen('more')}>
                   Open
                 </button>

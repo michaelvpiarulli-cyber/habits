@@ -227,14 +227,12 @@ export function BooksView({ initialCreate = false, onConsumedIntent }) {
     <div className="view books-view">
       <header className="view__head view__head--row">
         <div>
-          <p className="eyebrow">Planning</p>
           <h1 className="view__title">Books</h1>
         </div>
         <button type="button" className="text-btn" onClick={() => setEditing({})}>
           New book
         </button>
       </header>
-      <p className="books-view__lede">Want to read, reading, and finished — with covers if you have them.</p>
 
       {books.length === 0 && (
         <div className="empty">
@@ -248,7 +246,7 @@ export function BooksView({ initialCreate = false, onConsumedIntent }) {
 
       {reading.length > 0 && (
         <section className="section">
-          <h2 className="eyebrow">Reading</h2>
+          <h2 className="section-label">Reading</h2>
           <ul className="book-shelf">
             {reading.map((book) => (
               <BookCard
@@ -265,7 +263,7 @@ export function BooksView({ initialCreate = false, onConsumedIntent }) {
 
       {queued.length > 0 && (
         <section className="section">
-          <h2 className="eyebrow">Want to read</h2>
+          <h2 className="section-label">Want to read</h2>
           <ul className="book-shelf">
             {queued.map((book) => (
               <BookCard
@@ -282,7 +280,7 @@ export function BooksView({ initialCreate = false, onConsumedIntent }) {
 
       {done.length > 0 && (
         <section className="section">
-          <h2 className="eyebrow">Finished</h2>
+          <h2 className="section-label">Finished</h2>
           <ul className="book-shelf">
             {done.map((book) => (
               <BookCard

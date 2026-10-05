@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CORE_NAV, LIFE_SPACES, PAGE_DETAILS, PLANNING_NAV } from '../lib/spaces';
+import { CORE_NAV, LIFE_SPACES, PLANNING_NAV } from '../lib/spaces';
 
 const MORE_OPEN_KEY = 'tally.sidebar.moreOpen';
 
@@ -176,9 +176,6 @@ export function SideNav({ tab, morePage, onNavigate, open, onClose, onToggle }) 
                           onClick={() => go({ tab: 'more', page: page.id })}
                         >
                           <span className="side-nav__item-label">{page.label}</span>
-                          <span className="side-nav__item-detail">
-                            {PAGE_DETAILS[page.id] || ''}
-                          </span>
                         </button>
                       </li>
                     );

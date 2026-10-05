@@ -51,8 +51,10 @@ export function HabitsView() {
     <div className="view">
       <header className="view__head view__head--row">
         <div>
-          <p className="eyebrow">{activeHabits.length} active</p>
           <h1 className="view__title">Habits</h1>
+          <p className="view__meta">
+            {activeHabits.length} active
+          </p>
         </div>
         <button type="button" className="text-btn" onClick={() => setEditing('new')}>
           New habit
@@ -82,7 +84,7 @@ export function HabitsView() {
 
       {archivedHabits.length > 0 && (
         <section className="section">
-          <h2 className="eyebrow">Archived</h2>
+          <h2 className="section-label">Archived</h2>
           <p className="section__note">
             Kept for the record, off the daily list. Restoring one brings its history back with it.
           </p>

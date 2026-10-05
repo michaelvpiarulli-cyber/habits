@@ -156,15 +156,24 @@ textarea {
   outline-offset: 2px;
 }
 
-/* An eyebrow: mono, letter-spaced, uppercase. Used for dates and section labels
-   so that structural text never competes with content set in the sans. */
+/* Quiet secondary label — Notion calm, not ticket chrome.
+   Prefer plain muted sans; keep mono/uppercase only where data density needs it. */
 .eyebrow {
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-soft);
+}
+
+/* Optional denser label for charts / meters when a mono cue still helps. */
+.eyebrow--dense {
   font-family: var(--mono);
   font-size: 0.688rem;
   font-weight: 500;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-soft);
 }
 
 .visually-hidden {

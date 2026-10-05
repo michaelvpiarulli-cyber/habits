@@ -234,7 +234,6 @@ export function TasksView({
     <div className="view">
       <header className="view__head view__head--row">
         <div>
-          <p className="eyebrow">Planning</p>
           <h1 className="view__title">Todos</h1>
         </div>
         <button type="button" className="text-btn" onClick={() => setEditing({})}>
@@ -247,7 +246,7 @@ export function TasksView({
       {sections.map(([label, list]) =>
         list.length ? (
           <section key={label} className="section">
-            <h2 className="eyebrow">{label}</h2>
+            <h2 className="section-label">{label}</h2>
             <ul className="task-list">
               {list.map((task) => (
                 <TaskRow
