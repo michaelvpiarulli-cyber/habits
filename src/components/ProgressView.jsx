@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useData } from '../context/DataProvider';
+import { useLife } from '../context/LifeProvider';
 import { addDays, monthLabel, parseISO, rangeOfDays, todayISO } from '../lib/dates';
 import { describeCadence, describeTarget, fractionOf, isTrend } from '../lib/habits';
 import { bestStreak, completionRate, countPerfectDays, currentStreak, isDue, isPerfectDay, perfectDayStreak } from '../lib/streaks';
@@ -7,6 +8,7 @@ import { nextTreat, TREATS } from '../lib/rewards';
 import { TrendChart } from './TrendChart';
 import { ReviewList } from './WeeklyReview';
 import { childrenOf, isHit, targetOf, topLevelGoals } from '../lib/goals';
+import { lifePulse, noteSnippet, noteTitle, recentNotes } from '../lib/notes';
 
 const HISTORY_DAYS = 84; // twelve weeks — enough to see a pattern, few enough to scan
 
@@ -168,7 +170,9 @@ function TreatsBoard({ closed }) {
 }
 
 export function ProgressView({ onOpen }) {
-  const { activeHabits, doneSets, doneSetFor, logFor, valueFor, goals, goalProgress } = useData();
+  const { activeHabits, doneSets, doneSetFor, logFor, valueFor, goals, goalProgress, noteFor } =
+    useData();
+  const { notes } = useLife();
   const today = todayISO();
   const from = addDays(today, -(HISTORY_DAYS - 1));
   const days = useMemo(() => rangeOfDays(from, today), [from, today]);
@@ -179,9 +183,22 @@ export function ProgressView({ onOpen }) {
   const ranked = [...activeHabits].sort(
     (a, b) => currentStreak(b, doneSetFor(b.id), today) - currentStreak(a, doneSetFor(a.id), today)
   );
-  const openGoals = topLevelGoals(goals).filter((g) => !isHit(g, goalProgress(g), goals));
+  const parents = topLevelGoals(goals);
+  const openGoals = parents.filter((g) => !isHit(g, goalProgress(g), goals));
+  const hitGoals = parents.length - openGoals.length;
+  const dueToday = activeHabits.filter((h) => isDue(h, today) && h.cadence !== 'per_week');
+  const doneToday = dueToday.filter((h) => doneSets.get(h.id)?.has(today)).length;
+  const pulse = lifePulse({
+    habitDone: doneToday,
+    habitDue: dueToday.length,
+    openGoals: openGoals.length,
+    hitGoals,
+    notesCount: notes.length,
+    dayNote: Boolean(noteFor(today)),
+  });
+  const previewNotes = recentNotes(notes, 3);
 
-  if (activeHabits.length === 0 && openGoals.length === 0) {
+  if (activeHabits.length === 0 && openGoals.length === 0 && notes.length === 0) {
     return (
       <div className="view">
         <header className="view__head">
@@ -201,6 +218,10 @@ export function ProgressView({ onOpen }) {
         <p className="eyebrow">Keep the chain</p>
         <h1 className="view__title">The record</h1>
       </header>
+
+      <section className="life-pulse life-pulse--record" aria-label="Life pulse">
+        <p className="life-pulse__summary">{pulse.summary}</p>
+      </section>
 
       <div className="record-hero">
         <div className="figure">
@@ -233,29 +254,73 @@ export function ProgressView({ onOpen }) {
               const micros = childrenOf(goals, g.id);
               const unit = micros.length > 0 && !g.habitId ? 'steps' : g.unit || '';
               return (
-                <li key={g.id} className="goal goal--compact">
-                  <header className="goal__head">
-                    <div className="goal__copy">
-                      <p className="eyebrow">
-                        of {target}
-                        {unit ? ` ${unit}` : ''}
-                      </p>
-                      <h3 className="goal__title">{g.title}</h3>
-                    </div>
-                    <span className="goal__figure">{progress}</span>
-                  </header>
-                  <div
-                    className="goal__bar"
-                    role="img"
-                    aria-label={`${progress} of ${target}${unit ? ` ${unit}` : ''}`}
-                    style={{ '--fill': `${pct}%` }}
+                <li key={g.id}>
+                  <button
+                    type="button"
+                    className="goal goal--compact goal--link"
+                    onClick={() => onOpen?.('more', 'goals')}
                   >
-                    <span className="goal__fill" />
-                  </div>
+                    <header className="goal__head">
+                      <div className="goal__copy">
+                        <p className="eyebrow">
+                          of {target}
+                          {unit ? ` ${unit}` : ''}
+                        </p>
+                        <h3 className="goal__title">{g.title}</h3>
+                      </div>
+                      <span className="goal__figure">{progress}</span>
+                    </header>
+                    <div
+                      className="goal__bar"
+                      role="img"
+                      aria-label={`${progress} of ${target}${unit ? ` ${unit}` : ''}`}
+                      style={{ '--fill': `${pct}%` }}
+                    >
+                      <span className="goal__fill" />
+                    </div>
+                  </button>
                 </li>
               );
             })}
           </ul>
+        </section>
+      )}
+
+      {(previewNotes.length > 0 || onOpen) && (
+        <section className="section">
+          <div className="section__head">
+            <h2 className="eyebrow">Notes</h2>
+            {onOpen && (
+              <button type="button" className="text-btn" onClick={() => onOpen('more', 'notes')}>
+                {notes.length ? 'All' : 'New'}
+              </button>
+            )}
+          </div>
+          {previewNotes.length === 0 ? (
+            <p className="section__note">Pages you write in Life show up here.</p>
+          ) : (
+            <ul className="page-list page-list--quiet">
+              {previewNotes.map((note) => (
+                <li key={note.id}>
+                  <button
+                    type="button"
+                    className="page-row"
+                    onClick={() => onOpen?.('more', 'notes', { noteId: note.id })}
+                  >
+                    <span className="page-row__mark" aria-hidden="true">
+                      {note.pinned ? '◆' : '○'}
+                    </span>
+                    <span className="page-row__copy">
+                      <span className="page-row__title">{noteTitle(note)}</span>
+                      {noteSnippet(note.body) && (
+                        <span className="page-row__meta">{noteSnippet(note.body)}</span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
 

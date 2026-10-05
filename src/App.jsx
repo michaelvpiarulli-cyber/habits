@@ -16,6 +16,7 @@ import { GroceryView } from './components/GroceryView';
 import { JobsView } from './components/JobsView';
 import { MoneyView } from './components/MoneyView';
 import { MailView } from './components/MailView';
+import { NotesView } from './components/NotesView';
 import { MoreView } from './components/MoreView';
 import { SubpageBar } from './components/FormSheet';
 import { BottomNav } from './components/BottomNav';
@@ -25,6 +26,7 @@ import { NativeShell } from './components/NativeShell';
 import './App.css';
 
 const MORE_PAGES = {
+  notes: { View: NotesView, title: 'Notes' },
   calories: { View: CaloriesView, title: 'Calories' },
   goals: { View: GoalsView, title: 'Goals' },
   habits: { View: HabitsView, title: 'Habits' },
@@ -44,16 +46,22 @@ export default function App() {
   const life = useLife();
   const [tab, setTab] = useState('today');
   const [morePage, setMorePage] = useState(null);
+  const [moreParams, setMoreParams] = useState(null);
+  const [notesEditing, setNotesEditing] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
 
-  const onOpen = (next, page = null) => {
+  const onOpen = (next, page = null, params = null) => {
     setTab(next);
     setMorePage(next === 'more' ? page : null);
+    setMoreParams(next === 'more' ? params : null);
+    if (next !== 'more' || page !== 'notes') setNotesEditing(false);
   };
 
   const onTab = (next) => {
     setTab(next);
     setMorePage(null);
+    setMoreParams(null);
+    setNotesEditing(false);
   };
 
   if (auth.loading || !dataReady || !life.dataReady) {
@@ -91,12 +99,31 @@ export default function App() {
       </header>
 
       <main className="main">
-        {tab === 'more' && more && <SubpageBar title={more.title} onBack={() => setMorePage(null)} />}
+        {tab === 'more' && more && !(morePage === 'notes' && notesEditing) && (
+          <SubpageBar
+            title={more.title}
+            onBack={() => {
+              setMorePage(null);
+              setMoreParams(null);
+              setNotesEditing(false);
+            }}
+          />
+        )}
         {tab === 'today' && <TodayView onOpen={onOpen} />}
         {tab === 'record' && <ProgressView onOpen={onOpen} />}
         {tab === 'calendar' && <CalendarView />}
         {tab === 'more' && !more && <MoreView onOpen={onOpen} />}
-        {tab === 'more' && MoreViewComp && <MoreViewComp />}
+        {tab === 'more' && MoreViewComp && (
+          <MoreViewComp
+            {...(morePage === 'notes'
+              ? {
+                  initialNoteId: moreParams?.noteId || null,
+                  onEditingChange: setNotesEditing,
+                  onLeaveEditor: () => setMoreParams(null),
+                }
+              : {})}
+          />
+        )}
       </main>
 
       <BottomNav tab={tab} onChange={onTab} />

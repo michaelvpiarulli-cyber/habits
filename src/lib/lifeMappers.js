@@ -240,3 +240,28 @@ export const groceryToRow = (g, userId) => ({
   created_at: g.createdAt,
   updated_at: g.updatedAt,
 });
+
+export const lifeNoteFromRow = (r) => ({
+  id: r.id,
+  title: r.title || '',
+  body: r.body || '',
+  emoji: r.emoji || '',
+  pinned: !!r.pinned,
+  archived: !!r.archived,
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const lifeNoteToRow = (n, userId) => ({
+  id: n.id,
+  user_id: userId,
+  title: n.title || '',
+  body: n.body || '',
+  emoji: n.emoji || null,
+  pinned: !!n.pinned,
+  archived: !!n.archived,
+  deleted: !!n.deleted,
+  created_at: n.createdAt,
+  updated_at: n.updatedAt,
+});

@@ -35,10 +35,13 @@ import {
   groceryToRow,
   jobFromRow,
   jobToRow,
+  lifeNoteFromRow,
+  lifeNoteToRow,
   taskFromRow,
   taskToRow,
 } from '../lib/lifeMappers';
 import { clampPage, living, roundMoney } from '../lib/life';
+import { sortNotes } from '../lib/notes';
 import { mergePhotoFridge, normalizeFridgeKind, normalizeFridgeZone } from '../lib/fridge';
 
 const KINDS = [
@@ -50,6 +53,7 @@ const KINDS = [
   'entries',
   'budgets',
   'grocery',
+  'notes',
 ];
 
 const TABLES = {
@@ -61,6 +65,7 @@ const TABLES = {
   entries: { table: 'finance_entries', from: entryFromRow, to: entryToRow },
   budgets: { table: 'finance_budgets', from: budgetFromRow, to: budgetToRow },
   grocery: { table: 'grocery_items', from: groceryFromRow, to: groceryToRow },
+  notes: { table: 'life_notes', from: lifeNoteFromRow, to: lifeNoteToRow },
 };
 
 const KEY = (kind) => `tally-${kind}`;
@@ -78,6 +83,7 @@ const isUniqueViolation = (error) =>
   error?.code === '23505' || /duplicate key/i.test(error?.message || '');
 const MISSING_TABLE_SQL = {
   grocery_items: 'supabase/add-grocery.sql (then supabase/add-fridge.sql if upgrading)',
+  life_notes: 'supabase/add-life-notes.sql',
 };
 const missingTableMessage = (table) => {
   const sql = MISSING_TABLE_SQL[table] || 'supabase/add-life-dashboard.sql';
@@ -590,6 +596,25 @@ export function LifeProvider({ children }) {
     [addRecord]
   );
 
+  const addNote = useCallback(
+    (fields = {}) =>
+      addRecord('notes', {
+        title: (fields.title || '').trim(),
+        body: fields.body || '',
+        emoji: fields.emoji || '',
+        pinned: Boolean(fields.pinned),
+        archived: Boolean(fields.archived),
+      }),
+    [addRecord]
+  );
+
+  const updateNote = useCallback(
+    (id, patch) => updateRecord('notes', id, patch),
+    [updateRecord]
+  );
+
+  const deleteNote = useCallback((id) => deleteRecord('notes', id), [deleteRecord]);
+
   const updateGroceryItem = useCallback(
     (id, patch) =>
       updateRecord('grocery', id, {
@@ -643,6 +668,7 @@ export function LifeProvider({ children }) {
       entries: store.entries,
       budgets: store.budgets,
       grocery: store.grocery,
+      notes: store.notes,
     }),
     [store]
   );
@@ -666,6 +692,7 @@ export function LifeProvider({ children }) {
       if (zone) return zone;
       return (a.name || '').localeCompare(b.name || '');
     });
+    const notes = sortNotes(store.notes);
 
     return {
       tasks,
@@ -676,6 +703,7 @@ export function LifeProvider({ children }) {
       entries,
       budgets,
       groceryItems,
+      notes,
       addTask,
       updateTask,
       toggleTask,
@@ -705,6 +733,9 @@ export function LifeProvider({ children }) {
       deleteGroceryItem: (id) => deleteRecord('grocery', id),
       clearOutGroceryItems,
       seedFridgeFromPhotos,
+      addNote,
+      updateNote,
+      deleteNote,
       snapshot,
       syncState,
       syncError,
@@ -728,6 +759,9 @@ export function LifeProvider({ children }) {
     toggleGroceryItem,
     clearOutGroceryItems,
     seedFridgeFromPhotos,
+    addNote,
+    updateNote,
+    deleteNote,
     deleteRecord,
     updateRecord,
     snapshot,
