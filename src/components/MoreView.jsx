@@ -3,32 +3,16 @@ import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
 import { todayISO } from '../lib/dates';
 import { groupBoardCards } from '../lib/boards';
-import { childrenOf, isHit, targetOf, topLevelGoals } from '../lib/goals';
+import { isHit, topLevelGoals } from '../lib/goals';
 import { lifePulse, noteSnippet, noteTitle, recentNotes } from '../lib/notes';
-import { LIFE_SPACES } from '../lib/spaces';
+import { LIFE_SPACES, PAGE_DETAILS, QUICK_CREATES } from '../lib/spaces';
 import { isDue } from '../lib/streaks';
 
-const SPACE_DETAILS = {
-  habits: 'Daily set and streaks',
-  goals: 'Destinations and steps',
-  tasks: 'Inbox with due dates',
-  creativity: 'Sparks and quiet rooms',
-  boards: 'Backlog · Doing · Done',
-  notes: 'Pages and day reflections',
-  books: 'Reading · want · finished',
-  grocery: 'What is in stock',
-  money: 'Accounts and spend',
-  identity: 'Who you are becoming',
-  calories: 'Meals and macros',
-  jobs: 'Applications',
-  mail: 'Gmail inbox',
-};
-
 /**
- * Life workspace — Notion’s calm hierarchy: spaces, then pages.
- * Pulse, recent notes, open goals, then Focus / Create / Read / House.
+ * Life home — a clear dashboard: pulse, quick creates, then space shortcuts.
+ * The left Tools sidebar is the full map; this page is the front door.
  */
-export function MoreView({ onOpen }) {
+export function MoreView({ onOpen, onOpenTools }) {
   const { activeHabits, doneSets, goals, goalProgress, noteFor } = useData();
   const { notes, tasks, books, boardCards } = useLife();
   const today = todayISO();
@@ -41,11 +25,14 @@ export function MoreView({ onOpen }) {
   const parents = topLevelGoals(goals);
   const openGoals = parents.filter((g) => !isHit(g, goalProgress(g), goals));
   const hitGoals = parents.length - openGoals.length;
-  const previewNotes = recentNotes(notes, 4);
+  const previewNotes = recentNotes(notes, 3);
   const openTodos = tasks.filter((t) => !t.done).length;
   const readingCount = books.filter((b) => b.status === 'reading' || b.status === 'paused').length;
   const boardOpen = useMemo(
-    () => groupBoardCards(boardCards).filter((c) => c.id !== 'done').reduce((n, c) => n + c.cards.length, 0),
+    () =>
+      groupBoardCards(boardCards)
+        .filter((c) => c.id !== 'done')
+        .reduce((n, c) => n + c.cards.length, 0),
     [boardCards]
   );
   const pulse = lifePulse({
@@ -63,8 +50,14 @@ export function MoreView({ onOpen }) {
         <p className="eyebrow">Workspace</p>
         <h1 className="view__title">Life</h1>
         <p className="life-home__lede">
-          Spaces for focus, create, read, and house — calm pages, not another dashboard.
+          Everything lives in <strong>Tools</strong> on the left — spaces for Focus, Create, Read,
+          and House. Use a shortcut below to start something new.
         </p>
+        {onOpenTools && (
+          <button type="button" className="btn btn--primary life-home__tools-btn" onClick={onOpenTools}>
+            Open all tools
+          </button>
+        )}
       </header>
 
       <section className="life-pulse" aria-label="Today’s pulse">
@@ -94,7 +87,59 @@ export function MoreView({ onOpen }) {
 
       <section className="section life-section">
         <div className="section__head">
-          <h2 className="eyebrow">Notes</h2>
+          <h2 className="eyebrow">Create</h2>
+        </div>
+        <ul className="life-quick">
+          {QUICK_CREATES.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                className="life-quick__card"
+                onClick={() => onOpen('more', item.id)}
+              >
+                <span className="life-quick__space">{item.space}</span>
+                <span className="life-quick__label">{item.label}</span>
+                <span className="life-quick__detail">{item.detail}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="section life-section">
+        <div className="section__head">
+          <h2 className="eyebrow">Spaces</h2>
+          {onOpenTools && (
+            <button type="button" className="text-btn" onClick={onOpenTools}>
+              Sidebar
+            </button>
+          )}
+        </div>
+        <ul className="life-space-grid">
+          {LIFE_SPACES.map((space) => (
+            <li key={space.id}>
+              <button
+                type="button"
+                className="life-space-tile"
+                onClick={() => {
+                  const first = space.pages[0];
+                  if (first) onOpen('more', first.id);
+                }}
+              >
+                <span className="life-space-tile__label">{space.label}</span>
+                <span className="life-space-tile__blurb">{space.blurb}</span>
+                <span className="life-space-tile__pages">
+                  {space.pages.map((p) => p.label).join(' · ')}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="section life-section">
+        <div className="section__head">
+          <h2 className="eyebrow">Recent notes</h2>
           <button type="button" className="text-btn" onClick={() => onOpen('more', 'notes')}>
             {notes.length ? 'All' : 'New'}
           </button>
@@ -128,79 +173,35 @@ export function MoreView({ onOpen }) {
         )}
       </section>
 
-      <section className="section life-section">
+      <section className="section life-section life-section--browse">
         <div className="section__head">
-          <h2 className="eyebrow">Goals in motion</h2>
-          <button type="button" className="text-btn" onClick={() => onOpen('more', 'goals')}>
-            {openGoals.length ? 'All' : 'New'}
-          </button>
+          <h2 className="eyebrow">Browse all tools</h2>
         </div>
-        {openGoals.length === 0 ? (
-          <button type="button" className="life-empty-row" onClick={() => onOpen('more', 'goals')}>
-            Set a destination. Micro-steps live underneath.
-          </button>
-        ) : (
-          <ul className="goals goals--compact">
-            {openGoals.slice(0, 4).map((g) => {
-              const progress = goalProgress(g);
-              const target = targetOf(g, goals);
-              const pct = Math.min(100, Math.round((progress / target) * 100));
-              const micros = childrenOf(goals, g.id);
-              const unit = micros.length > 0 && !g.habitId ? 'steps' : g.unit || '';
-              return (
-                <li key={g.id}>
+        {LIFE_SPACES.map((space) => (
+          <div key={space.id} className="life-space life-space--compact">
+            <header className="life-space__head">
+              <h3 className="life-space__title">{space.label}</h3>
+            </header>
+            <ul className="more-list more-list--dense">
+              {space.pages.map((page) => (
+                <li key={page.id}>
                   <button
                     type="button"
-                    className="goal goal--compact goal--link"
-                    onClick={() => onOpen('more', 'goals')}
+                    className="more-row"
+                    onClick={() => onOpen('more', page.id)}
                   >
-                    <header className="goal__head">
-                      <div className="goal__copy">
-                        <p className="eyebrow">
-                          of {target}
-                          {unit ? ` ${unit}` : ''}
-                        </p>
-                        <h3 className="goal__title">{g.title}</h3>
-                      </div>
-                      <span className="goal__figure">{progress}</span>
-                    </header>
-                    <div
-                      className="goal__bar"
-                      role="img"
-                      aria-label={`${progress} of ${target}${unit ? ` ${unit}` : ''}`}
-                      style={{ '--fill': `${pct}%` }}
-                    >
-                      <span className="goal__fill" />
-                    </div>
+                    <span className="more-row__copy">
+                      <span className="more-row__label">{page.label}</span>
+                      <span className="more-row__detail">{PAGE_DETAILS[page.id] || ''}</span>
+                    </span>
+                    <span aria-hidden="true">›</span>
                   </button>
                 </li>
-              );
-            })}
-          </ul>
-        )}
+              ))}
+            </ul>
+          </div>
+        ))}
       </section>
-
-      {LIFE_SPACES.map((space) => (
-        <section key={space.id} className="life-space">
-          <header className="life-space__head">
-            <h2 className="life-space__title">{space.label}</h2>
-            <p className="life-space__blurb">{space.blurb}</p>
-          </header>
-          <ul className="more-list more-list--dense">
-            {space.pages.map((page) => (
-              <li key={page.id}>
-                <button type="button" className="more-row" onClick={() => onOpen('more', page.id)}>
-                  <span className="more-row__copy">
-                    <span className="more-row__label">{page.label}</span>
-                    <span className="more-row__detail">{SPACE_DETAILS[page.id] || ''}</span>
-                  </span>
-                  <span aria-hidden="true">›</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
     </div>
   );
 }

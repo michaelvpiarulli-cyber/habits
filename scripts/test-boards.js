@@ -8,7 +8,7 @@ import {
   nextBoardSortOrder,
   normalizeBoardColumn,
 } from '../src/lib/boards.js';
-import { LIFE_SPACES } from '../src/lib/spaces.js';
+import { LIFE_SPACES, QUICK_CREATES, spaceForPage } from '../src/lib/spaces.js';
 import { isCoverDataUrl } from '../src/lib/covers.js';
 
 let failed = 0;
@@ -87,6 +87,17 @@ test('LIFE_SPACES covers focus create read house', () => {
   for (const need of ['habits', 'tasks', 'boards', 'creativity', 'books', 'notes']) {
     assert.equal(pages.includes(need), true, `missing ${need}`);
   }
+});
+
+test('spaceForPage and QUICK_CREATES map tools into spaces', () => {
+  assert.equal(spaceForPage('boards')?.id, 'create');
+  assert.equal(spaceForPage('tasks')?.id, 'focus');
+  assert.equal(spaceForPage('nope'), null);
+  assert.equal(QUICK_CREATES.length >= 6, true);
+  assert.equal(
+    QUICK_CREATES.every((item) => LIFE_SPACES.some((s) => s.pages.some((p) => p.id === item.id))),
+    true
+  );
 });
 
 test('isCoverDataUrl recognizes jpeg data urls', () => {

@@ -1,6 +1,28 @@
 /**
- * Life workspace spaces — Notion-quiet areas, not another nav bar.
+ * Life workspace — spaces group tools. The left sidebar is the map.
  */
+
+export const CORE_NAV = [
+  { id: 'today', kind: 'tab', label: 'Today', detail: 'Daily habit loop' },
+  { id: 'record', kind: 'tab', label: 'Record', detail: 'Streaks and progress' },
+  { id: 'calendar', kind: 'tab', label: 'Plan', detail: 'Calendar and schedule' },
+];
+
+export const PAGE_DETAILS = {
+  habits: 'Daily set and streaks',
+  goals: 'Destinations and steps',
+  tasks: 'Inbox with due dates',
+  creativity: 'Sparks and quiet rooms',
+  boards: 'Backlog · Doing · Done',
+  notes: 'Pages and day reflections',
+  books: 'Reading · want · finished',
+  grocery: 'What is in stock',
+  money: 'Accounts and spend',
+  identity: 'Who you are becoming',
+  calories: 'Meals and macros',
+  jobs: 'Applications',
+  mail: 'Gmail inbox',
+};
 
 export const LIFE_SPACES = [
   {
@@ -16,7 +38,7 @@ export const LIFE_SPACES = [
   {
     id: 'create',
     label: 'Create',
-    blurb: 'A quiet room for ideas, boards, and drafts.',
+    blurb: 'Ideas, boards, and drafts.',
     pages: [
       { id: 'creativity', label: 'Creativity' },
       { id: 'boards', label: 'Boards' },
@@ -26,13 +48,13 @@ export const LIFE_SPACES = [
   {
     id: 'read',
     label: 'Read',
-    blurb: 'Shelves for reading, want-to-read, and finished.',
+    blurb: 'Want to read, reading, and finished.',
     pages: [{ id: 'books', label: 'Books' }],
   },
   {
     id: 'house',
     label: 'House',
-    blurb: 'The rest of life — fridge, money, identity.',
+    blurb: 'Fridge, money, identity, and the rest.',
     pages: [
       { id: 'grocery', label: 'Fridge' },
       { id: 'money', label: 'Money' },
@@ -43,3 +65,17 @@ export const LIFE_SPACES = [
     ],
   },
 ];
+
+/** Quick-create shortcuts shown on the Life home dashboard. */
+export const QUICK_CREATES = [
+  { id: 'tasks', label: 'Todo', detail: 'With a due date', space: 'Focus' },
+  { id: 'notes', label: 'Note', detail: 'A blank page', space: 'Create' },
+  { id: 'boards', label: 'Board card', detail: 'Backlog → Doing → Done', space: 'Create' },
+  { id: 'creativity', label: 'Spark', detail: 'Catch an idea', space: 'Create' },
+  { id: 'books', label: 'Book', detail: 'Cover + shelf', space: 'Read' },
+  { id: 'habits', label: 'Habit', detail: 'Edit the daily set', space: 'Focus' },
+];
+
+export function spaceForPage(pageId) {
+  return LIFE_SPACES.find((space) => space.pages.some((p) => p.id === pageId)) || null;
+}
