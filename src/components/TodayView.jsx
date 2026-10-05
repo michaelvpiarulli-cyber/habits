@@ -541,7 +541,7 @@ export function TodayView({ onOpen }) {
             <div className="empty">
               <p className="empty__title">Nothing to tap yet.</p>
               <p className="empty__body">
-                Add one under More → Habits and it shows up here every day it’s due.
+                Add one under Edit habits in the sidebar and it shows up here every day it’s due.
               </p>
               {onOpen && (
                 <button type="button" className="text-btn" onClick={() => onOpen('more', 'habits')}>

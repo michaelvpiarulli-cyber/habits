@@ -6576,9 +6576,17 @@ body.is-side-nav-open {
     border-radius: 10px;
   }
 
+  /* Sidebar is the map on desktop — bottom pill is mobile-only. */
   .nav {
-    /* Sidebar handles primary nav on desktop; keep a quiet dual tab. */
-    max-width: 360px;
+    display: none;
+  }
+
+  .app {
+    padding-bottom: 24px;
+  }
+
+  .side-nav:not(.is-open) {
+    visibility: hidden;
   }
 }
 
