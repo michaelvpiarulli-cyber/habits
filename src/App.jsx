@@ -184,7 +184,7 @@ export default function App() {
           {tab === 'today' && <TodayView onOpen={onOpen} />}
           {tab === 'calendar' && <CalendarView />}
           {tab === 'more' && !more && (
-            <MoreView onOpen={onOpen} onOpenTools={() => setSidebarOpen(true)} />
+            <MoreView onOpen={onOpen} />
           )}
           {tab === 'more' && MoreViewComp && (
             <MoreViewComp

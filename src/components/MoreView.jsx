@@ -8,7 +8,7 @@ import { QUICK_CREATES } from '../lib/spaces';
  * Planning home — Notion-quiet front door for pages, boards, and books.
  * Habits live on their own dashboard; extras stay in the sidebar under More.
  */
-export function MoreView({ onOpen, onOpenTools }) {
+export function MoreView({ onOpen }) {
   const { notes, tasks, books, boardCards } = useLife();
   const previewNotes = recentNotes(notes, 4);
   const openTodos = tasks.filter((t) => !t.done).length;
@@ -62,49 +62,6 @@ export function MoreView({ onOpen, onOpenTools }) {
               </button>
             </li>
           ))}
-        </ul>
-      </section>
-
-      <section className="section life-section">
-        <div className="section__head">
-          <h2 className="eyebrow">Surfaces</h2>
-          {onOpenTools && (
-            <button type="button" className="text-btn" onClick={onOpenTools}>
-              Sidebar
-            </button>
-          )}
-        </div>
-        <ul className="planning-surfaces">
-          <li>
-            <button type="button" className="planning-surface" onClick={() => onOpen('more', 'notes')}>
-              <span className="planning-surface__label">Pages</span>
-              <span className="planning-surface__detail">Docs, notes, images</span>
-            </button>
-          </li>
-          <li>
-            <button type="button" className="planning-surface" onClick={() => onOpen('more', 'boards')}>
-              <span className="planning-surface__label">Boards</span>
-              <span className="planning-surface__detail">Table columns · backlog to done</span>
-            </button>
-          </li>
-          <li>
-            <button type="button" className="planning-surface" onClick={() => onOpen('more', 'tasks')}>
-              <span className="planning-surface__label">Todos</span>
-              <span className="planning-surface__detail">Inbox with due dates</span>
-            </button>
-          </li>
-          <li>
-            <button type="button" className="planning-surface" onClick={() => onOpen('more', 'books')}>
-              <span className="planning-surface__label">Books</span>
-              <span className="planning-surface__detail">Covers and shelves</span>
-            </button>
-          </li>
-          <li>
-            <button type="button" className="planning-surface" onClick={() => onOpen('calendar')}>
-              <span className="planning-surface__label">Calendar</span>
-              <span className="planning-surface__detail">Month view</span>
-            </button>
-          </li>
         </ul>
       </section>
 
