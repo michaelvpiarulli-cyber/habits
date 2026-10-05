@@ -2716,85 +2716,16 @@ form.field {
 }
 
 /* =========================================================================
-   Desktop
+   Desktop content layout
 
-   The bottom bar becomes a left sidebar. A thumb-reachable bar along the
-   bottom edge is a phone affordance; on a machine with a cursor it is just a
-   long way from everything else, and it wastes the axis the screen has most of.
+   Primary navigation is the Notion-style SideNav (see below). Do not turn the
+   topbar or bottom pill into a second left rail — that fought the retractable
+   sidebar and read as two sidebars.
    ========================================================================= */
 
 @media (min-width: 960px) {
-  :root {
-    --sidebar: 216px;
-  }
-
-  .app {
-    max-width: none;
-    padding-bottom: 0;
-    padding-left: var(--sidebar);
-  }
-
-  .topbar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: var(--sidebar);
-    height: 106px;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 14px;
-    padding: 0 18px;
-    background: var(--paper);
-    border-bottom: none;
-    border-right: 1px solid var(--rule);
-    backdrop-filter: none;
-  }
-
   .wordmark {
     font-size: 1.5rem;
-  }
-
-  .nav {
-    position: fixed;
-    left: 0;
-    top: 106px;
-    bottom: 0;
-    right: auto;
-    transform: none;
-    width: var(--sidebar);
-    max-width: none;
-    height: auto;
-    margin: 0;
-    padding: 14px 12px;
-    grid-template-columns: 1fr;
-    align-content: start;
-    gap: 4px;
-    background: var(--paper);
-    border: 0;
-    border-radius: 0;
-    border-right: 1px solid var(--rule);
-    box-shadow: none;
-    backdrop-filter: none;
-  }
-
-  .nav__tab {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 12px;
-    height: 42px;
-    padding: 0 12px;
-    border-radius: var(--radius);
-    font-size: 0.688rem;
-  }
-
-  .nav__tab:hover {
-    background: var(--sunk);
-  }
-
-  .nav__tab.is-on {
-    background: var(--blue-wash);
-    color: var(--ink);
   }
 
   .main {
@@ -6514,7 +6445,9 @@ body.is-side-nav-open {
     justify-content: center;
     align-items: start;
     gap: 0;
-    padding-bottom: calc(var(--nav-height) + 18px + env(safe-area-inset-bottom));
+    /* No reserved left padding — SideNav owns the only left rail. */
+    padding-left: 0;
+    padding-bottom: 24px;
     transition: grid-template-columns 220ms cubic-bezier(0.2, 0.7, 0.3, 1);
   }
 
@@ -6544,6 +6477,15 @@ body.is-side-nav-open {
     pointer-events: auto;
   }
 
+  /* Collapsed: leave no empty rail / second panel. */
+  .side-nav:not(.is-open) {
+    visibility: hidden;
+    width: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+  }
+
   .app__shell {
     grid-column: 2;
     grid-row: 1;
@@ -6554,6 +6496,24 @@ body.is-side-nav-open {
 
   .app.is-nav-open .app__shell {
     border-left-color: color-mix(in srgb, var(--rule) 70%, transparent);
+  }
+
+  /* Keep topbar a horizontal chrome strip — never a second left column. */
+  .topbar {
+    position: sticky;
+    left: auto;
+    top: 0;
+    width: auto;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: calc(14px + env(safe-area-inset-top)) var(--gutter) 8px;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    border-bottom: none;
+    border-right: 0;
+    backdrop-filter: blur(14px);
   }
 
   body.is-side-nav-open {
@@ -6578,15 +6538,7 @@ body.is-side-nav-open {
 
   /* Sidebar is the map on desktop — bottom pill is mobile-only. */
   .nav {
-    display: none;
-  }
-
-  .app {
-    padding-bottom: 24px;
-  }
-
-  .side-nav:not(.is-open) {
-    visibility: hidden;
+    display: none !important;
   }
 }
 
