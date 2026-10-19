@@ -10,8 +10,8 @@
 const TOKEN_KEY = 'tally-google-token';
 const GIS_SRC = 'https://accounts.google.com/gsi/client';
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
-const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
-export const GOOGLE_SCOPES = `${CALENDAR_SCOPE} ${GMAIL_SCOPE}`;
+/** Calendar only. The life OS reads the primary calendar and does not ask for Gmail. */
+export const GOOGLE_SCOPES = CALENDAR_SCOPE;
 
 /** Life OS reads this account's primary calendar. Connect Google as this user. */
 export const GOOGLE_CALENDAR_ACCOUNT = 'michaelvpiarulli@gmail.com';

@@ -6,6 +6,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { agendaForDay } from '../src/lib/agenda.js';
 import { FOOD_GOALS, foodVsGoals, preferFoodEntry } from '../src/lib/foodGoals.js';
+import { applyNutritionWrite } from '../src/lib/foodLog.js';
+import { inboxItems } from '../src/lib/inbox.js';
 import { extractIngestKey, keysMatch, validateIngest } from '../src/lib/ingest.js';
 import { runIngest } from '../src/lib/ingestServer.js';
 import { HOUSEHOLD_OWNER_ID } from '../src/lib/household.js';
@@ -200,6 +202,66 @@ test('ingest rejects a bad key and a rest day, and writes as the household', asy
   assert.equal(writes[0].value.protein, 160);
   assert.equal(writes[0].value.meals[0].name, 'Lunch');
   assert.equal(writes[0].value.user_id, undefined);
+
+  const foods = validateIngest({
+    kind: 'nutrition',
+    date: '2026-10-19',
+    entries: [
+      { meal: 'Breakfast', name: 'Eggs', calories: 140, protein: 12, carbs: 1, fat: 10 },
+      { meal: 'Breakfast', name: 'Toast', calories: 80, protein: 3, carbs: 14, fat: 1 },
+      { meal: 'Lunch', name: 'Chicken', calories: 280, protein: 52, carbs: 0, fat: 6 },
+    ],
+  });
+  assert.equal(foods.ok, true);
+  assert.equal(foods.value.foodMode, 'replace');
+  assert.equal(foods.value.explicit.calories, false);
+  assert.equal(foods.value.meals[0].name, 'Breakfast');
+  assert.equal(foods.value.meals[0].foods.length, 2);
+  assert.equal(foods.value.meals[0].calories, 220);
+  assert.equal(foods.value.meals[1].name, 'Lunch');
+  const summed = applyNutritionWrite(null, foods.value);
+  assert.equal(summed.calories, 500);
+  assert.equal(summed.protein, 67);
+
+  const kept = applyNutritionWrite(
+    { calories: 500, protein: 67, carbs: 15, fat: 17, meals: foods.value.meals },
+    validateIngest({ kind: 'nutrition', date: '2026-10-19', calories: 2100, protein: 180 }).value
+  );
+  assert.equal(kept.calories, 2100);
+  assert.equal(kept.protein, 180);
+  assert.equal(kept.meals[0].name, 'Breakfast');
+
+  const appended = applyNutritionWrite(
+    { meals: foods.value.meals },
+    validateIngest({
+      kind: 'nutrition',
+      date: '2026-10-19',
+      mode: 'append',
+      entries: [{ meal: 'Dinner', name: 'Salmon', calories: 350, protein: 34, carbs: 0, fat: 20 }],
+    }).value
+  );
+  assert.deepEqual(appended.meals.map((meal) => meal.name), ['Breakfast', 'Lunch', 'Dinner']);
+  assert.equal(appended.calories, 850);
+
+  const inbox = inboxItems({
+    activity: [
+      {
+        id: 'a1',
+        kind: 'workout',
+        action: 'updated',
+        summary: 'Updated Strength A',
+        detail: {},
+        createdAt: '2026-10-19T12:00:00.000Z',
+      },
+    ],
+    nutrition: [
+      { day: '2026-10-18', calories: 1900, protein: 150, meals: [{ name: 'Lunch', calories: 700, protein: 40 }], updatedAt: '2026-10-18T20:00:00.000Z' },
+      { day: '2026-10-19', calories: 500, protein: 67, meals: foods.value.meals, updatedAt: '2026-10-19T18:00:00.000Z' },
+    ],
+  });
+  assert.equal(inbox[0].day, '2026-10-19');
+  assert.match(inbox[0].summary, /500 kcal/);
+  assert.equal(inbox[1].summary, 'Updated Strength A');
 
   const workout = await runIngest({
     method: 'POST',

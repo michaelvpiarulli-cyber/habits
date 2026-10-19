@@ -10,6 +10,7 @@ export function agendaForDay(localEvents, googleEvents, day) {
       allDay: Boolean(event.allDay || !event.startTime),
       source: 'tally',
       href: '',
+      location: event.location || '',
     }));
   const remote = (googleEvents || [])
     .filter((event) => event && event.day === day)
@@ -21,6 +22,7 @@ export function agendaForDay(localEvents, googleEvents, day) {
       allDay: Boolean(event.allDay),
       source: 'google',
       href: event.href || '',
+      location: event.location || '',
     }));
   return [...local, ...remote].sort((a, b) => {
     if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;

@@ -1,233 +1,68 @@
-import { useEffect, useState } from 'react';
-import { useTheme } from './hooks/useTheme';
+import { useState } from 'react';
 import { useData } from './context/DataProvider';
 import { useLife } from './context/LifeProvider';
-import { TodayView } from './components/TodayView';
-import { DashboardView } from './components/DashboardView';
-import { WorkoutsView } from './components/WorkoutsView';
-import { WatchLogView } from './components/WatchLogView';
-import { CaloriesView } from './components/CaloriesView';
-import { ProgressView } from './components/ProgressView';
-import { GoalsView } from './components/GoalsView';
-import { HabitsView } from './components/HabitsView';
-import { IdentityView } from './components/IdentityView';
-import { TasksView } from './components/TasksView';
-import { CalendarView } from './components/CalendarView';
-import { BooksView } from './components/BooksView';
-import { GroceryView } from './components/GroceryView';
-import { JobsView } from './components/JobsView';
-import { MoneyView } from './components/MoneyView';
-import { MailView } from './components/MailView';
-import { NotesView } from './components/NotesView';
-import { BoardsView } from './components/BoardsView';
-import { CreativityView } from './components/CreativityView';
-import { MoreView } from './components/MoreView';
-import { SideNav } from './components/SideNav';
-import { BottomNav } from './components/BottomNav';
-import { AccountMenu } from './components/AccountMenu';
-import { RewardSkin } from './components/RewardSkin';
+import { useTheme } from './hooks/useTheme';
 import { NativeShell } from './components/NativeShell';
-import './App.css';
+import { BodyScreen } from './os/BodyScreen';
+import { JenoScreen } from './os/JenoScreen';
+import { LogScreen } from './os/LogScreen';
+import { PlanScreen } from './os/PlanScreen';
+import { SettingsScreen } from './os/SettingsScreen';
+import { TodayScreen } from './os/TodayScreen';
+import { WordScreen } from './os/WordScreen';
+import './os/os.css';
 
-const SIDEBAR_KEY = 'tally.sidebar.open';
-
-const MORE_PAGES = {
-  notes: { View: NotesView, title: 'Pages' },
-  boards: { View: BoardsView, title: 'Boards' },
-  creativity: { View: CreativityView, title: 'Creativity' },
-  calories: { View: CaloriesView, title: 'Calories' },
-  workouts: { View: WorkoutsView, title: 'Workouts' },
-  watch: { View: WatchLogView, title: 'Watch log' },
-  goals: { View: GoalsView, title: 'Goals' },
-  habits: { View: HabitsView, title: 'Edit habits' },
-  progress: { View: ProgressView, title: 'Progress' },
-  identity: { View: IdentityView, title: 'Identity' },
-  books: { View: BooksView, title: 'Books' },
-  grocery: { View: GroceryView, title: 'Fridge' },
-  jobs: { View: JobsView, title: 'Jobs' },
-  money: { View: MoneyView, title: 'Money' },
-  mail: { View: MailView, title: 'Mail' },
-  tasks: { View: TasksView, title: 'Todos' },
-};
-
-function readSidebarOpen() {
-  try {
-    const stored = localStorage.getItem(SIDEBAR_KEY);
-    if (stored === '0') return false;
-    if (stored === '1') return true;
-  } catch {
-    /* ignore */
-  }
-  if (typeof window !== 'undefined') {
-    return window.matchMedia('(min-width: 900px)').matches;
-  }
-  return false;
-}
+const TABS = [
+  ['today', 'Today'],
+  ['plan', 'Plan'],
+  ['body', 'Body'],
+  ['word', 'Word'],
+  ['jeno', 'JENO'],
+];
 
 export default function App() {
   const theme = useTheme();
-  const { syncState, syncAvailable, dataReady } = useData();
+  const data = useData();
   const life = useLife();
   const [tab, setTab] = useState('today');
-  const [morePage, setMorePage] = useState(null);
-  const [moreParams, setMoreParams] = useState(null);
-  const [notesEditing, setNotesEditing] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(readSidebarOpen);
+  const [overlay, setOverlay] = useState(null);
 
-  const setSidebarOpen = (next) => {
-    setNavOpen(next);
-    try {
-      localStorage.setItem(SIDEBAR_KEY, next ? '1' : '0');
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const onOpen = (next, page = null, params = null) => {
-    setTab(next);
-    setMorePage(next === 'more' ? page : null);
-    setMoreParams(next === 'more' ? params : null);
-    if (next !== 'more' || page !== 'notes') setNotesEditing(false);
-  };
-
-  const onTab = (next) => {
-    setTab(next);
-    setMorePage(null);
-    setMoreParams(null);
-    setNotesEditing(false);
-  };
-
-  const onNavigate = ({ tab: nextTab, page = null }) => {
-    if (page) onOpen(nextTab || 'more', page);
-    else onTab(nextTab);
-  };
-
-  const clearMoreParams = () => setMoreParams(null);
-
-  useEffect(() => {
-    if (!navOpen) return undefined;
-    const onKey = (e) => e.key === 'Escape' && setSidebarOpen(false);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [navOpen]);
-
-  useEffect(() => {
-    document.body.classList.toggle('is-side-nav-open', navOpen);
-    return () => document.body.classList.remove('is-side-nav-open');
-  }, [navOpen]);
-
-  if (!dataReady || !life.dataReady) {
+  if (!data.dataReady || !life.dataReady) {
     return (
-      <div className="app">
+      <div className="os">
         <NativeShell isDark={theme.isDark} />
-        <main className="main">
-          <p className="status">Loading…</p>
-        </main>
+        <main className="os-scroll"><p className="quiet">Loading…</p></main>
       </div>
     );
   }
 
-  const more = morePage ? MORE_PAGES[morePage] : null;
-  const MoreViewComp = more?.View;
+  const jump = {
+    onLog: () => setOverlay('log'),
+    onSettings: () => setOverlay('settings'),
+    onJump: setTab,
+  };
 
-  const moreProps =
-    morePage === 'notes'
-      ? {
-          initialNoteId: moreParams?.noteId || null,
-          initialCreate: Boolean(moreParams?.create),
-          onEditingChange: setNotesEditing,
-          onLeaveEditor: clearMoreParams,
-          onConsumedIntent: clearMoreParams,
-        }
-      : morePage === 'boards'
-        ? {
-            initialCardId: moreParams?.cardId || null,
-            initialCreate: Boolean(moreParams?.create),
-            onConsumedIntent: clearMoreParams,
-          }
-        : morePage === 'tasks'
-          ? {
-              initialTaskId: moreParams?.taskId || null,
-              initialCreate: Boolean(moreParams?.create),
-              onConsumedIntent: clearMoreParams,
-            }
-          : morePage === 'books'
-            ? {
-                initialCreate: Boolean(moreParams?.create),
-                onConsumedIntent: clearMoreParams,
-              }
-            : morePage === 'creativity'
-              ? { onOpen }
-              : {};
+  let screen = <TodayScreen {...jump} />;
+  if (overlay === 'log') screen = <LogScreen onClose={() => setOverlay(null)} />;
+  else if (overlay === 'settings') screen = <SettingsScreen onClose={() => setOverlay(null)} />;
+  else if (tab === 'plan') screen = <PlanScreen {...jump} />;
+  else if (tab === 'body') screen = <BodyScreen {...jump} />;
+  else if (tab === 'word') screen = <WordScreen {...jump} />;
+  else if (tab === 'jeno') screen = <JenoScreen {...jump} />;
 
   return (
-    <div className={`app ${navOpen ? 'is-nav-open' : 'is-nav-closed'}`}>
+    <div className={`os ${overlay ? 'is-overlay' : ''}`}>
       <NativeShell isDark={theme.isDark} />
-      <RewardSkin />
-
-      <SideNav
-        tab={tab}
-        morePage={morePage}
-        open={navOpen}
-        onClose={() => setSidebarOpen(false)}
-        onToggle={() => setSidebarOpen(!navOpen)}
-        onNavigate={onNavigate}
-      />
-
-      <div className="app__shell">
-        <header className="topbar">
-          <div className="topbar__lead">
-            <button
-              type="button"
-              className="nav-toggle"
-              aria-expanded={navOpen}
-              aria-controls="side-nav"
-              aria-label={navOpen ? 'Collapse sidebar' : 'Open sidebar'}
-              onClick={() => setSidebarOpen(!navOpen)}
-            >
-              <SidebarToggleIcon />
+      {screen}
+      {!overlay && (
+        <nav className="tabs" aria-label="Sections">
+          {TABS.map(([id, label]) => (
+            <button key={id} type="button" className={tab === id ? 'is-on' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
+              {label}
             </button>
-            <h1 className="wordmark">
-              Tally<span className="wordmark__dot" aria-hidden="true">.</span>
-            </h1>
-          </div>
-          <button
-            type="button"
-            className={`account ${syncState === 'error' || life.syncState === 'error' ? 'is-error' : ''}`}
-            onClick={() => setAccountOpen(true)}
-          >
-            <span
-              className={`account__dot account__dot--${syncAvailable ? syncState : 'local'}`}
-            />
-            Settings
-          </button>
-        </header>
-
-        <main className={`main ${morePage && notesEditing ? 'main--flush' : ''}`}>
-          {tab === 'today' && <DashboardView onOpen={onOpen} />}
-          {tab === 'habits' && <TodayView onOpen={onOpen} />}
-          {tab === 'calendar' && <CalendarView />}
-          {tab === 'more' && !more && <MoreView onOpen={onOpen} />}
-          {tab === 'more' && MoreViewComp && <MoreViewComp {...moreProps} />}
-        </main>
-
-        <BottomNav
-          tab={tab === 'calendar' ? 'more' : tab === 'today' || tab === 'more' ? tab : ''}
-          onChange={onTab}
-        />
-      </div>
-
-      {accountOpen && <AccountMenu theme={theme} onClose={() => setAccountOpen(false)} />}
+          ))}
+        </nav>
+      )}
     </div>
-  );
-}
-
-function SidebarToggleIcon() {
-  return (
-    <svg className="nav-toggle__icon" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <rect x="2" y="3" width="14" height="12" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M7 3v12" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
   );
 }
