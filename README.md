@@ -51,7 +51,7 @@ The publishable key in the client only identifies the project. It cannot read ro
 
 Project: `amrqzdnsbgoqkckcytjq` (the Habits project). Do this before you rely on the new app. The SQL does not delete rows.
 
-1. **Authentication → Users → Add user.** Use your email and a password you will type into Tally. Turn on **Auto Confirm User**.
+1. **Create your account before the lock script.** On the Tally sign-in screen, choose **Create account** and use the email and password you want. This project confirms email automatically, so you are signed in immediately. You can instead use **Authentication → Users → Add user** with **Auto Confirm User** on. Do this before step 4. Existing rows are not deleted.
 2. Turn **off** “Allow new users to sign up” (Authentication → Sign In / Providers, or Authentication → Settings). The SQL also rejects sign-ups that are not on an allowlist.
 3. **Authentication → URL Configuration.** Set Site URL to `https://habits-silk-six.vercel.app`. Add `http://localhost:5173` if you use the dev server. Password sign-in does not need a redirect; this is for the project URL itself.
 4. **SQL Editor → New query.** Paste [`supabase/lock-owner-rls.sql`](supabase/lock-owner-rls.sql) and run it. Safe to re-run. It drops the public policies, bans the old shared household login (its password was in the repo), and does not move or delete your data.

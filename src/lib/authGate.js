@@ -18,7 +18,34 @@ export function friendlyAuthError(error) {
   if (/email not confirmed/i.test(message)) {
     return 'This user is not confirmed yet. In Supabase, open Authentication → Users and confirm the account, then try again.';
   }
+  if (/already registered|already been registered|user already exists/i.test(message)) {
+    return 'That email already has an account. Sign in instead.';
+  }
+  if (/signups not allowed|sign-ups are closed|signup disabled/i.test(message)) {
+    return 'Sign-ups are closed. Add the email in Supabase, then create the account.';
+  }
+  if (/password/i.test(message) && /at least|weak|short|6/i.test(message)) {
+    return 'Use a password of at least 6 characters.';
+  }
   return message;
+}
+
+/**
+ * signUp returns a session when the project auto-confirms email. An empty
+ * identities list is Supabase's "this email already exists" response.
+ */
+export function interpretSignUp(result) {
+  if (result?.error) return { error: { message: friendlyAuthError(result.error) } };
+  const identities = result?.data?.user?.identities;
+  if (result?.data?.user && Array.isArray(identities) && identities.length === 0) {
+    return { error: { message: 'That email already has an account. Sign in instead.' } };
+  }
+  if (!result?.data?.session) {
+    return {
+      error: { message: 'Account created. Confirm the email in your inbox, then sign in.' },
+    };
+  }
+  return { error: null };
 }
 
 /**

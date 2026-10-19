@@ -136,7 +136,7 @@ export default function App() {
     return (
       <div className="app">
         <NativeShell isDark={theme.isDark} />
-        <SignInScreen onSignIn={auth.signIn} />
+        <SignInScreen onSignIn={auth.signIn} onSignUp={auth.signUp} />
       </div>
     );
   }

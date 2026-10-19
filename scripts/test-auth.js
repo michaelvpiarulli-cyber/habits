@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { shouldShowSignIn, friendlyAuthError, createAuthOptions } from '../src/lib/authGate.js';
+import { shouldShowSignIn, friendlyAuthError, createAuthOptions, interpretSignUp } from '../src/lib/authGate.js';
 import { claimScopeOnce } from '../src/lib/claimScope.js';
 import { HOUSEHOLD_OWNER_ID } from '../src/lib/household.js';
 import {
@@ -54,6 +54,25 @@ test('auth errors stay short', () => {
   assert.equal(friendlyAuthError({ message: 'Invalid login credentials' }), 'Email or password is wrong.');
   assert.match(friendlyAuthError({ message: 'Email not confirmed' }), /not confirmed/);
   assert.equal(friendlyAuthError({ message: 'network down' }), 'network down');
+  assert.match(friendlyAuthError({ message: 'User already registered' }), /Sign in instead/);
+  assert.match(friendlyAuthError({ message: 'Signups not allowed for this instance' }), /Sign-ups are closed/);
+  assert.match(
+    friendlyAuthError({ message: 'Sign-ups are closed. Add the email to private.allowed_emails first.' }),
+    /Sign-ups are closed/
+  );
+});
+
+test('creating an account signs in when the project auto-confirms', () => {
+  assert.deepEqual(
+    interpretSignUp({ data: { session: { access_token: 't' }, user: { identities: [{ id: '1' }] } } }),
+    { error: null }
+  );
+  assert.match(interpretSignUp({ data: { session: null, user: { identities: [{ id: '1' }] } } }).error.message, /Confirm the email/);
+  assert.match(
+    interpretSignUp({ data: { session: null, user: { identities: [] } } }).error.message,
+    /Sign in instead/
+  );
+  assert.match(interpretSignUp({ error: { message: 'User already registered' } }).error.message, /Sign in instead/);
 });
 
 test('native shell skips the Web Locks API and URL session parsing', () => {

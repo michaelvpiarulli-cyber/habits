@@ -6779,6 +6779,14 @@ body.is-side-nav-open {
   height: 42px;
 }
 
+.sign-in__switch {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
 .life-os {
   display: flex;
   flex-direction: column;

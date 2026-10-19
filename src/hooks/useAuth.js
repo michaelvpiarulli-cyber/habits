@@ -7,14 +7,16 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { interpretSignUp } from '../lib/authGate';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 /**
  * Supabase Auth session for the one owner of this database.
  *
  * No session and no Supabase config both mean "not signed in": the app stays
- * on localStorage. Sign-up is intentionally not offered — the account is
- * created in the Supabase dashboard and new sign-ups are rejected in SQL.
+ * on localStorage. The sign-in screen can create the first account. After
+ * supabase/lock-owner-rls.sql, new sign-ups are rejected unless the email is
+ * already on the allowlist — create the account before running that file.
  */
 
 const AuthContext = createContext(null);
@@ -67,6 +69,15 @@ export function AuthProvider({ children }) {
     return { error };
   }, []);
 
+  const signUp = useCallback(async (email, password) => {
+    if (!supabase) return { error: { message: 'Cloud sync is not configured.' } };
+    const result = await supabase.auth.signUp({
+      email: String(email || '').trim().toLowerCase(),
+      password: password || '',
+    });
+    return interpretSignUp(result);
+  }, []);
+
   const signOut = useCallback(async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -83,12 +94,10 @@ export function AuthProvider({ children }) {
       email: user?.email ?? null,
       username: user?.email ?? null,
       signIn,
-      signUp: async () => ({
-        error: { message: 'Sign-ups are closed. Create the account in the Supabase dashboard.' },
-      }),
+      signUp,
       signOut,
     }),
-    [loading, session, user, signIn, signOut]
+    [loading, session, user, signIn, signUp, signOut]
   );
 
   return createElement(AuthContext.Provider, { value }, children);
