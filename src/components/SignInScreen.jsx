@@ -3,13 +3,14 @@ import { friendlyAuthError } from '../lib/authGate';
 
 /**
  * Signed-out gate. Same dark shell as the rest of Tally: paper, wordmark, one
- * quiet card. There is no sign-up — the account is created in Supabase.
+ * quiet card. Create account is for the first owner, before the lock SQL runs.
  */
-export function SignInScreen({ onSignIn }) {
+export function SignInScreen({ onSignIn, onSignUp }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -17,8 +18,9 @@ export function SignInScreen({ onSignIn }) {
     setPending(true);
     setError('');
     try {
-      const { error: signInError } = await onSignIn(email, password);
-      if (signInError) setError(friendlyAuthError(signInError));
+      const action = creating ? onSignUp : onSignIn;
+      const { error: authError } = await action(email, password);
+      if (authError) setError(friendlyAuthError(authError));
     } catch (err) {
       setError(friendlyAuthError(err));
     } finally {
@@ -60,7 +62,7 @@ export function SignInScreen({ onSignIn }) {
           id="sign-in-password"
           className="field__input"
           type="password"
-          autoComplete="current-password"
+          autoComplete={creating ? 'new-password' : 'current-password'}
           required
           minLength={6}
           value={password}
@@ -74,10 +76,22 @@ export function SignInScreen({ onSignIn }) {
         )}
 
         <button type="submit" className="btn btn--primary sign-in__submit" disabled={pending}>
-          {pending ? 'Signing in…' : 'Sign in'}
+          {pending ? (creating ? 'Creating account…' : 'Signing in…') : creating ? 'Create account' : 'Sign in'}
+        </button>
+        <button
+          type="button"
+          className="text-btn sign-in__switch"
+          onClick={() => {
+            setCreating((value) => !value);
+            setError('');
+          }}
+        >
+          {creating ? 'Already have an account? Sign in' : 'First time? Create account'}
         </button>
         <p className="field__hint">
-          One owner. The account is created in the Supabase dashboard, not here.
+          {creating
+            ? 'This creates your owner account. Habits already in the database stay there.'
+            : 'One owner. Create the account here before you run the lock SQL.'}
         </p>
       </form>
     </main>

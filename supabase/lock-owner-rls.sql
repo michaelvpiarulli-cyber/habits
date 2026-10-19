@@ -1,7 +1,8 @@
 -- Tally — lock the database to the signed-in owner.
 -- Safe to re-run. Does not delete rows and does not move them.
 --
--- Run this in the Supabase SQL editor AFTER you have created your user:
+-- Run this in the Supabase SQL editor AFTER you have created your user,
+-- either with Create account on the Tally sign-in screen, or
 --   Authentication → Users → Add user → your email, a password,
 --   and Auto Confirm User turned on.
 -- Then turn off "Allow new users to sign up"
