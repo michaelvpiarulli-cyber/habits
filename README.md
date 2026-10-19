@@ -45,7 +45,7 @@ One owner. Email and password, the same form in the browser and in the Capacitor
 
 Magic links were the other option. They need a redirect back into the app, and on iOS that link opens in Safari unless you add a custom URL scheme or universal links. Password sign-in stays inside the WKWebView, and the session is kept in localStorage, which both the site and the iOS wrapper already persist. You sign in once per device.
 
-The publishable key in the client only identifies the project. It cannot read rows. A later ingest endpoint (food totals, workouts) should use the **service role** key on the server, read `private.app_owner`, and set `user_id` to that id itself. Do not put the service role key in Vite or in the iOS app. This repo does not add that endpoint yet.
+The publishable key in the client only identifies the project. It cannot read rows. The Life OS ingest endpoint uses the **service role** key on the server, reads `public.life_os_owner_id()` (which looks up `private.app_owner`), and sets `user_id` itself. Do not put the service role key in Vite or in the iOS app.
 
 ### What you do in Supabase
 
@@ -89,7 +89,7 @@ Optionally set `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (or `VITE_GOOGLE_C
 **Project Settings → Environment Variables** and redeploy. Never set the Supabase
 service-role key as a `VITE_` variable.
 
-`vercel.json` rewrites all routes to `index.html`.
+`vercel.json` sends `/api/*` to the serverless functions and every other route to `index.html`.
 
 ## iPhone app
 
@@ -131,19 +131,57 @@ Sign in with the same email and password inside the iPhone app. That session sta
 
 App Store submission is a separate step (paid developer account, screenshots, review). You do not need that to use Tally yourself.
 
+## Life OS
+
+Home is the daily dashboard: habits due today, food against 2,100 kcal and 210 g protein, today’s workout and the next one, today’s calendar, and the latest watch-log entries. The full habit tracker is still on **Habits**. Bottom nav on a phone is Home and Plan.
+
+### Food, workouts, and the watch log
+
+In the Supabase SQL editor, run [`supabase/add-life-os.sql`](supabase/add-life-os.sql). If you already ran `lock-owner-rls.sql` before this file, run the lock script once more so the new tables are in the owner policy loop. The file is safe to re-run and does not delete rows.
+
+`daily_nutrition` stores one total per day (`day`, calories, protein, carbs, fat, meals JSON). The in-app meal diary (`nutrition_logs`, the Calories page) stays. The dashboard shows whichever of the two was updated later. Protein grams are copied onto the existing Protein habit when that total is newer than the habit log. The habit’s own target is unchanged (the starter is 185 g). 210 g is the dashboard goal, so a day at 210 g still completes the habit.
+
+Workouts follow a fixed week. Monday, Wednesday, and Friday alternate Strength A (squat, bench, cable row, RDL, plank) and Strength B (RDL, DB shoulder press, lat pulldown, split squat, curls, pushdowns), starting Strength A on Monday 1 Jan 2024. Tuesday, Thursday, and Saturday are a walk from 7:00 to 8:00 AM. Sunday is rest. Mark a day done on Home or Workouts.
+
+Watch log is under More → Watch log: title, link, date watched, 1–5 stars, notes, edit, and delete.
+
+### Ingest endpoint
+
+`POST /api/ingest` lets another assistant write a daily food total or mark a workout done. On Vercel, set these **server** environment variables (never `VITE_`):
+
+- `TALLY_INGEST_KEY` — a long random secret
+- `SUPABASE_SERVICE_ROLE_KEY` — Project Settings → API → service_role
+- `SUPABASE_URL` — optional, defaults to `https://amrqzdnsbgoqkckcytjq.supabase.co`
+
+Send the secret as `Authorization: Bearer <TALLY_INGEST_KEY>` or `x-tally-ingest-key`. The function ignores any `user_id` in the body.
+
+```bash
+curl -X POST https://habits-silk-six.vercel.app/api/ingest \
+  -H "Authorization: Bearer $TALLY_INGEST_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"kind":"nutrition","date":"2026-10-19","calories":1800,"protein":160,"carbs":180,"fat":55,"meals":[{"name":"Lunch","calories":700,"protein":45}]}'
+
+curl -X POST https://habits-silk-six.vercel.app/api/ingest \
+  -H "Authorization: Bearer $TALLY_INGEST_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"kind":"workout","date":"2026-10-19","done":true}'
+```
+
+`date` may also be sent as `day`. A workout post on Sunday is rejected. Omit `done` and it is recorded as done. Until `backfill-owner.sql` has recorded an owner, ingest returns 409.
+
 ## Google Calendar and Gmail
 
-Optional. The app keeps its own tasks, events, and due dates without Google.
+Optional. The app keeps its own tasks, events, and due dates without Google. Home reads **today’s events** from the primary calendar once Google is connected.
 
-1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) create an
-   OAuth 2.0 **Web application** client.
-2. Add authorized JavaScript origins for `http://localhost:5173` and your Vercel URL.
+The shipped OAuth client id is the Tally web client. Override it with `VITE_GOOGLE_CLIENT_ID` if you create your own.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) open the OAuth 2.0 **Web application** client (or create one).
+2. Authorized JavaScript origins: `http://localhost:5173` and `https://habits-silk-six.vercel.app`.
 3. Enable **Google Calendar API** and **Gmail API**.
-4. Put the client id in `VITE_GOOGLE_CLIENT_ID` (and the same key on Vercel).
-5. In the app: **Account → Connect Google**, or the same button on Calendar / Mail.
+4. OAuth consent screen: add yourself as a test user while the app is in testing. Scopes used: `calendar.events` (read and write events) and `gmail.readonly` (inbox, and the address of the connected account).
+5. In Tally: **Settings → Connect Google**, and choose **michaelvpiarulli@gmail.com**. Home reads that account’s primary calendar. If another Google account is connected, Home says so.
 
-Connecting asks for calendar.events (so a due date can be written onto your calendar) and
-gmail.readonly (so Mail can list the inbox). Tokens stay in this browser tab only.
+There is no server-side Google refresh token. The GIS token lives in this browser tab only, so Calendar on the dashboard is read-only for the signed-in Google user and asks you to connect again when the token expires.
 
 ## How sync works
 
