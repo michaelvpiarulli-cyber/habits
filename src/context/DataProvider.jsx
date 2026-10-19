@@ -11,7 +11,6 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { HOUSEHOLD_OWNER_ID } from '../lib/household';
 import { claimScopeOnce } from '../lib/claimScope';
-import { ownerSyncGate } from '../lib/ownerSync';
 import {
   goalFromRow,
   goalToRow,
@@ -608,12 +607,8 @@ export function DataProvider({ children }) {
           ACCOUNT_KINDS.map((kind) => [kind, purgeStale(loadList(KEYS[kind]))])
         );
       }
-      // Cloud builds show a sign-in screen while signed out. Seeding starters
-      // into that anonymous cache would upload a second copy after sign-in.
-      if (!available) {
-        if (records.habits.length === 0) records.habits = starterHabits();
-        if (records.identity.length === 0) records.identity = starterIdentity();
-      }
+      if (records.habits.length === 0) records.habits = starterHabits();
+      if (records.identity.length === 0) records.identity = starterIdentity();
     }
 
     const retired = archiveRetiredTrainingHabits(records.habits, nowISO());
@@ -630,7 +625,7 @@ export function DataProvider({ children }) {
     setLiftLogs(records.liftLogs);
     setStorageScope(desiredScope);
     setSyncState(user ? 'syncing' : 'idle');
-  }, [available, desiredScope, storageScope, user, markDirty]);
+  }, [desiredScope, storageScope, user, markDirty]);
 
   // Already-signed-in sessions after an update still need a one-time fold of
   // any habits left in the anonymous browser cache.
@@ -701,22 +696,6 @@ export function DataProvider({ children }) {
       pulling.current = generation;
       setSyncState('syncing');
       setSyncError('');
-
-      const gate = await ownerSyncGate(supabase);
-      if (
-        syncGeneration.current !== generation ||
-        currentUserId.current !== user.id ||
-        storageScope !== user.id
-      ) {
-        if (pulling.current === generation) pulling.current = null;
-        return;
-      }
-      if (!gate.ready) {
-        if (pulling.current === generation) pulling.current = null;
-        setSyncError(gate.message);
-        setSyncState('error');
-        return;
-      }
 
       let results;
       try {

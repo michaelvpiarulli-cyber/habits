@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from './hooks/useAuth';
-import { shouldShowSignIn } from './lib/authGate';
 import { useTheme } from './hooks/useTheme';
 import { useData } from './context/DataProvider';
 import { useLife } from './context/LifeProvider';
@@ -27,7 +25,6 @@ import { MoreView } from './components/MoreView';
 import { SideNav } from './components/SideNav';
 import { BottomNav } from './components/BottomNav';
 import { AccountMenu } from './components/AccountMenu';
-import { SignInScreen } from './components/SignInScreen';
 import { RewardSkin } from './components/RewardSkin';
 import { NativeShell } from './components/NativeShell';
 import './App.css';
@@ -68,7 +65,6 @@ function readSidebarOpen() {
 }
 
 export default function App() {
-  const auth = useAuth();
   const theme = useTheme();
   const { syncState, syncAvailable, dataReady } = useData();
   const life = useLife();
@@ -120,26 +116,6 @@ export default function App() {
     document.body.classList.toggle('is-side-nav-open', navOpen);
     return () => document.body.classList.remove('is-side-nav-open');
   }, [navOpen]);
-
-  if (auth.loading) {
-    return (
-      <div className="app">
-        <NativeShell isDark={theme.isDark} />
-        <main className="main">
-          <p className="status">Loading…</p>
-        </main>
-      </div>
-    );
-  }
-
-  if (shouldShowSignIn(auth)) {
-    return (
-      <div className="app">
-        <NativeShell isDark={theme.isDark} />
-        <SignInScreen onSignIn={auth.signIn} onSignUp={auth.signUp} />
-      </div>
-    );
-  }
 
   if (!dataReady || !life.dataReady) {
     return (

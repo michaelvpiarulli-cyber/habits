@@ -2,8 +2,8 @@
 -- Run this once in the Supabase dashboard: SQL Editor → New query → paste → Run.
 -- Safe to re-run: every statement is guarded.
 --
--- Every table is keyed to auth.users and protected by row-level
--- security, so a signed-in user can only ever touch their own rows.
+-- Every table is keyed to the shared household user. Row-level security is
+-- enabled and opened to the anon key, so the app syncs with no login.
 --
 -- Ids are uuids generated on the CLIENT (crypto.randomUUID). That is what makes
 -- offline work sync cleanly: a habit created with no connection already has its
@@ -474,14 +474,9 @@ create index if not exists finance_budgets_user_month_idx
   on public.finance_budgets (user_id, month);
 
 -- ------------------------------------------------------------------ RLS ----
--- Owner-only. Policies are for the authenticated role, and the check is
--- auth.uid() = user_id on both read and write so a client cannot claim
--- someone else's rows. anon has no grants.
---
--- A database that already ran add-household-open.sql is still wide open until
--- you run supabase/lock-owner-rls.sql and supabase/backfill-owner.sql. This
--- block drops that open policy on any of the tables below that exist, including
--- life_notes and board_cards from the later add-*.sql files.
+-- Household mode: one open policy per table for anon and authenticated.
+-- Re-running this file keeps that open policy. It does not require a login.
+-- Tables that are not created yet (later add-*.sql files) are skipped.
 
 alter table public.habits     enable row level security;
 alter table public.habit_logs enable row level security;
@@ -524,17 +519,14 @@ begin
     execute format('drop policy if exists "household write" on public.%I', t);
 
     execute format(
-      'create policy "own rows read" on public.%I for select to authenticated using ((select auth.uid()) = user_id)', t);
-    execute format(
-      'create policy "own rows insert" on public.%I for insert to authenticated with check ((select auth.uid()) = user_id)', t);
-    execute format(
-      'create policy "own rows update" on public.%I for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id)', t);
-    execute format(
-      'create policy "own rows delete" on public.%I for delete to authenticated using ((select auth.uid()) = user_id)', t);
+      'create policy "household all" on public.%I for all to anon, authenticated using (true) with check (true)',
+      t
+    );
 
-    execute format('revoke all on table public.%I from anon', t);
     execute format(
-      'grant select, insert, update, delete on table public.%I to authenticated', t);
+      'grant select, insert, update, delete on public.%I to anon, authenticated',
+      t
+    );
   end loop;
 end $$;
 

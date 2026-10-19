@@ -3,7 +3,7 @@
  * grocery, plus Life OS food totals, workouts, and the watch log.
  *
  * Same local-first contract as DataProvider — localStorage is the source of
- * truth, Supabase is a merge on sign-in and a debounced push of dirty rows.
+ * truth, Supabase is a merge against the household id and a debounced push of dirty rows.
  * Kept in its own provider so habit sync stays untouched.
  */
 
@@ -20,7 +20,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { HOUSEHOLD_OWNER_ID } from '../lib/household';
 import { claimScopeOnce } from '../lib/claimScope';
-import { ownerSyncGate } from '../lib/ownerSync';
 import { newId, nowISO } from '../lib/mappers';
 import { todayISO } from '../lib/dates';
 import {
@@ -261,22 +260,6 @@ export function LifeProvider({ children }) {
       pulling.current = generation;
       setSyncState('syncing');
       setSyncError('');
-
-      const gate = await ownerSyncGate(supabase);
-      if (
-        syncGeneration.current !== generation ||
-        currentUserId.current !== user.id ||
-        storageScope !== user.id
-      ) {
-        if (pulling.current === generation) pulling.current = null;
-        return;
-      }
-      if (!gate.ready) {
-        if (pulling.current === generation) pulling.current = null;
-        setSyncError(gate.message);
-        setSyncState('error');
-        return;
-      }
 
       let results;
       try {

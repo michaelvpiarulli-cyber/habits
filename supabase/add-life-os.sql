@@ -1,9 +1,10 @@
 -- Life OS tables: ingested daily food totals, workout completions, watch log.
 --
--- Safe to re-run. Does not move or delete existing rows.
--- Run this in the Supabase SQL editor after supabase/lock-owner-rls.sql
--- (or before it — lock skips tables that are not created yet, so run lock
--- again after this file if you ran lock first).
+-- No login. Safe to re-run. Does not move or delete existing rows.
+-- Run this in the Supabase SQL editor. It creates the three tables and opens
+-- them to the anon key, the same household model as the rest of the database.
+-- supabase/lock-owner-rls.sql and supabase/backfill-owner.sql are optional
+-- and are not required for this app.
 --
 -- daily_nutrition.day is the calendar date. The ingest API accepts `date`.
 -- This table sits beside nutrition_logs (the in-app meal diary). Ingest
@@ -68,6 +69,8 @@ create index if not exists watch_entries_user_watched_idx
   on public.watch_entries (user_id, watched_on desc);
 
 -- ------------------------------------------------------------------ RLS ----
+-- Open household policies. The anon key can read and write these rows.
+-- No auth.uid() check: the app has no login.
 
 do $$
 declare
@@ -83,45 +86,16 @@ begin
     execute format('drop policy if exists "household all"   on public.%I', t);
 
     execute format(
-      'create policy "own rows read" on public.%I for select to authenticated using ((select auth.uid()) = user_id)',
-      t
-    );
-    execute format(
-      'create policy "own rows insert" on public.%I for insert to authenticated with check ((select auth.uid()) = user_id)',
-      t
-    );
-    execute format(
-      'create policy "own rows update" on public.%I for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id)',
-      t
-    );
-    execute format(
-      'create policy "own rows delete" on public.%I for delete to authenticated using ((select auth.uid()) = user_id)',
+      'create policy "household all" on public.%I for all to anon, authenticated using (true) with check (true)',
       t
     );
 
-    execute format('revoke all on table public.%I from anon', t);
     execute format(
-      'grant select, insert, update, delete on table public.%I to authenticated',
+      'grant select, insert, update, delete on public.%I to anon, authenticated',
       t
     );
   end loop;
 end $$;
-
--- The ingest function reads this with the service role. PostgREST may not
--- expose the private schema, so the lookup lives in public and is not granted
--- to browser roles.
-create or replace function public.life_os_owner_id()
-returns uuid
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select user_id from private.app_owner limit 1;
-$$;
-
-revoke all on function public.life_os_owner_id() from public, anon, authenticated;
-grant execute on function public.life_os_owner_id() to service_role;
 
 create or replace function public.purge_deleted(older_than interval default '90 days')
 returns void

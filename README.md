@@ -37,42 +37,24 @@ npm install && npm run dev
 ```
 
 It works with no Supabase configuration at all — everything saves to `localStorage` and there is no sign-in screen.
-The shipped build points at the Habits project, so opening it asks you to sign in. Until you do, nothing in that database is readable from the app.
+The shipped build points at the Habits project and opens straight to the Life OS dashboard. Sync uses the shared household id and the public anon key. There is no login.
 
-## Private sync
+## Household sync
 
-One owner. Email and password, the same form in the browser and in the Capacitor iPhone app.
+No sign-in. Every device reads and writes the same Supabase project as the household user `a1111111-1111-4111-8111-111111111111`. Row-level security is enabled and opened to `anon` and `authenticated` (`using (true)`).
 
-Magic links were the other option. They need a redirect back into the app, and on iOS that link opens in Safari unless you add a custom URL scheme or universal links. Password sign-in stays inside the WKWebView, and the session is kept in localStorage, which both the site and the iOS wrapper already persist. You sign in once per device.
+The publishable key in the client identifies the project and is enough to sync. The Life OS ingest endpoint still requires `TALLY_INGEST_KEY` and writes under that same household id. It does not look up an owner. Do not put the service role key in Vite or in the iOS app.
 
-The publishable key in the client only identifies the project. It cannot read rows. The Life OS ingest endpoint uses the **service role** key on the server, reads `public.life_os_owner_id()` (which looks up `private.app_owner`), and sets `user_id` itself. Do not put the service role key in Vite or in the iOS app.
+Habits, goals, tasks, notes, and the rest already sync. Food totals, workout completions, and the watch log need the new tables: run [`supabase/add-life-os.sql`](supabase/add-life-os.sql) once in the SQL editor. It is safe to re-run and does not delete rows.
 
-### What you do in Supabase
-
-Project: `amrqzdnsbgoqkckcytjq` (the Habits project). Do this before you rely on the new app. The SQL does not delete rows.
-
-1. **Create your account before the lock script.** On the Tally sign-in screen, choose **Create account** and use the email and password you want. This project confirms email automatically, so you are signed in immediately. You can instead use **Authentication → Users → Add user** with **Auto Confirm User** on. Do this before step 4. Existing rows are not deleted.
-2. Turn **off** “Allow new users to sign up” (Authentication → Sign In / Providers, or Authentication → Settings). The SQL also rejects sign-ups that are not on an allowlist.
-3. **Authentication → URL Configuration.** Set Site URL to `https://habits-silk-six.vercel.app`. Add `http://localhost:5173` if you use the dev server. Password sign-in does not need a redirect; this is for the project URL itself.
-4. **SQL Editor → New query.** Paste [`supabase/lock-owner-rls.sql`](supabase/lock-owner-rls.sql) and run it. Safe to re-run. It drops the public policies, bans the old shared household login (its password was in the repo), and does not move or delete your data.
-5. Edit [`supabase/backfill-owner.sql`](supabase/backfill-owner.sql): replace `REPLACE_WITH_YOUR_EMAIL` with the same email, keep the quotes, and run the whole file. It reassigns rows whose `user_id` is empty or still the old household id (`a1111111-1111-4111-8111-111111111111`). It does not change `updated_at` and does not delete. The SQL editor prints how many rows moved. Running it again for the same email is safe. A different email is refused once an owner is recorded.
-6. Open the site or the iPhone app and sign in. If Settings still mentions the backfill, the SQL step did not finish — run it, then **Sync now**.
-
-Create the user in step 1 **before** step 4. The lock script installs a trigger that blocks new accounts. If you already ran the lock and still need to create the user:
-
-```sql
-insert into private.allowed_emails (email) values ('you@example.com');
-```
-
-Then add the user, then run the backfill.
-
-Leave the old household user in Authentication. Deleting it before you have signed in and seen your data can cascade-delete any row still pointing at it. The lock script already bans that login.
+[`supabase/lock-owner-rls.sql`](supabase/lock-owner-rls.sql) and [`supabase/backfill-owner.sql`](supabase/backfill-owner.sql) are optional leftovers from a login experiment. Do not run them. They would close the open policies and move rows onto a signed-in user.
 
 ### Fresh database
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Run [`supabase/schema.sql`](supabase/schema.sql), then any later `supabase/add-*.sql` files you need. Do **not** run `add-household-open.sql` — that file now refuses to run. It used to open the database to the anon key.
-3. Follow the steps above (create the user, run the lock, run the backfill). The backfill is a no-op on an empty database except it records you as the owner, which is what allows sync.
+2. Run [`supabase/schema.sql`](supabase/schema.sql). It creates the original tables and opens them to the anon key.
+3. Run [`supabase/add-household-open.sql`](supabase/add-household-open.sql) so the household user exists for the `user_id` foreign keys. The password it stores is random and unused.
+4. Run the later `supabase/add-*.sql` files you need, including [`supabase/add-life-os.sql`](supabase/add-life-os.sql).
 
 Optional: copy `.env.example` to `.env.local` to override the shipped Supabase URL and publishable key. Restart `npm run dev`.
 
@@ -82,9 +64,9 @@ Optional: copy `.env.example` to `.env.local` to override the shipped Supabase U
 npx vercel --prod
 ```
 
-The app ships Supabase defaults for the Habits project. Production still needs the
-sign-in and the SQL in **Private sync** above — the publishable key alone can no
-longer read or write rows.
+The app ships Supabase defaults for the Habits project. Production opens the
+dashboard with no sign-in. Existing household tables sync with the publishable
+key. New Life OS tables sync after `supabase/add-life-os.sql`.
 Optionally set `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (or `VITE_GOOGLE_CLIENT_ID`) under
 **Project Settings → Environment Variables** and redeploy. Never set the Supabase
 service-role key as a `VITE_` variable.
@@ -127,7 +109,7 @@ npm run ios
 
 then Run again in Xcode. `ios/` is the Capacitor shell; `npx cap sync` copies `dist/` into it.
 
-Sign in with the same email and password inside the iPhone app. That session stays on the phone; it is not the browser session.
+The iPhone app uses the same household database. There is no separate sign-in.
 
 App Store submission is a separate step (paid developer account, screenshots, review). You do not need that to use Tally yourself.
 
@@ -137,7 +119,7 @@ Home is the daily dashboard: habits due today, food against 2,100 kcal and 210 g
 
 ### Food, workouts, and the watch log
 
-In the Supabase SQL editor, run [`supabase/add-life-os.sql`](supabase/add-life-os.sql). If you already ran `lock-owner-rls.sql` before this file, run the lock script once more so the new tables are in the owner policy loop. The file is safe to re-run and does not delete rows.
+In the Supabase SQL editor, run [`supabase/add-life-os.sql`](supabase/add-life-os.sql). That is the only SQL the new tables need. It creates `daily_nutrition`, `workout_logs`, and `watch_entries` and opens each one with a `household all` policy for `anon` and `authenticated`. The file is safe to re-run and does not delete rows.
 
 `daily_nutrition` stores one total per day (`day`, calories, protein, carbs, fat, meals JSON). The in-app meal diary (`nutrition_logs`, the Calories page) stays. The dashboard shows whichever of the two was updated later. Protein grams are copied onto the existing Protein habit when that total is newer than the habit log. The habit’s own target is unchanged (the starter is 185 g). 210 g is the dashboard goal, so a day at 210 g still completes the habit.
 
@@ -167,7 +149,7 @@ curl -X POST https://habits-silk-six.vercel.app/api/ingest \
   -d '{"kind":"workout","date":"2026-10-19","done":true}'
 ```
 
-`date` may also be sent as `day`. A workout post on Sunday is rejected. Omit `done` and it is recorded as done. Until `backfill-owner.sql` has recorded an owner, ingest returns 409.
+`date` may also be sent as `day`. A workout post on Sunday is rejected. Omit `done` and it is recorded as done. Rows are stored under the household id. A missing owner record is not an error. A missing or wrong `TALLY_INGEST_KEY` still returns 503 or 401. The new tables must exist (`add-life-os.sql`) or the write fails.
 
 ## Google Calendar and Gmail
 
@@ -187,10 +169,9 @@ There is no server-side Google refresh token. The GIS token lives in this browse
 
 Local-first. `localStorage` is the immediate source of truth, so checking a box never waits on the
 network and the whole app works offline. When Supabase is not configured, that local cache is the
-only copy and the app does not ask you to sign in. When it is configured, a signed-out launch shows
-the sign-in screen; after sign-in, `DataProvider` merges with Supabase and pushes changed records
-on a debounce. Until `supabase/backfill-owner.sql` has recorded your user, sync stays paused so
-existing rows are not duplicated under new ids.
+only copy and the app does not ask you to sign in. When it is configured, the app opens the
+dashboard immediately and `DataProvider` merges with Supabase under the household id, then pushes
+changed records on a debounce. Sync does not wait for a login or a backfill.
 
 Two details make that safe on more than one device:
 

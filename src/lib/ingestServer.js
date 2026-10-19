@@ -1,10 +1,12 @@
 /**
- * Server-side Life OS ingest. Checks TALLY_INGEST_KEY, then writes with the
- * service role as private.app_owner. The caller cannot choose user_id.
+ * Server-side Life OS ingest. Checks TALLY_INGEST_KEY, then writes rows under
+ * the shared household id. The caller cannot choose user_id. No login and no
+ * app_owner row are required.
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { extractIngestKey, keysMatch, validateIngest } from './ingest.js';
+import { HOUSEHOLD_OWNER_ID } from './household.js';
 
 const DEFAULT_URL = 'https://amrqzdnsbgoqkckcytjq.supabase.co';
 
@@ -133,11 +135,6 @@ export function supabaseIngestStore(env, clientFactory = createClient) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return {
-    async ownerId() {
-      const { data, error } = await client.rpc('life_os_owner_id');
-      if (error) throw error;
-      return data || null;
-    },
     write(ownerId, value) {
       if (value.kind === 'nutrition') return writeNutrition(client, ownerId, value);
       return writeWorkout(client, ownerId, value);
@@ -164,14 +161,7 @@ export async function runIngest({ method, headers, body, env = {}, store }) {
 
   try {
     const active = store || supabaseIngestStore(env);
-    const ownerId = await active.ownerId();
-    if (!ownerId) {
-      return {
-        status: 409,
-        body: { error: 'No Life OS owner is recorded yet. Run supabase/backfill-owner.sql.' },
-      };
-    }
-    const result = await active.write(ownerId, validated.value);
+    const result = await active.write(HOUSEHOLD_OWNER_ID, validated.value);
     return { status: 200, body: result };
   } catch (err) {
     const status = err.status || 502;
