@@ -474,9 +474,14 @@ create index if not exists finance_budgets_user_month_idx
   on public.finance_budgets (user_id, month);
 
 -- ------------------------------------------------------------------ RLS ----
--- Identical shape on every table: you may only read or write rows whose
--- user_id is your own. The `with check` on insert/update is what stops a client
--- from writing a row that claims to belong to someone else.
+-- Owner-only. Policies are for the authenticated role, and the check is
+-- auth.uid() = user_id on both read and write so a client cannot claim
+-- someone else's rows. anon has no grants.
+--
+-- A database that already ran add-household-open.sql is still wide open until
+-- you run supabase/lock-owner-rls.sql and supabase/backfill-owner.sql. This
+-- block drops that open policy on any of the tables below that exist, including
+-- life_notes and board_cards from the later add-*.sql files.
 
 alter table public.habits     enable row level security;
 alter table public.habit_logs enable row level security;
@@ -501,32 +506,36 @@ begin
   foreach t in array array[
     'habits', 'habit_logs', 'goals', 'identity', 'day_notes', 'reviews',
     'nutrition_logs', 'lift_logs', 'tasks', 'grocery_items', 'calendar_events',
-    'books', 'job_apps', 'finance_accounts', 'finance_entries', 'finance_budgets'
+    'books', 'job_apps', 'finance_accounts', 'finance_entries', 'finance_budgets',
+    'life_notes', 'board_cards'
   ] loop
+    if to_regclass(format('public.%I', t)) is null then
+      continue;
+    end if;
+
+    execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "own rows read"   on public.%I', t);
     execute format('drop policy if exists "own rows insert" on public.%I', t);
     execute format('drop policy if exists "own rows update" on public.%I', t);
     execute format('drop policy if exists "own rows delete" on public.%I', t);
+    execute format('drop policy if exists "household all"   on public.%I', t);
+    execute format('drop policy if exists "household read"  on public.%I', t);
+    execute format('drop policy if exists "household write" on public.%I', t);
 
     execute format(
-      'create policy "own rows read" on public.%I for select using ((select auth.uid()) = user_id)', t);
+      'create policy "own rows read" on public.%I for select to authenticated using ((select auth.uid()) = user_id)', t);
     execute format(
-      'create policy "own rows insert" on public.%I for insert with check ((select auth.uid()) = user_id)', t);
+      'create policy "own rows insert" on public.%I for insert to authenticated with check ((select auth.uid()) = user_id)', t);
     execute format(
-      'create policy "own rows update" on public.%I for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id)', t);
+      'create policy "own rows update" on public.%I for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id)', t);
     execute format(
-      'create policy "own rows delete" on public.%I for delete using ((select auth.uid()) = user_id)', t);
+      'create policy "own rows delete" on public.%I for delete to authenticated using ((select auth.uid()) = user_id)', t);
+
+    execute format('revoke all on table public.%I from anon', t);
+    execute format(
+      'grant select, insert, update, delete on table public.%I to authenticated', t);
   end loop;
 end $$;
-
-grant select, insert, update, delete on public.tasks to anon, authenticated;
-grant select, insert, update, delete on public.grocery_items to anon, authenticated;
-grant select, insert, update, delete on public.calendar_events to anon, authenticated;
-grant select, insert, update, delete on public.books to anon, authenticated;
-grant select, insert, update, delete on public.job_apps to anon, authenticated;
-grant select, insert, update, delete on public.finance_accounts to anon, authenticated;
-grant select, insert, update, delete on public.finance_entries to anon, authenticated;
-grant select, insert, update, delete on public.finance_budgets to anon, authenticated;
 
 -- -------------------------------------------------------------- clean-up ----
 -- Tombstones only need to outlive the slowest device. Call this by hand, or

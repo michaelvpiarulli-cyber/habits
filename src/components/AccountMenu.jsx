@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
 import { GoogleConnect } from './GoogleConnect';
@@ -13,10 +14,10 @@ const THEMES = [
 ];
 
 /**
- * Settings — sync status, theme, install hints. No accounts or passwords;
- * every device shares one household database.
+ * Settings — account, sync status, theme, install hints.
  */
 export function AccountMenu({ theme, onClose }) {
+  const auth = useAuth();
   const {
     syncState,
     syncError,
@@ -37,11 +38,11 @@ export function AccountMenu({ theme, onClose }) {
   const status = !syncAvailable
     ? 'On this device only'
     : {
-        syncing: 'Syncing across your devices…',
-        synced: 'Synced to every device',
-        error: 'Sync failed. It will retry automatically.',
+        syncing: 'Syncing…',
+        synced: 'Synced to your account',
+        error: 'Sync needs attention.',
         idle: 'Connecting…',
-      }[syncState] || 'Shared household sync';
+      }[syncState] || 'Syncing…';
 
   return (
     <div className="sheet" role="dialog" aria-modal="true" aria-label="Settings">
@@ -61,8 +62,9 @@ export function AccountMenu({ theme, onClose }) {
           {syncAvailable && (
             <div className="field">
               <p className="field__hint">
-                One household database — habits, life pages, fridge, and the rest save to the
-                cloud and show up on every device. No sign-in.
+                {auth.email
+                  ? `Signed in as ${auth.email}. Habits, life pages, fridge, and the rest sync only to this account.`
+                  : 'Sign in to sync this device with your account.'}
               </p>
               {syncError && <p className="note note--bad">{syncError}</p>}
               {life.syncError && life.syncError !== syncError && (
@@ -86,6 +88,16 @@ export function AccountMenu({ theme, onClose }) {
               Cloud sync is off in this build. Everything stays in this browser until Supabase is
               configured.
             </p>
+          )}
+
+          {auth.user && (
+            <fieldset className="field">
+              <legend className="field__label">Account</legend>
+              <p className="field__hint">{auth.email}</p>
+              <button type="button" className="btn" onClick={() => auth.signOut()}>
+                Sign out
+              </button>
+            </fieldset>
           )}
 
           <fieldset className="field">

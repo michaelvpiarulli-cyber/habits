@@ -18,6 +18,9 @@ import {
 } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { HOUSEHOLD_OWNER_ID } from '../lib/household';
+import { claimScopeOnce } from '../lib/claimScope';
+import { ownerSyncGate } from '../lib/ownerSync';
 import { newId, nowISO } from '../lib/mappers';
 import { todayISO } from '../lib/dates';
 import {
@@ -192,16 +195,30 @@ export function LifeProvider({ children }) {
           KINDS.map((kind) => [kind, mergeById(next[kind], fromAnonymous[kind])])
         );
       }
+      if (user.id !== HOUSEHOLD_OWNER_ID) {
+        const fromHousehold = claimScopeOnce(localStorage, {
+          flagKey: `tally-life-household-claimed:${user.id}`,
+          load: () => loadScopedStore(HOUSEHOLD_OWNER_ID),
+          hasData: (loaded) => KINDS.some((kind) => loaded[kind].length > 0),
+        });
+        if (fromHousehold) {
+          next = Object.fromEntries(
+            KINDS.map((kind) => [kind, mergeById(next[kind], fromHousehold[kind])])
+          );
+        }
+      }
     }
-    const fridgeSeed = mergePhotoFridge(next.grocery);
-    next = { ...next, grocery: fridgeSeed.list };
+    if (user || !available) {
+      const fridgeSeed = mergePhotoFridge(next.grocery);
+      next = { ...next, grocery: fridgeSeed.list };
+      if (user && fridgeSeed.added.length) {
+        fridgeSeed.added.forEach((row) => markDirty('grocery', row.id));
+      }
+    }
     setStore(next);
     setStorageScope(desiredScope);
     setSyncState(user ? 'syncing' : 'idle');
-    if (user && fridgeSeed.added.length) {
-      fridgeSeed.added.forEach((row) => markDirty('grocery', row.id));
-    }
-  }, [desiredScope, storageScope, user, markDirty]);
+  }, [available, desiredScope, storageScope, user, markDirty]);
 
   useEffect(() => {
     if (!user || storageScope !== user.id) return;
@@ -228,6 +245,22 @@ export function LifeProvider({ children }) {
       pulling.current = generation;
       setSyncState('syncing');
       setSyncError('');
+
+      const gate = await ownerSyncGate(supabase);
+      if (
+        syncGeneration.current !== generation ||
+        currentUserId.current !== user.id ||
+        storageScope !== user.id
+      ) {
+        if (pulling.current === generation) pulling.current = null;
+        return;
+      }
+      if (!gate.ready) {
+        if (pulling.current === generation) pulling.current = null;
+        setSyncError(gate.message);
+        setSyncState('error');
+        return;
+      }
 
       let results;
       try {
@@ -297,7 +330,10 @@ export function LifeProvider({ children }) {
   useEffect(() => {
     if (!available || !user || storageScope !== user.id) return undefined;
     const refresh = () => {
-      if (hydratedFor.current !== user.id) return;
+      if (hydratedFor.current !== user.id) {
+        pullRemote({ initial: true });
+        return;
+      }
       pullRemote();
       setRetryTick((tick) => tick + 1);
     };
