@@ -6737,3 +6737,53 @@ body.is-side-nav-open {
     transition: none;
   }
 }
+
+/* Signed-out gate — same shell, one card. */
+.sign-in {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(32px + env(safe-area-inset-top)) var(--gutter) calc(32px + env(safe-area-inset-bottom));
+}
+
+.sign-in__card {
+  width: min(100%, 380px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 28px 22px 22px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.sign-in__mark {
+  font-size: 2.4rem;
+  margin-bottom: 4px;
+}
+
+.sign-in__lede {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  margin-bottom: 14px;
+}
+
+.sign-in__card .field__label {
+  margin-top: 6px;
+}
+
+.sign-in__submit {
+  margin-top: 12px;
+  width: 100%;
+  height: 42px;
+}
+
+.sign-in__switch {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+

@@ -9,6 +9,9 @@ import {
 } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { HOUSEHOLD_OWNER_ID } from '../lib/household';
+import { claimScopeOnce } from '../lib/claimScope';
+import { ownerSyncGate } from '../lib/ownerSync';
 import {
   goalFromRow,
   goalToRow,
@@ -585,6 +588,18 @@ export function DataProvider({ children }) {
           ACCOUNT_KINDS.map((kind) => [kind, mergeById(records[kind], fromAnonymous[kind])])
         );
       }
+      if (user.id !== HOUSEHOLD_OWNER_ID) {
+        const fromHousehold = claimScopeOnce(localStorage, {
+          flagKey: `tally-household-claimed:${user.id}`,
+          load: () => loadScopedRecords(HOUSEHOLD_OWNER_ID),
+          hasData: (loaded) => ACCOUNT_KINDS.some((kind) => loaded[kind].length > 0),
+        });
+        if (fromHousehold) {
+          records = Object.fromEntries(
+            ACCOUNT_KINDS.map((kind) => [kind, mergeById(records[kind], fromHousehold[kind])])
+          );
+        }
+      }
     } else {
       const hasScopedData = ACCOUNT_KINDS.some((kind) => records[kind].length > 0);
       const claimant = localStorage.getItem(LEGACY_CLAIM_KEY);
@@ -593,8 +608,12 @@ export function DataProvider({ children }) {
           ACCOUNT_KINDS.map((kind) => [kind, purgeStale(loadList(KEYS[kind]))])
         );
       }
-      if (records.habits.length === 0) records.habits = starterHabits();
-      if (records.identity.length === 0) records.identity = starterIdentity();
+      // Cloud builds show a sign-in screen while signed out. Seeding starters
+      // into that anonymous cache would upload a second copy after sign-in.
+      if (!available) {
+        if (records.habits.length === 0) records.habits = starterHabits();
+        if (records.identity.length === 0) records.identity = starterIdentity();
+      }
     }
 
     const retired = archiveRetiredTrainingHabits(records.habits, nowISO());
@@ -611,7 +630,7 @@ export function DataProvider({ children }) {
     setLiftLogs(records.liftLogs);
     setStorageScope(desiredScope);
     setSyncState(user ? 'syncing' : 'idle');
-  }, [desiredScope, storageScope, user, markDirty]);
+  }, [available, desiredScope, storageScope, user, markDirty]);
 
   // Already-signed-in sessions after an update still need a one-time fold of
   // any habits left in the anonymous browser cache.
@@ -682,6 +701,22 @@ export function DataProvider({ children }) {
       pulling.current = generation;
       setSyncState('syncing');
       setSyncError('');
+
+      const gate = await ownerSyncGate(supabase);
+      if (
+        syncGeneration.current !== generation ||
+        currentUserId.current !== user.id ||
+        storageScope !== user.id
+      ) {
+        if (pulling.current === generation) pulling.current = null;
+        return;
+      }
+      if (!gate.ready) {
+        if (pulling.current === generation) pulling.current = null;
+        setSyncError(gate.message);
+        setSyncState('error');
+        return;
+      }
 
       let results;
       try {
@@ -856,7 +891,10 @@ export function DataProvider({ children }) {
   useEffect(() => {
     if (!available || !user || storageScope !== user.id) return undefined;
     const refresh = () => {
-      if (hydratedFor.current !== user.id) return;
+      if (hydratedFor.current !== user.id) {
+        pullRemote({ initial: true });
+        return;
+      }
       pullRemote();
       setRetryTick((tick) => tick + 1);
     };
