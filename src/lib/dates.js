@@ -136,13 +136,29 @@ export function formatClock(hhmm) {
   return `${h12}:${String(m).padStart(2, '0')} ${am ? 'am' : 'pm'}`;
 }
 
-/** Add minutes to an 'HH:MM' clock, wrapping within the day. */
-export function addMinutes(hhmm, minutes) {
-  const [h, m] = String(hhmm || '09:00')
+/** Minutes past midnight for an 'HH:MM' clock. Invalid values return null. */
+export function minutesOf(hhmm) {
+  if (!hhmm) return null;
+  const [h, m] = String(hhmm)
     .split(':')
     .map((part) => Number(part));
-  const total = Math.max(0, h * 60 + m + minutes) % (24 * 60);
+  if (!Number.isFinite(h) || !Number.isFinite(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+    return null;
+  }
+  return h * 60 + m;
+}
+
+/** Minutes past midnight → 'HH:MM'. Clamped to the day. */
+export function clockOf(totalMinutes) {
+  const total = ((Math.round(totalMinutes) % (24 * 60)) + 24 * 60) % (24 * 60);
   const hour = Math.floor(total / 60);
   const min = total % 60;
   return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+/** Add minutes to an 'HH:MM' clock, wrapping within the day. */
+export function addMinutes(hhmm, minutes) {
+  const base = minutesOf(hhmm ?? '09:00');
+  if (base === null) return '09:00';
+  return clockOf(base + minutes);
 }
