@@ -24,6 +24,9 @@ export const OWNER_TABLES = [
   'grocery_items',
   'life_notes',
   'board_cards',
+  'daily_nutrition',
+  'workout_logs',
+  'watch_entries',
 ];
 
 export const OWNER_BACKFILL_MESSAGE =

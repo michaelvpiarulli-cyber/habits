@@ -134,7 +134,8 @@ declare
     'nutrition_logs', 'lift_logs',
     'tasks', 'calendar_events', 'books', 'job_apps',
     'finance_accounts', 'finance_entries', 'finance_budgets',
-    'grocery_items', 'life_notes', 'board_cards'
+    'grocery_items', 'life_notes', 'board_cards',
+    'daily_nutrition', 'workout_logs', 'watch_entries'
   ];
 begin
   foreach t in array tables loop
@@ -195,6 +196,20 @@ $$;
 
 revoke all on function public.sync_ready() from public, anon;
 grant execute on function public.sync_ready() to authenticated;
+
+-- Ingest looks up the owner through this function. Browser roles cannot call it.
+create or replace function public.life_os_owner_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select user_id from private.app_owner limit 1;
+$$;
+
+revoke all on function public.life_os_owner_id() from public, anon, authenticated;
+grant execute on function public.life_os_owner_id() to service_role;
 
 do $$
 begin

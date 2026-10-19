@@ -283,6 +283,79 @@ export const boardCardFromRow = (r) => ({
   updatedAt: r.updated_at,
 });
 
+export const dailyNutritionFromRow = (r) => ({
+  id: r.id,
+  day: r.day,
+  calories: Number(r.calories) || 0,
+  protein: Number(r.protein) || 0,
+  carbs: Number(r.carbs) || 0,
+  fat: Number(r.fat) || 0,
+  meals: Array.isArray(r.meals) ? r.meals : [],
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const dailyNutritionToRow = (n, userId) => ({
+  id: n.id,
+  user_id: userId,
+  day: n.day,
+  calories: Number(n.calories) || 0,
+  protein: Number(n.protein) || 0,
+  carbs: Number(n.carbs) || 0,
+  fat: Number(n.fat) || 0,
+  meals: Array.isArray(n.meals) ? n.meals : [],
+  deleted: !!n.deleted,
+  created_at: n.createdAt,
+  updated_at: n.updatedAt,
+});
+
+export const workoutLogFromRow = (r) => ({
+  id: r.id,
+  day: r.day,
+  planId: r.plan_id || '',
+  done: !!r.done,
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const workoutLogToRow = (w, userId) => ({
+  id: w.id,
+  user_id: userId,
+  day: w.day,
+  plan_id: w.planId,
+  done: !!w.done,
+  deleted: !!w.deleted,
+  created_at: w.createdAt,
+  updated_at: w.updatedAt,
+});
+
+export const watchFromRow = (r) => ({
+  id: r.id,
+  title: r.title || '',
+  link: r.link || '',
+  watchedOn: r.watched_on || null,
+  rating: r.rating == null ? null : Number(r.rating),
+  notes: r.notes || '',
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const watchToRow = (w, userId) => ({
+  id: w.id,
+  user_id: userId,
+  title: w.title,
+  link: w.link || null,
+  watched_on: w.watchedOn || null,
+  rating: w.rating == null ? null : w.rating,
+  notes: w.notes || null,
+  deleted: !!w.deleted,
+  created_at: w.createdAt,
+  updated_at: w.updatedAt,
+});
+
 export const boardCardToRow = (c, userId) => ({
   id: c.id,
   user_id: userId,

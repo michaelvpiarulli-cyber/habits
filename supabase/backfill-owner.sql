@@ -32,7 +32,8 @@ declare
     'nutrition_logs', 'lift_logs',
     'tasks', 'calendar_events', 'books', 'job_apps',
     'finance_accounts', 'finance_entries', 'finance_budgets',
-    'grocery_items', 'life_notes', 'board_cards'
+    'grocery_items', 'life_notes', 'board_cards',
+    'daily_nutrition', 'workout_logs', 'watch_entries'
   ];
 begin
   if owner_email = 'REPLACE_WITH_YOUR_EMAIL' or position('@' in owner_email) = 0 then

@@ -507,7 +507,8 @@ begin
     'habits', 'habit_logs', 'goals', 'identity', 'day_notes', 'reviews',
     'nutrition_logs', 'lift_logs', 'tasks', 'grocery_items', 'calendar_events',
     'books', 'job_apps', 'finance_accounts', 'finance_entries', 'finance_budgets',
-    'life_notes', 'board_cards'
+    'life_notes', 'board_cards',
+    'daily_nutrition', 'workout_logs', 'watch_entries'
   ] loop
     if to_regclass(format('public.%I', t)) is null then
       continue;
