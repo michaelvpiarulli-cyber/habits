@@ -14,6 +14,7 @@ import {
   deleteGoogleEvent,
   googleClientId,
   isGoogleConfigured,
+  fetchGoogleProfile,
   listGmailInbox,
   listGoogleEvents,
   loadGis,
@@ -30,6 +31,7 @@ export function GoogleProvider({ children }) {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [accountEmail, setAccountEmail] = useState('');
   const clientRef = useRef(null);
   const pending = useRef(null);
 
@@ -180,10 +182,29 @@ export function GoogleProvider({ children }) {
 
   const listMail = useCallback(async () => withToken((access) => listGmailInbox(access)), [withToken]);
 
+  useEffect(() => {
+    if (!token?.access_token) {
+      setAccountEmail('');
+      return undefined;
+    }
+    let cancelled = false;
+    fetchGoogleProfile(token.access_token)
+      .then((email) => {
+        if (!cancelled) setAccountEmail(email || '');
+      })
+      .catch(() => {
+        if (!cancelled) setAccountEmail('');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
   const value = useMemo(
     () => ({
       configured: isGoogleConfigured(),
       connected: Boolean(token?.access_token),
+      accountEmail,
       busy,
       error,
       connect,
@@ -196,6 +217,7 @@ export function GoogleProvider({ children }) {
     }),
     [
       token,
+      accountEmail,
       busy,
       error,
       connect,

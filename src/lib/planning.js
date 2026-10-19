@@ -62,6 +62,8 @@ export const WORKSPACE_PAGES = new Set([
   'money',
   'identity',
   'calories',
+  'workouts',
+  'watch',
   'jobs',
   'mail',
 ]);

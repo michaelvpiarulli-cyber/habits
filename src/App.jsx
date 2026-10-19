@@ -5,6 +5,9 @@ import { useTheme } from './hooks/useTheme';
 import { useData } from './context/DataProvider';
 import { useLife } from './context/LifeProvider';
 import { TodayView } from './components/TodayView';
+import { DashboardView } from './components/DashboardView';
+import { WorkoutsView } from './components/WorkoutsView';
+import { WatchLogView } from './components/WatchLogView';
 import { CaloriesView } from './components/CaloriesView';
 import { ProgressView } from './components/ProgressView';
 import { GoalsView } from './components/GoalsView';
@@ -36,6 +39,8 @@ const MORE_PAGES = {
   boards: { View: BoardsView, title: 'Boards' },
   creativity: { View: CreativityView, title: 'Creativity' },
   calories: { View: CaloriesView, title: 'Calories' },
+  workouts: { View: WorkoutsView, title: 'Workouts' },
+  watch: { View: WatchLogView, title: 'Watch log' },
   goals: { View: GoalsView, title: 'Goals' },
   habits: { View: HabitsView, title: 'Edit habits' },
   progress: { View: ProgressView, title: 'Progress' },
@@ -224,13 +229,17 @@ export default function App() {
         </header>
 
         <main className={`main ${morePage && notesEditing ? 'main--flush' : ''}`}>
-          {tab === 'today' && <TodayView onOpen={onOpen} />}
+          {tab === 'today' && <DashboardView onOpen={onOpen} />}
+          {tab === 'habits' && <TodayView onOpen={onOpen} />}
           {tab === 'calendar' && <CalendarView />}
           {tab === 'more' && !more && <MoreView onOpen={onOpen} />}
           {tab === 'more' && MoreViewComp && <MoreViewComp {...moreProps} />}
         </main>
 
-        <BottomNav tab={tab === 'calendar' ? 'more' : tab} onChange={onTab} />
+        <BottomNav
+          tab={tab === 'calendar' ? 'more' : tab === 'today' || tab === 'more' ? tab : ''}
+          onChange={onTab}
+        />
       </div>
 
       {accountOpen && <AccountMenu theme={theme} onClose={() => setAccountOpen(false)} />}

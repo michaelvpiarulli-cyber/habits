@@ -4,7 +4,8 @@
  */
 
 export const CORE_NAV = [
-  { id: 'today', kind: 'tab', label: 'Habits', detail: 'Daily dashboard' },
+  { id: 'today', kind: 'tab', label: 'Home', detail: 'Life OS' },
+  { id: 'habits', kind: 'tab', label: 'Habits', detail: 'Daily tracking' },
 ];
 
 /** Primary planning surfaces — pages, boards/tables, calendar. */
@@ -30,6 +31,8 @@ export const PAGE_DETAILS = {
   money: 'Accounts and spend',
   identity: 'Who you are becoming',
   calories: 'Meals and macros',
+  workouts: 'Weekly strength and walks',
+  watch: 'Videos you finished',
   jobs: 'Applications',
   mail: 'Gmail inbox',
 };
@@ -67,6 +70,8 @@ export const LIFE_SPACES = [
       { id: 'money', label: 'Money' },
       { id: 'identity', label: 'Identity' },
       { id: 'calories', label: 'Calories' },
+      { id: 'workouts', label: 'Workouts' },
+      { id: 'watch', label: 'Watch log' },
       { id: 'jobs', label: 'Jobs' },
       { id: 'mail', label: 'Mail' },
     ],

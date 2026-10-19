@@ -13,6 +13,9 @@ const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 export const GOOGLE_SCOPES = `${CALENDAR_SCOPE} ${GMAIL_SCOPE}`;
 
+/** Life OS reads this account's primary calendar. Connect Google as this user. */
+export const GOOGLE_CALENDAR_ACCOUNT = 'michaelvpiarulli@gmail.com';
+
 /**
  * OAuth Web client id. Public by design (the browser has to send it). Google
  * still only accepts requests from the JavaScript origins listed on the client.
@@ -214,6 +217,11 @@ export async function deleteGoogleEvent(token, eventId) {
   await googleFetch(`/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`, token, {
     method: 'DELETE',
   });
+}
+
+export async function fetchGoogleProfile(token) {
+  const data = await googleFetch('/gmail/v1/users/me/profile', token);
+  return data?.emailAddress || '';
 }
 
 export async function listGmailInbox(token, maxResults = 20) {
