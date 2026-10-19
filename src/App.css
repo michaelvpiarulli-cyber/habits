@@ -6787,3 +6787,127 @@ body.is-side-nav-open {
   cursor: pointer;
 }
 
+.life-os {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.life-os__grid {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 800px) {
+  .life-os__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.os-card {
+  padding: 14px 0 4px;
+}
+
+.os-card__title {
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.os-card__meta {
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  margin: 0 0 8px;
+}
+
+.os-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.os-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.os-list--entries li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.os-meters {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.meter {
+  height: 6px;
+  background: var(--rule);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.os-week {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 8px 0 22px;
+}
+
+.os-week li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.os-week li.is-today strong {
+  text-decoration: underline;
+}
+
+.os-form {
+  display: grid;
+  gap: 10px;
+  max-width: 36rem;
+}
+
+.os-form__actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.stars {
+  display: flex;
+  gap: 6px;
+}
+
+.star {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: inherit;
+  border-radius: 3px;
+}
+
+.star.is-on {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+

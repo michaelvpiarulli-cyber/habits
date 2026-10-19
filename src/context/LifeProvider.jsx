@@ -1,6 +1,6 @@
 /**
  * Life-dashboard collections: tasks, calendar events, books, jobs, money,
- * grocery.
+ * grocery, plus Life OS food totals, workouts, and the watch log.
  *
  * Same local-first contract as DataProvider — localStorage is the source of
  * truth, Supabase is a merge on sign-in and a debounced push of dirty rows.
@@ -40,12 +40,19 @@ import {
   jobToRow,
   boardCardFromRow,
   boardCardToRow,
+  dailyNutritionFromRow,
+  dailyNutritionToRow,
   lifeNoteFromRow,
   lifeNoteToRow,
   taskFromRow,
   taskToRow,
+  watchFromRow,
+  watchToRow,
+  workoutLogFromRow,
+  workoutLogToRow,
 } from '../lib/lifeMappers';
 import { clampPage, living, roundMoney } from '../lib/life';
+import { normalizeWatch } from '../lib/watchLog';
 import { normalizeBoardColumn } from '../lib/boards';
 import { sortNotes } from '../lib/notes';
 import { mergePhotoFridge, normalizeFridgeKind, normalizeFridgeZone } from '../lib/fridge';
@@ -61,6 +68,9 @@ const KINDS = [
   'grocery',
   'notes',
   'boardCards',
+  'dailyNutrition',
+  'workouts',
+  'watches',
 ];
 
 const TABLES = {
@@ -74,6 +84,9 @@ const TABLES = {
   grocery: { table: 'grocery_items', from: groceryFromRow, to: groceryToRow },
   notes: { table: 'life_notes', from: lifeNoteFromRow, to: lifeNoteToRow },
   boardCards: { table: 'board_cards', from: boardCardFromRow, to: boardCardToRow },
+  dailyNutrition: { table: 'daily_nutrition', from: dailyNutritionFromRow, to: dailyNutritionToRow },
+  workouts: { table: 'workout_logs', from: workoutLogFromRow, to: workoutLogToRow },
+  watches: { table: 'watch_entries', from: watchFromRow, to: watchToRow },
 };
 
 const KEY = (kind) => `tally-${kind}`;
@@ -93,6 +106,9 @@ const MISSING_TABLE_SQL = {
   grocery_items: 'supabase/add-grocery.sql (then supabase/add-fridge.sql if upgrading)',
   life_notes: 'supabase/add-life-notes.sql',
   board_cards: 'supabase/add-boards-and-covers.sql',
+  daily_nutrition: 'supabase/add-life-os.sql',
+  workout_logs: 'supabase/add-life-os.sql',
+  watch_entries: 'supabase/add-life-os.sql',
 };
 const missingTableMessage = (table) => {
   const sql = MISSING_TABLE_SQL[table] || 'supabase/add-life-dashboard.sql';
@@ -686,6 +702,42 @@ export function LifeProvider({ children }) {
     [deleteRecord]
   );
 
+  const setWorkoutDone = useCallback(
+    (day, planId, done) => {
+      const existing = latest.current.workouts.find((row) => !row.deleted && row.day === day);
+      if (existing) {
+        updateRecord('workouts', existing.id, { planId, done: Boolean(done) });
+        return existing.id;
+      }
+      const row = addRecord('workouts', { day, planId, done: Boolean(done) });
+      return row.id;
+    },
+    [addRecord, updateRecord]
+  );
+
+  const addWatch = useCallback(
+    (fields) => {
+      const parsed = normalizeWatch(fields);
+      if (parsed.error) return parsed;
+      return addRecord('watches', parsed.value);
+    },
+    [addRecord]
+  );
+
+  const updateWatch = useCallback(
+    (id, fields) => {
+      const current = latest.current.watches.find((row) => row.id === id);
+      if (!current) return { error: 'That entry is gone.' };
+      const parsed = normalizeWatch({ ...current, ...fields });
+      if (parsed.error) return parsed;
+      updateRecord('watches', id, parsed.value);
+      return { id };
+    },
+    [updateRecord]
+  );
+
+  const deleteWatch = useCallback((id) => deleteRecord('watches', id), [deleteRecord]);
+
   const updateGroceryItem = useCallback(
     (id, patch) =>
       updateRecord('grocery', id, {
@@ -741,6 +793,9 @@ export function LifeProvider({ children }) {
       grocery: store.grocery,
       notes: store.notes,
       boardCards: store.boardCards,
+      dailyNutrition: store.dailyNutrition,
+      workouts: store.workouts,
+      watches: store.watches,
     }),
     [store]
   );
@@ -766,6 +821,11 @@ export function LifeProvider({ children }) {
     });
     const notes = sortNotes(store.notes);
     const boardCards = living(store.boardCards);
+    const dailyNutrition = living(store.dailyNutrition).sort((a, b) => b.day.localeCompare(a.day));
+    const workoutLogs = living(store.workouts).sort((a, b) => b.day.localeCompare(a.day));
+    const watches = living(store.watches).sort(
+      (a, b) => (b.watchedOn || '').localeCompare(a.watchedOn || '') || b.updatedAt.localeCompare(a.updatedAt)
+    );
 
     return {
       tasks,
@@ -778,6 +838,9 @@ export function LifeProvider({ children }) {
       groceryItems,
       notes,
       boardCards,
+      dailyNutrition,
+      workoutLogs,
+      watches,
       addTask,
       updateTask,
       toggleTask,
@@ -813,6 +876,10 @@ export function LifeProvider({ children }) {
       addBoardCard,
       updateBoardCard,
       deleteBoardCard,
+      setWorkoutDone,
+      addWatch,
+      updateWatch,
+      deleteWatch,
       snapshot,
       syncState,
       syncError,
@@ -842,6 +909,10 @@ export function LifeProvider({ children }) {
     addBoardCard,
     updateBoardCard,
     deleteBoardCard,
+    setWorkoutDone,
+    addWatch,
+    updateWatch,
+    deleteWatch,
     deleteRecord,
     updateRecord,
     snapshot,

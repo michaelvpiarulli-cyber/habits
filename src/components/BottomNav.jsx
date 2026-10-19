@@ -1,5 +1,5 @@
 const TABS = [
-  { id: 'today', label: 'Habits', path: 'M7 4h10v2H7zM5 8h14v12H5z' },
+  { id: 'today', label: 'Home', path: 'M7 4h10v2H7zM5 8h14v12H5z' },
   { id: 'more', label: 'Plan', path: 'M5 5h6v6H5zM13 5h6v3h-6zM13 10h6v9h-6zM5 13h6v6H5z' },
 ];
 
