@@ -1,8 +1,9 @@
 /**
- * Cloud sync stays parked until backfill-owner.sql records this account as
- * private.app_owner. Pushing earlier would mint new ids for rows that still
- * belong to the retired household user (the primary key exists, RLS hides it,
- * and the upsert recovery would duplicate the row).
+ * Optional owner-lock helpers. The app does not call these.
+ *
+ * supabase/lock-owner-rls.sql and supabase/backfill-owner.sql can still close
+ * the database to one signed-in user. The household app syncs without them.
+ * OWNER_TABLES is the list those optional scripts must cover.
  */
 
 export const OWNER_TABLES = [

@@ -8,6 +8,7 @@ import { agendaForDay } from '../src/lib/agenda.js';
 import { FOOD_GOALS, foodVsGoals, preferFoodEntry } from '../src/lib/foodGoals.js';
 import { extractIngestKey, keysMatch, validateIngest } from '../src/lib/ingest.js';
 import { runIngest } from '../src/lib/ingestServer.js';
+import { HOUSEHOLD_OWNER_ID } from '../src/lib/household.js';
 import { normalizeWatch, parseRating, recentWatches } from '../src/lib/watchLog.js';
 import { nextWorkout, todayWorkout, workoutFor } from '../src/lib/workouts.js';
 
@@ -131,7 +132,7 @@ test('agenda mixes local events and Google events for the day', () => {
   assert.equal(items[0].source, 'google');
 });
 
-test('ingest rejects a bad key, a rest day, and a missing owner', async () => {
+test('ingest rejects a bad key and a rest day, and writes as the household', async () => {
   assert.equal(extractIngestKey({ Authorization: 'Bearer secret-key' }), 'secret-key');
   assert.equal(extractIngestKey({ 'x-tally-ingest-key': 'other' }), 'other');
   assert.equal(keysMatch('secret-key', 'secret-key'), true);
@@ -194,7 +195,7 @@ test('ingest rejects a bad key, a rest day, and a missing owner', async () => {
     store,
   });
   assert.equal(saved.status, 200);
-  assert.equal(writes[0].ownerId, 'owner-1');
+  assert.equal(writes[0].ownerId, HOUSEHOLD_OWNER_ID);
   assert.equal(writes[0].value.calories, 1800);
   assert.equal(writes[0].value.protein, 160);
   assert.equal(writes[0].value.meals[0].name, 'Lunch');
@@ -211,6 +212,7 @@ test('ingest rejects a bad key, a rest day, and a missing owner', async () => {
   assert.equal(writes[1].value.planId, 'strength-a');
   assert.equal(writes[1].value.done, true);
 
+  const householdWrites = [];
   const unowned = await runIngest({
     method: 'POST',
     headers: { authorization: 'Bearer secret-key' },
@@ -220,28 +222,28 @@ test('ingest rejects a bad key, a rest day, and a missing owner', async () => {
       async ownerId() {
         return null;
       },
-      async write() {
-        throw new Error('should not write');
+      async write(ownerId, value) {
+        householdWrites.push({ ownerId, value });
+        return { ok: true, kind: value.kind, day: value.date };
       },
     },
   });
-  assert.equal(unowned.status, 409);
+  assert.equal(unowned.status, 200);
+  assert.equal(householdWrites[0].ownerId, HOUSEHOLD_OWNER_ID);
+  assert.notEqual(unowned.status, 409);
 });
 
-test('life os SQL is owner-only and the ingest lookup is service-role only', () => {
+test('life os SQL opens the new tables to the anon key', () => {
   const sql = fs.readFileSync(new URL('../supabase/add-life-os.sql', import.meta.url), 'utf8');
-  const lock = fs.readFileSync(new URL('../supabase/lock-owner-rls.sql', import.meta.url), 'utf8');
   for (const table of ['daily_nutrition', 'workout_logs', 'watch_entries']) {
     assert.match(sql, new RegExp(table));
-    assert.match(lock, new RegExp(`'${table}'`));
   }
-  assert.match(sql, /to authenticated using \(\(select auth\.uid\(\)\) = user_id\)/);
-  assert.match(sql, /with check \(\(select auth\.uid\(\)\) = user_id\)/);
-  assert.match(sql, /revoke all on function public\.life_os_owner_id\(\) from public, anon, authenticated/);
-  assert.match(sql, /grant execute on function public\.life_os_owner_id\(\) to service_role/);
-  assert.match(lock, /revoke all on function public\.life_os_owner_id\(\) from public, anon, authenticated/);
-  assert.doesNotMatch(sql, /using \(true\)/i);
-  assert.doesNotMatch(sql, /to anon, authenticated/);
+  assert.match(sql, /create policy "household all"/);
+  assert.match(sql, /for all to anon, authenticated using \(true\) with check \(true\)/);
+  assert.match(sql, /grant select, insert, update, delete on public\.%I to anon, authenticated/);
+  assert.doesNotMatch(sql, /life_os_owner_id/);
+  assert.doesNotMatch(sql, /private\.app_owner/);
+  assert.doesNotMatch(sql, /to authenticated using \(\(select auth\.uid\(\)\) = user_id\)/);
 });
 
 await Promise.all(queue);

@@ -1,103 +1,47 @@
-import {
-  createContext,
-  createElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import { interpretSignUp } from '../lib/authGate';
-import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { createContext, createElement, useContext, useMemo } from 'react';
+import { isSupabaseConfigured } from '../lib/supabase';
+import { HOUSEHOLD_EMAIL, HOUSEHOLD_LABEL, HOUSEHOLD_OWNER_ID } from '../lib/household';
 
 /**
- * Supabase Auth session for the one owner of this database.
+ * Personal project auth — no logins.
  *
- * No session and no Supabase config both mean "not signed in": the app stays
- * on localStorage. The sign-in screen can create the first account. After
- * supabase/lock-owner-rls.sql, new sign-ups are rejected unless the email is
- * already on the allowlist — create the account before running that file.
+ * When Supabase is configured every device presents the same household
+ * identity so DataProvider / LifeProvider sync against one shared database.
+ * Sign-in forms are gone; Settings still shows sync status.
  */
+
+const HOUSEHOLD_USER = Object.freeze({
+  id: HOUSEHOLD_OWNER_ID,
+  email: HOUSEHOLD_EMAIL,
+  app_metadata: { provider: 'household' },
+  user_metadata: { username: HOUSEHOLD_LABEL },
+});
 
 const AuthContext = createContext(null);
 
 /** Kept for older call sites that mapped a username to an email address. */
 export function toEmail(identifier) {
   const id = String(identifier || '').trim();
-  if (!id) return '';
+  if (!id) return HOUSEHOLD_EMAIL;
   return id.includes('@') ? id.toLowerCase() : `${id.toLowerCase()}@tally.app`;
 }
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(isSupabaseConfigured);
-
-  useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return undefined;
-    }
-
-    let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session ?? null);
-      setLoading(false);
-    }).catch(() => {
-      if (!active) return;
-      setSession(null);
-      setLoading(false);
-    });
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next);
-      setLoading(false);
-    });
-
-    return () => {
-      active = false;
-      subscription.subscription.unsubscribe();
-    };
-  }, []);
-
-  const signIn = useCallback(async (email, password) => {
-    if (!supabase) return { error: { message: 'Cloud sync is not configured.' } };
-    const { error } = await supabase.auth.signInWithPassword({
-      email: String(email || '').trim().toLowerCase(),
-      password: password || '',
-    });
-    return { error };
-  }, []);
-
-  const signUp = useCallback(async (email, password) => {
-    if (!supabase) return { error: { message: 'Cloud sync is not configured.' } };
-    const result = await supabase.auth.signUp({
-      email: String(email || '').trim().toLowerCase(),
-      password: password || '',
-    });
-    return interpretSignUp(result);
-  }, []);
-
-  const signOut = useCallback(async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-  }, []);
-
-  const user = session?.user ?? null;
-
   const value = useMemo(
     () => ({
       available: isSupabaseConfigured,
-      loading,
-      session,
-      user,
-      email: user?.email ?? null,
-      username: user?.email ?? null,
-      signIn,
-      signUp,
-      signOut,
+      loading: false,
+      session: isSupabaseConfigured
+        ? { user: HOUSEHOLD_USER, access_token: 'household' }
+        : null,
+      user: isSupabaseConfigured ? HOUSEHOLD_USER : null,
+      email: isSupabaseConfigured ? HOUSEHOLD_EMAIL : null,
+      username: isSupabaseConfigured ? HOUSEHOLD_LABEL : null,
+      signIn: async () => ({ error: null }),
+      signUp: async () => ({ error: null }),
+      signOut: async () => {},
     }),
-    [loading, session, user, signIn, signUp, signOut]
+    []
   );
 
   return createElement(AuthContext.Provider, { value }, children);

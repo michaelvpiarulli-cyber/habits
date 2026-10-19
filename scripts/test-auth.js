@@ -1,12 +1,12 @@
 /**
- * Owner auth gate, local scope claim, and the SQL that locks the database.
+ * Household sync (no login), local scope claim, and the optional lock SQL.
  * Run with `npm test`.
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { shouldShowSignIn, friendlyAuthError, createAuthOptions, interpretSignUp } from '../src/lib/authGate.js';
+import { friendlyAuthError, createAuthOptions, interpretSignUp } from '../src/lib/authGate.js';
 import { claimScopeOnce } from '../src/lib/claimScope.js';
-import { HOUSEHOLD_OWNER_ID } from '../src/lib/household.js';
+import { HOUSEHOLD_LABEL, HOUSEHOLD_OWNER_ID } from '../src/lib/household.js';
 import {
   OWNER_BACKFILL_MESSAGE,
   OWNER_TABLES,
@@ -38,16 +38,24 @@ function memoryStorage(initial = {}) {
 
 const lockSql = readFileSync(new URL('../supabase/lock-owner-rls.sql', import.meta.url), 'utf8');
 const backfillSql = readFileSync(new URL('../supabase/backfill-owner.sql', import.meta.url), 'utf8');
-const retiredSql = readFileSync(new URL('../supabase/add-household-open.sql', import.meta.url), 'utf8');
+const openSql = readFileSync(new URL('../supabase/add-household-open.sql', import.meta.url), 'utf8');
 const schemaSql = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8');
+const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
+const authSource = readFileSync(new URL('../src/hooks/useAuth.js', import.meta.url), 'utf8');
+const dataSource = readFileSync(new URL('../src/context/DataProvider.jsx', import.meta.url), 'utf8');
+const lifeSource = readFileSync(new URL('../src/context/LifeProvider.jsx', import.meta.url), 'utf8');
 
 console.log('auth');
 
-test('sign-in is required only when Supabase is configured and nobody is signed in', () => {
-  assert.equal(shouldShowSignIn({ available: true, loading: false, user: null }), true);
-  assert.equal(shouldShowSignIn({ available: true, loading: true, user: null }), false);
-  assert.equal(shouldShowSignIn({ available: true, loading: false, user: { id: 'u' } }), false);
-  assert.equal(shouldShowSignIn({ available: false, loading: false, user: null }), false);
+test('the app opens the dashboard with the household id and no sign-in gate', () => {
+  assert.equal(HOUSEHOLD_LABEL, 'Household');
+  assert.equal(HOUSEHOLD_OWNER_ID, 'a1111111-1111-4111-8111-111111111111');
+  assert.match(authSource, /HOUSEHOLD_OWNER_ID/);
+  assert.doesNotMatch(authSource, /signInWithPassword/);
+  assert.doesNotMatch(appSource, /SignInScreen/);
+  assert.doesNotMatch(appSource, /shouldShowSignIn/);
+  assert.doesNotMatch(dataSource, /ownerSyncGate/);
+  assert.doesNotMatch(lifeSource, /ownerSyncGate/);
 });
 
 test('auth errors stay short', () => {
@@ -107,7 +115,7 @@ test('an empty previous scope is flagged so a later write is not claimed', () =>
   assert.equal(storage.getItem('claimed:user'), 'empty');
 });
 
-test('sync stays parked until the backfill marks this account ready', () => {
+test('the optional sync-ready helper still describes a missing backfill', () => {
   assert.deepEqual(interpretSyncReady({ data: true }), { ready: true, message: '' });
   const waiting = interpretSyncReady({ data: false });
   assert.equal(waiting.ready, false);
@@ -122,7 +130,8 @@ test('sync stays parked until the backfill marks this account ready', () => {
   assert.equal(offline.message, 'Failed to fetch');
 });
 
-test('lock SQL closes the public policy and does not delete personal rows', () => {
+test('lock SQL is optional, closes the public policy, and does not delete personal rows', () => {
+  assert.match(lockSql, /OPTIONAL/);
   assert.match(lockSql, /drop policy if exists "household all"/);
   assert.doesNotMatch(lockSql, /create policy "household all"/);
   assert.match(lockSql, /to authenticated using \(\(select auth\.uid\(\)\) = user_id\)/);
@@ -137,7 +146,8 @@ test('lock SQL closes the public policy and does not delete personal rows', () =
   }
 });
 
-test('backfill only reassigns user_id and refuses to run unedited', () => {
+test('backfill is optional, only reassigns user_id, and refuses to run unedited', () => {
+  assert.match(backfillSql, /OPTIONAL/);
   assert.match(backfillSql, /REPLACE_WITH_YOUR_EMAIL/);
   assert.match(backfillSql, /update public\.%I set user_id = \$1/);
   assert.ok(backfillSql.includes(HOUSEHOLD_OWNER_ID));
@@ -149,18 +159,22 @@ test('backfill only reassigns user_id and refuses to run unedited', () => {
   }
 });
 
-test('the old household script can no longer open the database', () => {
-  assert.match(retiredSql, /raise exception/);
-  assert.doesNotMatch(retiredSql, /create policy/i);
-  assert.doesNotMatch(retiredSql, /using \(true\)/i);
-  assert.doesNotMatch(retiredSql, /not-used-for-login/);
+test('the household script opens every table, including Life OS, without a known password', () => {
+  assert.match(openSql, /create policy "household all"/);
+  assert.match(openSql, /for all to anon, authenticated using \(true\) with check \(true\)/);
+  assert.doesNotMatch(openSql, /not-used-for-login/);
+  assert.doesNotMatch(openSql, /raise exception/);
+  for (const table of OWNER_TABLES) {
+    assert.match(openSql, new RegExp(`'${table}'`));
+  }
 });
 
-test('schema.sql policies are authenticated-only and drop the open household policy', () => {
-  assert.match(schemaSql, /drop policy if exists "household all"/);
-  assert.match(schemaSql, /to authenticated using \(\(select auth\.uid\(\)\) = user_id\)/);
-  assert.match(schemaSql, /revoke all on table public\.%I from anon/);
-  assert.doesNotMatch(schemaSql, /grant select, insert, update, delete on public\.\w+ to anon/);
+test('schema.sql keeps the open household policy and grants the anon key', () => {
+  assert.match(schemaSql, /create policy "household all"/);
+  assert.match(schemaSql, /for all to anon, authenticated using \(true\) with check \(true\)/);
+  assert.match(schemaSql, /grant select, insert, update, delete on public\.%I to anon, authenticated/);
+  assert.doesNotMatch(schemaSql, /revoke all on table public\.%I from anon/);
+  assert.doesNotMatch(schemaSql, /to authenticated using \(\(select auth\.uid\(\)\) = user_id\)/);
 });
 
 if (failed) {

@@ -1,3 +1,8 @@
+-- OPTIONAL. Not required for the Life OS app.
+-- The app opens with no login and syncs through the open household policies.
+-- Running this file closes that access and requires a real Supabase user.
+-- Leave it unrun unless you deliberately want a private login later.
+--
 -- Tally — lock the database to the signed-in owner.
 -- Safe to re-run. Does not delete rows and does not move them.
 --

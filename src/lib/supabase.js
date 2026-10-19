@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { createAuthOptions } from './authGate';
 
 /**
- * Habits / Tally Supabase project. The publishable key is public by design —
- * it only identifies the project. Row access requires a signed-in owner
- * (see supabase/lock-owner-rls.sql). The service-role key never belongs here.
+ * Habits / Tally Supabase project. The publishable key is public by design.
+ * This household build syncs with it and no login. The service-role key
+ * never belongs here.
  *
  * These defaults win over stale Vercel env that still pointed at the Bible app
  * project. Env vars are only used when they already target this Habits project.
@@ -24,7 +24,7 @@ const anonKey = envIsHabits && envKey ? envKey : HABITS_ANON_KEY;
  * With no keys the app still runs — it just stays on the device: no login, no
  * sync, everything in localStorage. That keeps `npm run dev` useful before the
  * Supabase project exists. The shipped defaults above set both, so the Habits
- * build asks for a sign-in.
+ * build syncs as the shared household with no sign-in screen.
  */
 export const isSupabaseConfigured = Boolean(url && anonKey);
 

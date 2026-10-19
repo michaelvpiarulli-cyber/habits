@@ -1,3 +1,7 @@
+-- OPTIONAL. Not required for the Life OS app.
+-- The household database already stores rows under the shared owner id.
+-- Running this file moves those rows onto a signed-in user. Skip it.
+--
 -- Tally — one-time assignment of existing rows to the owner.
 --
 -- Does not delete rows. It only changes user_id on rows that have no user or
