@@ -36,6 +36,40 @@ export function applyCollection(rows, { query = '', filters = [], sort = null } 
   return list;
 }
 
+export function monthGrid(anchorIso, rows, dateKey = 'date') {
+  const base = anchorIso ? new Date(`${String(anchorIso).slice(0, 7)}-01T12:00:00`) : new Date();
+  const year = base.getFullYear();
+  const month = base.getMonth();
+  const first = new Date(year, month, 1);
+  const lead = (first.getDay() + 6) % 7;
+  const count = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < lead; i += 1) cells.push(null);
+  for (let day = 1; day <= count; day += 1) {
+    const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dow = (new Date(`${iso}T12:00:00`).getDay() + 6) % 7;
+    const items = (rows || []).filter((row) => {
+      if (String(row?.[dateKey] || '').slice(0, 10) === iso) return true;
+      return Array.isArray(row?.weekdays) && row.weekdays.includes(dow);
+    });
+    cells.push({ iso, day, items });
+  }
+  while (cells.length % 7) cells.push(null);
+  return {
+    label: first.toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+    cursor: `${year}-${String(month + 1).padStart(2, '0')}-01`,
+    cells,
+  };
+}
+
+export function shiftMonth(iso, delta) {
+  const date = new Date(`${String(iso).slice(0, 7)}-01T12:00:00`);
+  date.setMonth(date.getMonth() + delta);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}-01`;
+}
+
 export function groupRows(rows, key) {
   const groups = new Map();
   for (const row of rows || []) {

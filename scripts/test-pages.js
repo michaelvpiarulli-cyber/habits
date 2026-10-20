@@ -1,18 +1,25 @@
 import assert from 'node:assert/strict';
 import {
+  applyMention,
   breadcrumbs,
   childrenOf,
   descendantIds,
   filterCommands,
   livingBlocks,
+  markdownShortcut,
+  mentionQuery,
+  mergeContent,
   moveBlock,
+  pushHistory,
   reorderBlocks,
   searchPages,
   slashQuery,
   sortPagesForWrite,
+  splitContent,
+  templateSpec,
   withSystemPages,
 } from '../src/lib/pages.js';
-import { applyCollection, groupRows, matchesFilter } from '../src/lib/collectionView.js';
+import { applyCollection, groupRows, matchesFilter, monthGrid, shiftMonth } from '../src/lib/collectionView.js';
 
 const pages = [
   { id: 'p1', parentId: null, title: 'Notes', icon: '📄', favorite: true, deleted: false, position: 10, systemKey: null },
@@ -70,5 +77,32 @@ assert.deepEqual(
   ['1', '2']
 );
 assert.equal(groupRows(rows, 'status').length, 2);
+
+assert.deepEqual(markdownShortcut('# '), { type: 'h1', content: '' });
+assert.deepEqual(markdownShortcut('- '), { type: 'bullet', content: '' });
+assert.deepEqual(markdownShortcut('[] '), { type: 'todo', content: '' });
+assert.deepEqual(markdownShortcut('> '), { type: 'quote', content: '' });
+assert.equal(markdownShortcut('hello'), null);
+assert.equal(mentionQuery('see @tod'), 'tod');
+assert.equal(applyMention('see @tod', 'Today'), 'see [[Today]] ');
+assert.deepEqual(splitContent('abcd', 2), { before: 'ab', after: 'cd' });
+assert.equal(mergeContent('ab', 'cd'), 'abcd');
+assert.equal(templateSpec('daily', new Date('2026-10-20T12:00:00')).blocks[0].type, 'todo');
+assert.equal(templateSpec('weekly').title, 'Weekly review');
+
+const historyPage = { id: 'p2', title: 'Baby', props: {} };
+const firstHistory = pushHistory(historyPage, blocks);
+assert.equal(firstHistory.history.length, 1);
+assert.equal(firstHistory.history[0].blocks.length, 2);
+const same = pushHistory({ ...historyPage, props: firstHistory }, blocks);
+assert.equal(same, firstHistory);
+
+const grid = monthGrid('2026-10-20', [
+  { id: 'a', title: 'Due', date: '2026-10-20' },
+  { id: 'b', title: 'Lift', weekdays: [0] },
+]);
+assert.equal(grid.cells.filter(Boolean).length, 31);
+assert.ok(grid.cells.find((cell) => cell?.iso === '2026-10-20').items.some((row) => row.id === 'a'));
+assert.equal(shiftMonth('2026-10-01', 1), '2026-11-01');
 
 console.log('pages ok');

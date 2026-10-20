@@ -17,14 +17,46 @@ export const SYSTEM_PAGES = [
 
 export const BLOCK_MENU = [
   { type: 'text', label: 'Text', hint: 'Plain paragraph' },
-  { type: 'h1', label: 'Heading 1', hint: 'Large heading' },
-  { type: 'h2', label: 'Heading 2', hint: 'Medium heading' },
-  { type: 'h3', label: 'Heading 3', hint: 'Small heading' },
-  { type: 'todo', label: 'To-do', hint: 'Checkbox' },
-  { type: 'bullet', label: 'Bullet', hint: 'Simple list' },
+  { type: 'h1', label: 'Heading 1', hint: 'Type # ' },
+  { type: 'h2', label: 'Heading 2', hint: 'Type ## ' },
+  { type: 'h3', label: 'Heading 3', hint: 'Type ### ' },
+  { type: 'todo', label: 'To-do', hint: 'Type [] ' },
+  { type: 'bullet', label: 'Bulleted list', hint: 'Type - ' },
+  { type: 'numbered', label: 'Numbered list', hint: 'Type 1. ' },
   { type: 'toggle', label: 'Toggle', hint: 'Hide extra text' },
+  { type: 'quote', label: 'Quote', hint: 'Type > ' },
   { type: 'callout', label: 'Callout', hint: 'Highlighted note' },
-  { type: 'divider', label: 'Divider', hint: 'A horizontal line' },
+  { type: 'code', label: 'Code', hint: 'Monospace block' },
+  { type: 'divider', label: 'Divider', hint: 'Type ---' },
+  { type: 'image', label: 'Image', hint: 'Picture from a link' },
+  { type: 'bookmark', label: 'Bookmark', hint: 'Link preview' },
+  { type: 'embed', label: 'Embed', hint: 'A page on the web' },
+  { type: 'table', label: 'Table', hint: 'Simple rows' },
+  { type: 'columns', label: 'Columns', hint: 'Two columns' },
+  { type: 'page', label: 'Link to page', hint: 'A page in Tally' },
+  { type: 'synced', label: 'Synced block', hint: 'Mirror another page' },
+  { type: 'database', label: 'Database', hint: 'Tasks, goals, workouts' },
+];
+
+export const BLOCK_COLORS = ['default', 'gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'red'];
+
+export const DATABASE_SOURCES = [
+  ['tasks', 'Tasks'],
+  ['goals', 'Goals'],
+  ['watches', 'Watch log'],
+  ['workouts', 'Workouts'],
+];
+
+const MARKDOWN = [
+  [/^### $/, 'h3'],
+  [/^## $/, 'h2'],
+  [/^# $/, 'h1'],
+  [/^(?:\[\]|\[ \]) $/, 'todo'],
+  [/^(?:-|\*) $/, 'bullet'],
+  [/^1\. $/, 'numbered'],
+  [/^> $/, 'quote'],
+  [/^```$/, 'code'],
+  [/^---$/, 'divider'],
 ];
 
 export const COVERS = {
@@ -145,8 +177,111 @@ export function filterCommands(query) {
 export function slashQuery(content) {
   const text = String(content || '');
   if (!text.startsWith('/')) return null;
-  if (text.includes('\n') || text.length > 24) return null;
+  if (text.includes('\n') || text.length > 32) return null;
   return text.slice(1);
+}
+
+/** Turn a finished markdown prefix into a block type. Null when it is still just text. */
+export function markdownShortcut(content) {
+  const text = String(content ?? '');
+  for (const [pattern, type] of MARKDOWN) {
+    if (pattern.test(text)) return { type, content: type === 'divider' ? '' : '' };
+  }
+  return null;
+}
+
+export function mentionQuery(content) {
+  const match = String(content || '').match(/(?:^|\s)@([^@\n]{0,32})$/);
+  return match ? match[1] : null;
+}
+
+export function applyMention(content, label) {
+  return String(content || '').replace(/(?:^|\s)@([^@\n]{0,32})$/, (full) => {
+    const lead = full.startsWith(' ') || full.startsWith('\n') ? full[0] : '';
+    return `${lead}[[${label}]] `;
+  });
+}
+
+export function splitContent(content, offset) {
+  const text = String(content || '');
+  const at = Math.max(0, Math.min(text.length, Number.isFinite(offset) ? offset : text.length));
+  return { before: text.slice(0, at), after: text.slice(at) };
+}
+
+export function mergeContent(previous, current) {
+  return `${previous || ''}${current || ''}`;
+}
+
+export function editedLabel(iso, now = Date.now()) {
+  if (!iso) return 'Edited just now';
+  const delta = Math.max(0, now - new Date(iso).getTime());
+  const min = Math.round(delta / 60000);
+  if (min < 1) return 'Edited just now';
+  if (min < 60) return `Edited ${min}m ago`;
+  const hours = Math.round(min / 60);
+  if (hours < 24) return `Edited ${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `Edited ${days}d ago`;
+}
+
+export function templateSpec(key, today = new Date()) {
+  const day = today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  if (key === 'weekly') {
+    return {
+      title: 'Weekly review',
+      icon: '🗓️',
+      blocks: [
+        { type: 'h2', content: 'What moved' },
+        { type: 'bullet', content: '' },
+        { type: 'h2', content: 'What to carry' },
+        { type: 'todo', content: '' },
+        { type: 'quote', content: 'One thing to protect next week' },
+      ],
+    };
+  }
+  return {
+    title: day,
+    icon: '☀️',
+    blocks: [
+      { type: 'todo', content: '' },
+      { type: 'todo', content: '' },
+      { type: 'h3', content: 'Notes' },
+      { type: 'text', content: '' },
+    ],
+  };
+}
+
+export function trashedPages(pages) {
+  return (pages || [])
+    .filter((page) => page && page.deleted && !page.systemKey)
+    .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+}
+
+export function pushHistory(page, blocks, limit = 12) {
+  const shot = {
+    at: nowISO(),
+    title: page?.title || '',
+    blocks: livingBlocks(blocks, page?.id).slice(0, 40).map((block) => ({
+      type: block.type,
+      content: block.content,
+      checked: !!block.checked,
+    })),
+  };
+  const prior = Array.isArray(page?.props?.history) ? page.props.history : [];
+  const last = prior[0];
+  if (last && last.title === shot.title && JSON.stringify(last.blocks) === JSON.stringify(shot.blocks)) {
+    return page?.props || {};
+  }
+  return { ...(page?.props || {}), history: [shot, ...prior].slice(0, limit) };
+}
+
+export function defaultProps(type) {
+  if (type === 'callout') return { icon: '💡' };
+  if (type === 'table') return { rows: [['', ''], ['', '']] };
+  if (type === 'columns') return { left: '', right: '' };
+  if (type === 'database') return { source: 'tasks' };
+  if (type === 'image' || type === 'bookmark' || type === 'embed') return { url: '' };
+  return {};
 }
 
 export function blankPage({ parentId = null, position = 100 } = {}) {
@@ -155,11 +290,12 @@ export function blankPage({ parentId = null, position = 100 } = {}) {
     id: newId(),
     parentId,
     title: 'Untitled',
-    icon: '📄',
+    icon: '',
     cover: '',
     favorite: false,
     systemKey: null,
     position,
+    props: {},
     deleted: false,
     createdAt: now,
     updatedAt: now,
@@ -174,7 +310,7 @@ export function blankBlock({ pageId, type = 'text', position = 0, content = '' }
     type,
     content,
     checked: false,
-    props: type === 'callout' ? { icon: '💡' } : {},
+    props: defaultProps(type),
     position,
     deleted: false,
     createdAt: now,
@@ -224,6 +360,7 @@ export function pageFromRow(row) {
     favorite: !!row.favorite,
     systemKey: row.system_key || null,
     position: row.position ?? 0,
+    props: row.props && typeof row.props === 'object' ? row.props : {},
     deleted: !!row.deleted,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -241,6 +378,7 @@ export function pageToRow(page, userId) {
     favorite: !!page.favorite,
     system_key: page.systemKey || null,
     position: page.position ?? 0,
+    props: page.props || {},
     deleted: !!page.deleted,
     created_at: page.createdAt,
     updated_at: page.updatedAt,

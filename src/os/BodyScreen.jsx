@@ -64,6 +64,7 @@ export function BodyScreen({ onLog, onSettings }) {
           status: workout.kind || 'other',
           date: '',
           tags: dayLabels(workout.days) || 'No days',
+          weekdays: workout.days || [],
           priority: patternLabel(workout),
         }))}
         columns={[

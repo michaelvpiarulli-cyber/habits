@@ -62,7 +62,7 @@ export function PlanScreen({ onLog, onSettings }) {
           { key: 'title', label: 'Name', kind: 'title' },
           { key: 'status', label: 'Status', kind: 'status', options: ['Open', 'Done'] },
           { key: 'date', label: 'Date', kind: 'date' },
-          { key: 'tags', label: 'Tags', kind: 'tags', options: ['inbox', 'work', 'personal', 'errands'] },
+          { key: 'tags', label: 'Tags', kind: 'multi', options: ['inbox', 'work', 'personal', 'errands'] },
           { key: 'priority', label: 'Priority', kind: 'select', options: ['none', 'low', 'medium', 'high'] },
         ]}
         onAdd={(title) => life.addTask({ title, dueDate: today })}

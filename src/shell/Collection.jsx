@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { applyCollection, groupRows } from '../lib/collectionView';
+import { applyCollection, groupRows, monthGrid, shiftMonth } from '../lib/collectionView';
+import { todayISO } from '../lib/dates';
 
 function Pill({ value }) {
   const key = String(value || '').toLowerCase();
@@ -13,12 +14,15 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
   const [sort, setSort] = useState(null);
   const [filters, setFilters] = useState([]);
   const [draft, setDraft] = useState('');
+  const [group, setGroup] = useState(groupKey || 'status');
+  const [cursor, setCursor] = useState(() => todayISO());
 
   const shown = useMemo(
     () => applyCollection(rows, { query, filters, sort }),
     [rows, query, filters, sort]
   );
-  const groups = useMemo(() => groupRows(shown, groupKey || columns[1]?.key || 'status'), [shown, groupKey, columns]);
+  const groups = useMemo(() => groupRows(shown, group || columns[1]?.key || 'status'), [shown, group, columns]);
+  const calendar = useMemo(() => monthGrid(cursor, shown, 'date'), [cursor, shown]);
 
   const toggleSort = (key) => {
     setSort((prev) => {
@@ -35,6 +39,18 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
 
   const cell = (row, column) => {
     if (column.kind === 'plain') return row[column.key] || '—';
+    if (column.kind === 'checkbox') {
+      const on = row[column.key] === true || row[column.key] === 'true';
+      return (
+        <input
+          type="checkbox"
+          aria-label={`${column.label} for ${row.title}`}
+          checked={on}
+          disabled={readOnly || !onUpdate}
+          onChange={(event) => onUpdate?.(row.id, { [column.key]: event.target.checked })}
+        />
+      );
+    }
     if (readOnly || column.kind === 'title' && !onUpdate) {
       return column.kind === 'status' || column.kind === 'tags' ? <Pill value={row[column.key]} /> : (row[column.key] || '—');
     }
@@ -52,6 +68,46 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
           ))}
         </select>
       );
+    }
+    if (column.kind === 'number' || column.kind === 'url') {
+      return (
+        <input
+          type={column.kind === 'url' ? 'url' : 'text'}
+          inputMode={column.kind === 'number' ? 'decimal' : undefined}
+          aria-label={`${column.label} for ${row.title}`}
+          value={row[column.key] || ''}
+          onChange={(event) => onUpdate(row.id, { [column.key]: event.target.value })}
+        />
+      );
+    }
+    if (column.kind === 'multi' || column.kind === 'tags') {
+      const selected = String(row[column.key] || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const options = column.options || [];
+      if (!options.length || readOnly || !onUpdate) return selected.join(', ') || '—';
+      return (
+        <div className="multi">
+          {options.map((option) => {
+            const on = selected.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                className={`pill ${on ? 'is-on' : ''}`}
+                aria-pressed={on}
+                onClick={() => {
+                  const next = on ? selected.filter((item) => item !== option) : [...selected, option];
+                  onUpdate(row.id, { [column.key]: next.join(',') });
+                }}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+    if (column.kind === 'relation') {
+      return <span className="token">{row[column.key] || 'Empty'}</span>;
     }
     if (column.kind === 'date') {
       return (
@@ -76,8 +132,13 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
     <section className="collection" aria-label={title}>
       <div className="db-bar">
         <h2>{title}</h2>
+        <select className="group-by" aria-label={`Group ${title}`} value={group} onChange={(event) => setGroup(event.target.value)}>
+          {columns.filter((column) => column.key !== 'title').map((column) => (
+            <option key={column.key} value={column.key}>{column.label}</option>
+          ))}
+        </select>
         <div className="view-switch" role="tablist" aria-label={`${title} view`}>
-          {['table', 'board', 'list'].map((name) => (
+          {['table', 'board', 'list', 'calendar', 'gallery'].map((name) => (
             <button key={name} type="button" role="tab" aria-selected={view === name} className={view === name ? 'is-on' : ''} onClick={() => setView(name)}>
               {name[0].toUpperCase() + name.slice(1)}
             </button>
@@ -163,12 +224,44 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
               {items.map((row) => (
                 <article key={row.id} className="board-card">
                   <strong>{row.title || 'Untitled'}</strong>
-                  {columns.filter((column) => column.key !== 'title' && column.key !== groupKey).map((column) => (
+                  {columns.filter((column) => column.key !== 'title' && column.key !== group).map((column) => (
                     <span key={column.key} className="faint">{column.label}: {row[column.key] || '—'}</span>
                   ))}
                 </article>
               ))}
             </div>
+          ))}
+        </div>
+      )}
+
+      {view === 'calendar' && (
+        <div className="calendar">
+          <div className="db-bar">
+            <button type="button" className="db-add" onClick={() => setCursor(shiftMonth(calendar.cursor, -1))}>‹</button>
+            <strong>{calendar.label}</strong>
+            <button type="button" className="db-add" onClick={() => setCursor(shiftMonth(calendar.cursor, 1))}>›</button>
+          </div>
+          <div className="cal-grid">
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((name) => <span key={name} className="cal-dow">{name}</span>)}
+            {calendar.cells.map((cell, index) => (
+              <div key={cell?.iso || `empty-${index}`} className="cal-day">
+                {cell && <span>{cell.day}</span>}
+                {cell?.items.slice(0, 3).map((row) => <em key={row.id}>{row.title}</em>)}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {view === 'gallery' && (
+        <div className="gallery">
+          {shown.length === 0 ? <p className="quiet">No rows</p> : shown.map((row) => (
+            <article key={row.id} className="gallery-card">
+              <strong>{row.title || 'Untitled'}</strong>
+              {columns.filter((column) => column.key !== 'title').slice(0, 3).map((column) => (
+                <span key={column.key} className="faint">{column.label}: {String(row[column.key] ?? '—')}</span>
+              ))}
+            </article>
           ))}
         </div>
       )}

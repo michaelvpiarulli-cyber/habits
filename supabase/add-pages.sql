@@ -16,6 +16,7 @@ create table if not exists public.pages (
   favorite    boolean     not null default false,
   system_key  text,
   position    integer     not null default 0,
+  props       jsonb       not null default '{}'::jsonb,
   deleted     boolean     not null default false,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
@@ -37,8 +38,7 @@ create table if not exists public.blocks (
   id         uuid primary key,
   user_id    uuid        not null references auth.users (id) on delete cascade,
   page_id    uuid        not null references public.pages (id) on delete cascade,
-  type       text        not null default 'text'
-               check (type in ('text', 'h1', 'h2', 'h3', 'todo', 'bullet', 'toggle', 'callout', 'divider')),
+  type       text        not null default 'text',
   content    text        not null default '',
   checked    boolean     not null default false,
   props      jsonb       not null default '{}'::jsonb,
@@ -72,6 +72,23 @@ begin
       'grant select, insert, update, delete on public.%I to anon, authenticated',
       t
     );
+  end loop;
+end $$;
+
+alter table public.pages add column if not exists props jsonb not null default '{}'::jsonb;
+
+do $$
+declare
+  r record;
+begin
+  for r in
+    select conname
+    from pg_constraint
+    where conrelid = 'public.blocks'::regclass
+      and contype = 'c'
+      and pg_get_constraintdef(oid) ilike '%type%'
+  loop
+    execute format('alter table public.blocks drop constraint %I', r.conname);
   end loop;
 end $$;
 

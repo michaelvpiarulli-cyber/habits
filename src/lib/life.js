@@ -224,7 +224,9 @@ export function agendaForDay({ events = [], tasks = [], goals = [], googleEvents
       endTime: '',
       allDay: !task.dueTime,
       done: !!task.done,
-      detail: task.list ? labelOf(TASK_LISTS, task.list) : '',
+      detail: task.list
+        ? task.list.split(',').map((item) => labelOf(TASK_LISTS, item.trim()) || item.trim()).filter(Boolean).join(', ')
+        : '',
     });
   }
 

@@ -14,11 +14,14 @@ import {
   livingBlocks,
   materialSystem,
   moveBlock,
+  pageById,
   pageFromRow,
   pageToRow,
+  pushHistory,
   reorderBlocks,
   sortPagesForWrite,
   systemPageById,
+  templateSpec,
   withSystemPages,
 } from '../lib/pages';
 import { supabase } from '../lib/supabase';
@@ -209,10 +212,12 @@ export function PagesProvider({ children }) {
     });
   }, []);
 
-  const addBlock = useCallback((pageId, { type = 'text', position, content = '' } = {}) => {
+  const addBlock = useCallback((pageId, { type = 'text', position, content = '', props, checked = false } = {}) => {
     const existing = livingBlocks(latest.current.blocks, pageId);
     const index = position == null ? existing.length : position;
     const created = blankBlock({ pageId, type, position: index, content });
+    if (props) created.props = { ...created.props, ...props };
+    created.checked = !!checked;
     setNotebook((prev) => {
       const pages = materialize(prev.pages, pageId);
       const blocks = prev.blocks.map((block) => {
@@ -257,6 +262,99 @@ export function PagesProvider({ children }) {
     });
   }, []);
 
+  const duplicatePage = useCallback((id) => {
+    const source = pageById(latest.current.pages, id);
+    if (!source || source.systemKey) return null;
+    const copy = blankPage({ parentId: source.parentId, position: (source.position || 0) + 1 });
+    copy.title = `${source.title || 'Untitled'} copy`;
+    copy.icon = source.icon;
+    copy.cover = source.cover;
+    copy.props = { ...(source.props || {}), history: [] };
+    const copies = livingBlocks(latest.current.blocks, id).map((block, index) => {
+      const next = blankBlock({ pageId: copy.id, type: block.type, position: index, content: block.content });
+      next.checked = !!block.checked;
+      next.props = { ...(block.props || {}) };
+      return next;
+    });
+    setNotebook((prev) => {
+      markPage(copy.id);
+      copies.forEach((block) => markBlock(block.id));
+      return { pages: [...prev.pages, copy], blocks: [...prev.blocks, ...copies] };
+    });
+    return copy;
+  }, []);
+
+  const restorePage = useCallback((id) => {
+    setNotebook((prev) => {
+      const stamp = prev.pages.find((page) => page.id === id)?.updatedAt;
+      const now = nowISO();
+      return {
+        pages: prev.pages.map((page) => {
+          if (page.id !== id) return page;
+          markPage(id);
+          return { ...page, deleted: false, updatedAt: now };
+        }),
+        blocks: prev.blocks.map((block) => {
+          if (block.pageId !== id || !block.deleted) return block;
+          if (stamp && block.updatedAt !== stamp) return block;
+          markBlock(block.id);
+          return { ...block, deleted: false, updatedAt: now };
+        }),
+      };
+    });
+  }, []);
+
+  const restoreSnapshot = useCallback((pageId, shot) => {
+    if (!shot) return;
+    setNotebook((prev) => {
+      const now = nowISO();
+      const pages = materialize(prev.pages, pageId).map((page) => {
+        if (page.id !== pageId) return page;
+        markPage(pageId);
+        return { ...page, title: shot.title || page.title, updatedAt: now };
+      });
+      const blocks = prev.blocks.map((block) => {
+        if (block.pageId !== pageId || block.deleted) return block;
+        markBlock(block.id);
+        return { ...block, deleted: true, updatedAt: now };
+      });
+      const created = (shot.blocks || []).map((block, index) => {
+        const next = blankBlock({
+          pageId,
+          type: block.type || 'text',
+          position: index,
+          content: block.content || '',
+        });
+        next.checked = !!block.checked;
+        markBlock(next.id);
+        return next;
+      });
+      return { pages, blocks: [...blocks, ...created] };
+    });
+  }, [materialize]);
+
+  const applyTemplate = useCallback((pageId, key) => {
+    const spec = templateSpec(key);
+    if (!pageById(latest.current.pages, pageId)?.title || pageById(latest.current.pages, pageId)?.title === 'Untitled') {
+      updatePage(pageId, { title: spec.title, icon: spec.icon });
+    }
+    spec.blocks.forEach((block) => addBlock(pageId, block));
+  }, [addBlock, updatePage]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const current = latest.current;
+      current.pages.forEach((page) => {
+        if (page.deleted) return;
+        const nextProps = pushHistory(page, current.blocks);
+        if (nextProps === page.props) return;
+        if (JSON.stringify(nextProps.history || []) === JSON.stringify(page.props?.history || [])) return;
+        updatePage(page.id, { props: nextProps });
+      });
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [notebook, updatePage]);
+
   const value = useMemo(
     () => ({
       pages: notebook.pages,
@@ -265,13 +363,17 @@ export function PagesProvider({ children }) {
       updatePage,
       createPage,
       deletePage,
+      duplicatePage,
+      restorePage,
+      restoreSnapshot,
+      applyTemplate,
       addBlock,
       updateBlock,
       deleteBlock,
       reorder,
       move,
     }),
-    [notebook, warning, updatePage, createPage, deletePage, addBlock, updateBlock, deleteBlock, reorder, move]
+    [notebook, warning, updatePage, createPage, deletePage, duplicatePage, restorePage, restoreSnapshot, applyTemplate, addBlock, updateBlock, deleteBlock, reorder, move]
   );
 
   return <PagesContext.Provider value={value}>{children}</PagesContext.Provider>;
