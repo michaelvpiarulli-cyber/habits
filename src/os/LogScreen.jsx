@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
 import { todayISO } from '../lib/dates';
+import { Collection } from '../shell/Collection';
 
 const EMPTY = { title: '', link: '', watchedOn: todayISO(), rating: '', notes: '' };
 
@@ -36,7 +37,7 @@ export function LogScreen({ onClose }) {
         </div>
         <button type="button" className="text-btn" onClick={onClose}>Done</button>
       </header>
-
+      <div className="board">
       <section className="card">
         <h2>Today</h2>
         <label className="field">
@@ -49,8 +50,39 @@ export function LogScreen({ onClose }) {
         </label>
       </section>
 
+      <Collection
+        title="Watch log"
+        groupKey="status"
+        rows={life.watches.filter((entry) => !entry.deleted).map((entry) => ({
+          id: entry.id,
+          title: entry.title,
+          status: entry.rating ? 'Rated' : 'Logged',
+          date: entry.watchedOn || '',
+          rating: entry.rating ? String(entry.rating) : '',
+          tags: 'Watch',
+        }))}
+        columns={[
+          { key: 'title', label: 'Name', kind: 'title' },
+          { key: 'status', label: 'Status', kind: 'status', options: ['Logged', 'Rated'] },
+          { key: 'date', label: 'Date', kind: 'date' },
+          { key: 'rating', label: 'Rating', kind: 'rating', options: ['1', '2', '3', '4', '5'] },
+          { key: 'tags', label: 'Tags', kind: 'tags' },
+        ]}
+        onAdd={(title) => life.addWatch({ title, watchedOn: today })}
+        onUpdate={(id, patch) => {
+          const current = life.watches.find((entry) => entry.id === id);
+          if (!current) return;
+          const next = {};
+          if (patch.title != null) next.title = patch.title;
+          if (patch.date != null) next.watchedOn = patch.date || null;
+          if (patch.rating != null) next.rating = patch.rating ? Number(patch.rating) : null;
+          if (patch.status === 'Logged') next.rating = null;
+          life.updateWatch(id, next);
+        }}
+      />
+
       <section className="card">
-        <div className="card-head"><h2>Watch log</h2></div>
+        <div className="card-head"><h2>Watch details</h2></div>
         <ul className="food-list">
           {life.watches.length === 0 ? <li className="quiet">Nothing saved.</li> : life.watches.map((entry) => (
             <li key={entry.id}>
@@ -101,6 +133,7 @@ export function LogScreen({ onClose }) {
           </div>
         </form>
       </section>
+      </div>
     </main>
   );
 }

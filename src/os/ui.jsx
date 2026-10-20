@@ -13,7 +13,7 @@ export function Frame({ kicker, title, actions, children }) {
         </div>
         {actions ? <div className="os-head__actions">{actions}</div> : null}
       </header>
-      {children}
+      <div className="board">{children}</div>
     </main>
   );
 }

@@ -3,7 +3,8 @@ import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
 import { addDays, formatLong, todayISO, WEEKDAY_INITIALS, startOfWeek } from '../lib/dates';
 import { preferFoodEntry } from '../lib/foodGoals';
-import { patternLabel, workoutsOnDay } from '../lib/program';
+import { dayLabels, patternLabel, workoutsOnDay } from '../lib/program';
+import { Collection } from '../shell/Collection';
 import { useProgram } from './hooks';
 import { FoodCard, Frame, Gear, WorkoutDetail } from './ui';
 
@@ -53,15 +54,25 @@ export function BodyScreen({ onLog, onSettings }) {
         {session.length === 0 ? <p className="quiet">Rest.</p> : session.map((workout) => <WorkoutDetail key={workout.id} workout={workout} />)}
       </section>
 
-      <section className="card">
-        <div className="card-head"><h2>Program</h2></div>
-        {program.workouts.length === 0 ? <p className="quiet">JENO has not left a workout.</p> : program.workouts.map((workout) => (
-          <div className="lift" key={workout.id}>
-            <strong>{workout.name}</strong>
-            <div className="faint">{patternLabel(workout)} · {workout.exercises.length} exercises</div>
-          </div>
-        ))}
-      </section>
+      <Collection
+        title="Workouts"
+        groupKey="status"
+        readOnly
+        rows={program.workouts.map((workout) => ({
+          id: workout.id,
+          title: workout.name,
+          status: workout.kind || 'other',
+          date: '',
+          tags: dayLabels(workout.days) || 'No days',
+          priority: patternLabel(workout),
+        }))}
+        columns={[
+          { key: 'title', label: 'Name', kind: 'title' },
+          { key: 'status', label: 'Status', kind: 'status' },
+          { key: 'tags', label: 'Tags', kind: 'tags' },
+          { key: 'priority', label: 'Schedule', kind: 'text' },
+        ]}
+      />
     </Frame>
   );
 }

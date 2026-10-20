@@ -38,6 +38,8 @@ For the JENO program, inbox, and Bible checkmarks, run [`supabase/add-jeno-progr
 
 Food, workout-done rows, and the watch log already use [`supabase/add-life-os.sql`](supabase/add-life-os.sql).
 
+Pages and blocks use [`supabase/add-pages.sql`](supabase/add-pages.sql). It is safe to re-run and does not change older tables. Until it is applied, new pages stay on this device.
+
 ## JENO
 
 Both routes use the server secret `TALLY_INGEST_KEY` (`Authorization: Bearer` or `x-tally-ingest-key`). Set these on Vercel, never as `VITE_` variables:

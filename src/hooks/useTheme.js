@@ -10,12 +10,12 @@ function apply(pref) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   // Keep the mobile browser chrome in step with the page.
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', dark ? '#121411' : '#efeae2');
+  if (meta) meta.setAttribute('content', dark ? '#191919' : '#ffffff');
 }
 
-/** Theme preference: follow the system, or pin light/dark. Defaults to dark. */
+/** Theme preference: follow the system, or pin light/dark. Defaults to light. */
 export function useTheme() {
-  const [pref, setPref] = useState(() => localStorage.getItem(KEY) || 'dark');
+  const [pref, setPref] = useState(() => localStorage.getItem(KEY) || 'light');
 
   useEffect(() => {
     apply(pref);

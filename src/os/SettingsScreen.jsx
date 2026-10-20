@@ -24,7 +24,7 @@ export function SettingsScreen({ onClose }) {
         </div>
         <button type="button" className="text-btn" onClick={onClose}>Done</button>
       </header>
-
+      <div className="board">
       <section className="card">
         <h2>Google Calendar</h2>
         <p className="quiet">Read-only. Connect {GOOGLE_CALENDAR_ACCOUNT} so Today and Plan can see the primary calendar.</p>
@@ -103,6 +103,7 @@ export function SettingsScreen({ onClose }) {
           <div className="btn-row"><button className="btn" type="submit">Add habit</button></div>
         </form>
       </section>
+      </div>
     </main>
   );
 }

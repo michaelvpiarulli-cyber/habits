@@ -3,37 +3,12 @@ import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
 import { addDays, formatLong, todayISO } from '../lib/dates';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
-import { nextProgress, progressOf, targetOf, topLevelGoals } from '../lib/goals';
-import { groupTasks } from '../lib/life';
+import { progressOf, targetOf, topLevelGoals } from '../lib/goals';
 import { noteSnippet, noteTitle } from '../lib/notes';
 import { daysWithAgenda } from '../lib/upcoming';
+import { Collection } from '../shell/Collection';
 import { useGoogleAgenda } from './hooks';
 import { AgendaList, Frame, Gear } from './ui';
-
-function TaskForm({ onAdd, day }) {
-  const [title, setTitle] = useState('');
-  const [due, setDue] = useState(day);
-  return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (!title.trim()) return;
-        onAdd({ title, dueDate: due || null });
-        setTitle('');
-      }}
-    >
-      <label className="field">
-        <span>Add a task</span>
-        <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What needs doing" />
-      </label>
-      <label className="field">
-        <span>Due</span>
-        <input type="date" value={due} onChange={(event) => setDue(event.target.value)} />
-      </label>
-      <div className="btn-row"><button className="btn" type="submit">Add task</button></div>
-    </form>
-  );
-}
 
 export function PlanScreen({ onLog, onSettings }) {
   const today = todayISO();
@@ -41,16 +16,12 @@ export function PlanScreen({ onLog, onSettings }) {
   const life = useLife();
   const google = useGoogleAgenda(today, addDays(today, 14));
   const days = daysWithAgenda(life.events, google.events, today, 14);
-  const grouped = groupTasks(life.tasks, today);
   const goals = topLevelGoals(data.goals);
   const reading = life.books.filter((book) => book.status === 'reading').slice(0, 3);
   const [editing, setEditing] = useState(null);
-  const [goalTitle, setGoalTitle] = useState('');
   const [draftTitle, setDraftTitle] = useState('');
   const [draftBody, setDraftBody] = useState('');
   const wrongAccount = google.connected && google.accountEmail && google.accountEmail.toLowerCase() !== GOOGLE_CALENDAR_ACCOUNT;
-
-  const open = [...grouped.overdue, ...grouped.dueToday, ...grouped.upcoming, ...grouped.later];
 
   return (
     <Frame
@@ -76,60 +47,77 @@ export function PlanScreen({ onLog, onSettings }) {
         ))}
       </section>
 
-      <section className="card">
-        <div className="card-head"><h2>Tasks</h2><span className="faint">{open.length} open</span></div>
-        {open.length === 0 ? <p className="quiet">Nothing waiting.</p> : (
-          <ul className="food-list">
-            {open.map((task) => (
-              <li key={task.id}>
-                <button type="button" className={`check ${task.done ? 'is-done' : ''}`} onClick={() => life.toggleTask(task.id)}>
-                  <span className="box" aria-hidden="true" />
-                  <span>
-                    {task.title}
-                    <div className="faint">{task.dueDate ? formatLong(task.dueDate) : 'No date'}{task.dueDate && task.dueDate < today ? ' · overdue' : ''}</div>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <TaskForm day={today} onAdd={life.addTask} />
-      </section>
+      <Collection
+        title="Tasks"
+        groupKey="status"
+        rows={life.tasks.filter((task) => !task.deleted).map((task) => ({
+          id: task.id,
+          title: task.title,
+          status: task.done ? 'Done' : 'Open',
+          date: task.dueDate || '',
+          tags: task.list || 'inbox',
+          priority: task.priority || 'none',
+        }))}
+        columns={[
+          { key: 'title', label: 'Name', kind: 'title' },
+          { key: 'status', label: 'Status', kind: 'status', options: ['Open', 'Done'] },
+          { key: 'date', label: 'Date', kind: 'date' },
+          { key: 'tags', label: 'Tags', kind: 'tags', options: ['inbox', 'work', 'personal', 'errands'] },
+          { key: 'priority', label: 'Priority', kind: 'select', options: ['none', 'low', 'medium', 'high'] },
+        ]}
+        onAdd={(title) => life.addTask({ title, dueDate: today })}
+        onUpdate={(id, patch) => {
+          const next = {};
+          if (patch.title != null) next.title = patch.title;
+          if (patch.date != null) next.dueDate = patch.date || null;
+          if (patch.tags != null) next.list = patch.tags || 'inbox';
+          if (patch.priority != null) next.priority = patch.priority;
+          if (patch.status != null) {
+            next.done = patch.status === 'Done';
+            next.completedAt = next.done ? new Date().toISOString() : null;
+          }
+          life.updateTask(id, next);
+        }}
+      />
 
-      <section className="card">
-        <div className="card-head"><h2>Goals</h2></div>
-        {goals.length === 0 ? <p className="quiet">No goals yet.</p> : goals.map((goal) => {
+      <Collection
+        title="Goals"
+        groupKey="status"
+        rows={goals.map((goal) => {
           const progress = progressOf(goal, { goals: data.goals, doneSets: null });
           const target = targetOf(goal, data.goals);
-          return (
-            <div key={goal.id} className="lift">
-              <div className="row-between">
-                <strong>{goal.title}</strong>
-                <span className="faint">{progress} / {target}{goal.unit ? ` ${goal.unit}` : ''}</span>
-              </div>
-              <div className="meter" aria-hidden="true"><span style={{ width: `${Math.min(100, Math.round((progress / target) * 100))}%` }} /></div>
-              <div className="btn-row">
-                <button type="button" className="btn secondary" onClick={() => data.updateGoal(goal.id, { progress: nextProgress(goal, progress), done: nextProgress(goal, progress) >= target })}>+1</button>
-                <button type="button" className="btn danger" onClick={() => data.deleteGoal(goal.id)}>Remove</button>
-              </div>
-            </div>
-          );
+          const done = goal.done || progress >= target;
+          return {
+            id: goal.id,
+            title: goal.title,
+            status: done ? 'Done' : 'Open',
+            date: goal.dueDate || String(goal.createdAt || '').slice(0, 10),
+            tags: goal.unit || 'Goal',
+            priority: `${progress}/${target}`,
+          };
         })}
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!goalTitle.trim()) return;
-            data.addGoal({ title: goalTitle, target: 1 });
-            setGoalTitle('');
-          }}
-        >
-          <label className="field">
-            <span>New goal</span>
-            <input value={goalTitle} onChange={(event) => setGoalTitle(event.target.value)} placeholder="A result you want" />
-          </label>
-          <div className="btn-row"><button className="btn" type="submit">Add goal</button></div>
-        </form>
-      </section>
+        columns={[
+          { key: 'title', label: 'Name', kind: 'title' },
+          { key: 'status', label: 'Status', kind: 'status', options: ['Open', 'Done'] },
+          { key: 'date', label: 'Date', kind: 'date' },
+          { key: 'tags', label: 'Tags', kind: 'tags' },
+          { key: 'priority', label: 'Progress', kind: 'plain' },
+        ]}
+        onAdd={(title) => data.addGoal({ title, target: 1 })}
+        onUpdate={(id, patch) => {
+          const goal = data.goals.find((item) => item.id === id);
+          const next = {};
+          if (patch.title != null) next.title = patch.title;
+          if (patch.date != null) next.dueDate = patch.date || null;
+          if (patch.tags != null) next.unit = patch.tags === 'Goal' ? '' : patch.tags;
+          if (patch.status != null) {
+            const done = patch.status === 'Done';
+            next.done = done;
+            next.progress = done ? (Number(goal?.target) || 1) : 0;
+          }
+          data.updateGoal(id, next);
+        }}
+      />
 
       <section className="card">
         <div className="card-head"><h2>Notes</h2></div>
