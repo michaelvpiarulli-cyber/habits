@@ -298,9 +298,24 @@ export default function App() {
           </article>
         </div>
       </div>
+      {!wide && (
+        <nav className="tabs" aria-label="Daily">
+          {[
+            ['today', 'Today'],
+            ['plan', 'Plan'],
+            ['body', 'Body'],
+            ['word', 'Word'],
+          ].map(([key, label]) => (
+            <button key={key} type="button" className={page.systemKey === key && !trash ? 'is-on' : ''} onClick={() => jump(key)}>
+              {label}
+            </button>
+          ))}
+          <button type="button" onClick={() => setDrawer(true)}>More</button>
+        </nav>
+      )}
       {quick && (
         <div className="quick-scrim" onMouseDown={() => setQuick(false)}>
-          <div className="quick" role="dialog" aria-label="Quick find" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="quick" role="dialog" aria-label="Search" onMouseDown={(event) => event.stopPropagation()}>
             <input
               autoFocus
               placeholder="Search pages"

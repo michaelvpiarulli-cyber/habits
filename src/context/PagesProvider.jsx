@@ -10,6 +10,7 @@ import {
   blankPage,
   blockFromRow,
   blockToRow,
+  coercePage,
   descendantIds,
   livingBlocks,
   materialSystem,
@@ -36,7 +37,7 @@ function load(scope) {
   try {
     const parsed = JSON.parse(localStorage.getItem(`${KEY}:${scope}`) || '{}');
     return {
-      pages: Array.isArray(parsed.pages) ? parsed.pages : [],
+      pages: Array.isArray(parsed.pages) ? parsed.pages.map(coercePage) : [],
       blocks: Array.isArray(parsed.blocks) ? parsed.blocks : [],
     };
   } catch {
@@ -100,7 +101,7 @@ export function PagesProvider({ children }) {
     }
     setWarning('');
     setNotebook((prev) => ({
-      pages: mergeById((pagesRes.data || []).map(pageFromRow), prev.pages),
+      pages: mergeById((pagesRes.data || []).map(pageFromRow), prev.pages.map(coercePage)),
       blocks: mergeById((blocksRes.data || []).map(blockFromRow), prev.blocks),
     }));
   }, [available, user]);
@@ -167,7 +168,7 @@ export function PagesProvider({ children }) {
       let pages = materialize(prev.pages, id);
       const current = withSystemPages(pages).find((page) => page.id === id);
       if (!current) return prev;
-      const next = { ...current, ...patch, updatedAt: nowISO() };
+      const next = coercePage({ ...current, ...patch, updatedAt: nowISO() });
       pages = pages.some((page) => page.id === id)
         ? pages.map((page) => (page.id === id ? next : page))
         : [...pages, next];
@@ -177,18 +178,16 @@ export function PagesProvider({ children }) {
   }, [materialize]);
 
   const createPage = useCallback((parentId = null) => {
-    let created = null;
+    const created = blankPage({ parentId, position: 100 });
+    const block = blankBlock({ pageId: created.id });
     setNotebook((prev) => {
-      let pages = materialize(prev.pages, parentId);
+      if (prev.pages.some((page) => page.id === created.id)) return prev;
+      const pages = materialize(prev.pages, parentId);
       const siblings = pages.filter((page) => !page.deleted && page.parentId === parentId);
-      created = blankPage({
-        parentId,
-        position: siblings.reduce((max, page) => Math.max(max, page.position), 99) + 1,
-      });
-      const block = blankBlock({ pageId: created.id });
+      created.position = siblings.reduce((max, page) => Math.max(max, page.position), 99) + 1;
       markPage(created.id);
       markBlock(block.id);
-      return { pages: [...pages, created], blocks: [...prev.blocks, block] };
+      return { pages: [...pages, { ...created }], blocks: [...prev.blocks, block] };
     });
     return created;
   }, [materialize]);
@@ -212,13 +211,15 @@ export function PagesProvider({ children }) {
     });
   }, []);
 
-  const addBlock = useCallback((pageId, { type = 'text', position, content = '', props, checked = false } = {}) => {
+  const addBlock = useCallback((pageId, { type = 'text', position, content = '', props, checked = false, ifEmpty = false } = {}) => {
     const existing = livingBlocks(latest.current.blocks, pageId);
+    if (ifEmpty && existing.length > 0) return existing[0];
     const index = position == null ? existing.length : position;
     const created = blankBlock({ pageId, type, position: index, content });
     if (props) created.props = { ...created.props, ...props };
     created.checked = !!checked;
     setNotebook((prev) => {
+      if (ifEmpty && livingBlocks(prev.blocks, pageId).length > 0) return prev;
       const pages = materialize(prev.pages, pageId);
       const blocks = prev.blocks.map((block) => {
         if (block.pageId !== pageId || block.deleted || block.position < index) return block;

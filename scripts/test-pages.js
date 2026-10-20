@@ -14,6 +14,8 @@ import {
   reorderBlocks,
   searchPages,
   slashQuery,
+  canonicalTitle,
+  coercePage,
   sortPagesForWrite,
   splitContent,
   templateSpec,
@@ -104,5 +106,8 @@ const grid = monthGrid('2026-10-20', [
 assert.equal(grid.cells.filter(Boolean).length, 31);
 assert.ok(grid.cells.find((cell) => cell?.iso === '2026-10-20').items.some((row) => row.id === 'a'));
 assert.equal(shiftMonth('2026-10-01', 1), '2026-11-01');
+assert.equal(canonicalTitle({ systemKey: 'log', title: 'Renamed' }), 'Log');
+assert.equal(coercePage({ systemKey: 'today', title: 'Nope' }).title, 'Today');
+assert.equal(coercePage({ title: 'Notes' }).title, 'Notes');
 
 console.log('pages ok');

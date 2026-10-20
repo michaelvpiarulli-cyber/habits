@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
 import { agendaForDay } from '../lib/agenda';
-import { missedDays, readingsForDate, yearProgress } from '../lib/biblePlan';
+import { missedDays, readingsForDate, slotsFor, yearProgress } from '../lib/biblePlan';
 import { addDays, formatClock, formatLong, todayISO } from '../lib/dates';
 import { FOOD_GOALS, foodVsGoals, preferFoodEntry } from '../lib/foodGoals';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
@@ -88,7 +88,8 @@ export function TodayScreen({ onLog, onSettings, onJump }) {
   const today = todayISO();
   const now = new Date();
   const { activeHabits, nutritionFor } = useData();
-  const { dailyNutrition, events, tasks } = useLife();
+  const life = useLife();
+  const { dailyNutrition, events, tasks } = life;
   const program = useProgram();
   const bible = useBible();
   const google = useGoogleAgenda(today, addDays(today, 14));
@@ -102,7 +103,11 @@ export function TodayScreen({ onLog, onSettings, onJump }) {
   const reading = readingsForDate(today);
   const progress = yearProgress(bible.checks, today);
   const behind = missedDays(bible.checks, today).length;
+  const year = Number(today.slice(0, 4));
+  const slots = reading.index == null ? new Set() : slotsFor(bible.checks, year, reading.index);
   const openTasks = groupTasks(tasks, today);
+  const topTasks = [...openTasks.overdue, ...openTasks.dueToday].slice(0, 5);
+  const [taskDraft, setTaskDraft] = useState('');
   const wrongAccount =
     google.connected && google.accountEmail && google.accountEmail.toLowerCase() !== GOOGLE_CALENDAR_ACCOUNT;
 
@@ -118,12 +123,14 @@ export function TodayScreen({ onLog, onSettings, onJump }) {
       )}
     >
       <section className="card">
-        <p className="os-kicker">Next</p>
+        <p className="os-kicker">{formatLong(today)}</p>
         <p className="lede" style={{ marginTop: 6 }}>
-          {next ? `${next.title} at ${formatClock(next.startTime)}` : session[0] ? session[0].name : 'The day is open'}
+          {next ? `${next.title} at ${formatClock(next.startTime)}` : session[0] ? session.map((workout) => workout.name).join(', ') : 'The day is open'}
         </p>
         <p className="quiet">
           {Math.round(stats.calories)} of {FOOD_GOALS.calories} kcal · {Math.round(stats.protein)} of {FOOD_GOALS.protein} g protein
+          {session.length === 0 ? ' · Rest day' : ''}
+          {due.length ? ` · ${due.length} habit${due.length === 1 ? '' : 's'}` : ''}
           {behind ? ` · ${behind} readings to catch up` : ''}
           {openTasks.overdue.length ? ` · ${openTasks.overdue.length} overdue` : ''}
         </p>
@@ -163,13 +170,65 @@ export function TodayScreen({ onLog, onSettings, onJump }) {
           <ul className="food-list">
             {reading.readings.map((item) => (
               <li key={item.slot}>
-                <span>{item.ref}</span>
-                <small>{item.track}</small>
+                <button
+                  type="button"
+                  className={`check ${slots.has(item.slot) ? 'is-done' : ''}`}
+                  onClick={() => bible.toggle(year, reading.index, item.slot)}
+                >
+                  <span className="box" aria-hidden="true" />
+                  <span>
+                    <strong>{item.ref}</strong>
+                    <div className="faint">{item.track}</div>
+                  </span>
+                </button>
               </li>
             ))}
           </ul>
         )}
         <p className="faint" style={{ marginTop: 8 }}>{progress.yearDone} of 365 days read</p>
+      </section>
+
+      <section className="card">
+        <div className="card-head">
+          <h2>Tasks</h2>
+          <button type="button" className="text-btn" onClick={() => onJump('plan')}>All</button>
+        </div>
+        {topTasks.length === 0 ? (
+          <p className="quiet">Nothing due today.</p>
+        ) : (
+          <ul className="food-list">
+            {topTasks.map((task) => (
+              <li key={task.id}>
+                <button type="button" className="check" onClick={() => life.toggleTask(task.id)}>
+                  <span className="box" aria-hidden="true" />
+                  <span>
+                    <strong>{task.title}</strong>
+                    <div className="faint">{task.dueDate < today ? 'Overdue' : 'Today'}</div>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form
+          className="btn-row"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const title = taskDraft.trim();
+            if (!title) return;
+            life.addTask({ title, dueDate: today });
+            setTaskDraft('');
+          }}
+        >
+          <input
+            aria-label="Add a task"
+            placeholder="Add a task"
+            value={taskDraft}
+            onChange={(event) => setTaskDraft(event.target.value)}
+            style={{ flex: 1, minWidth: 0, fontSize: 16, padding: 10, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--bg)' }}
+          />
+          <button className="btn" type="submit">Add</button>
+        </form>
       </section>
 
       <section className="card">

@@ -181,21 +181,21 @@ export function buildCoachAdvice({
 
   if (intake.calories === 0) {
     detail = `Budget is ${targetKcal} kcal (~${weekRate} lb/week down at a ${coach.deficit} deficit).`;
-    action = 'Log breakfast when you can — the coach gets smarter with real days.';
+    action = 'Log breakfast when you can. The coach gets smarter with real days.';
   } else if (remaining > 450) {
     detail = `${remaining} kcal still open. Protein left: ${Math.max(0, proteinLeft)}g.`;
     action =
       proteinLeft > 30
         ? 'Anchor the next meal with protein first, then fill carbs around the rest of the day.'
-        : 'Plenty of room — keep portions honest and finish near the budget.';
+        : 'Plenty of room. Keep portions honest and finish near the budget.';
   } else if (remaining >= 0) {
     detail = `${remaining} kcal left against a ${targetKcal} target.`;
     action =
       proteinLeft > 20
         ? `Hit ~${Math.ceil(proteinLeft)}g more protein and you’re done for fat loss.`
-        : 'You’re in the landing zone — small finish is fine.';
+        : 'You are in the landing zone. A small finish is fine.';
   } else {
-    detail = `${Math.abs(remaining)} kcal over today’s target — still useful data.`;
+    detail = `${Math.abs(remaining)} kcal over today's target. Still useful data.`;
     action = 'No make-up needed. Keep logging; weekly average drives the coach.';
   }
 

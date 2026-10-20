@@ -56,7 +56,9 @@
 
 .sidebar.is-drawer.is-open {
   transform: translateX(0);
+  pointer-events: auto;
 }
+.sidebar.is-drawer:not(.is-open) { pointer-events: none; }
 
 .side-head, .side-row, .crumb, .icon-btn, .page-actions button, .tree-row, .view-switch button, .db-add {
   border-radius: 6px;
@@ -547,8 +549,14 @@ table.data td input, table.data td select {
   .sidebar:not(.is-drawer) { display: none; }
   .page-title { font-size: 32px; }
   .edited { display: none; }
-  .block-tools { left: 0; background: var(--bg); }
+  .block { padding-left: 48px; }
+  .block-tools { left: 2px; top: 4px; background: transparent; }
   .page-body { width: 100%; }
+  .page-scroll { padding-bottom: calc(var(--tab) + 12px); }
+  .tree-row, .side-action, .view-switch button, .tabs button { min-height: 44px; height: auto; }
+  input, textarea, select { font-size: 16px; }
+  .topbar { gap: 2px; }
+  .share { padding: 0 8px; }
 }
 
 .page-meta { display: flex; gap: 8px; min-height: 28px; opacity: 0; }

@@ -13,7 +13,7 @@ export const SEED_A_ID = '11111111-1111-4111-8111-1111111111a1';
 export const SEED_B_ID = '11111111-1111-4111-8111-1111111111b2';
 export const SEED_WALK_ID = '11111111-1111-4111-8111-1111111111c3';
 
-const PLACEHOLDER = 'Placeholder — confirm weight and reps';
+const PLACEHOLDER = 'Placeholder. Confirm weight and reps';
 
 function lift(name, sets, reps, rest) {
   return {

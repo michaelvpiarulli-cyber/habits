@@ -81,7 +81,8 @@ export function BlockEditor({
   useEffect(() => {
     setFocusId(null);
     setHandleFor(null);
-  }, [pageId]);
+    if (livingBlocks(blocks, pageId).length === 0) onAdd(pageId, { type: 'text', ifEmpty: true });
+  }, [pageId, blocks, onAdd]);
 
   const turnInto = (block, type) => {
     onUpdate(block.id, {

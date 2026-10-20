@@ -350,8 +350,20 @@ export function moveBlock(blocks, pageId, id, delta) {
   return reorderBlocks(blocks, pageId, id, target.id);
 }
 
+export function canonicalTitle(page) {
+  if (!page?.systemKey) return page?.title || 'Untitled';
+  return systemPageByKey(page.systemKey)?.title || page.title || 'Untitled';
+}
+
+export function coercePage(page) {
+  if (!page?.systemKey) return page;
+  const title = canonicalTitle(page);
+  if (page.title === title) return page;
+  return { ...page, title };
+}
+
 export function pageFromRow(row) {
-  return {
+  return coercePage({
     id: row.id,
     parentId: row.parent_id || null,
     title: row.title || 'Untitled',
@@ -364,7 +376,7 @@ export function pageFromRow(row) {
     deleted: !!row.deleted,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  };
+  });
 }
 
 export function pageToRow(page, userId) {

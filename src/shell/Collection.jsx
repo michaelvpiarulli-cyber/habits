@@ -38,7 +38,7 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
   };
 
   const cell = (row, column) => {
-    if (column.kind === 'plain') return row[column.key] || '—';
+    if (column.kind === 'plain') return row[column.key] || 'Empty';
     if (column.kind === 'checkbox') {
       const on = row[column.key] === true || row[column.key] === 'true';
       return (
@@ -52,9 +52,9 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
       );
     }
     if (readOnly || column.kind === 'title' && !onUpdate) {
-      return column.kind === 'status' || column.kind === 'tags' ? <Pill value={row[column.key]} /> : (row[column.key] || '—');
+      return column.kind === 'status' || column.kind === 'tags' ? <Pill value={row[column.key]} /> : (row[column.key] || 'Empty');
     }
-    if (!onUpdate) return row[column.key] || '—';
+    if (!onUpdate) return row[column.key] || 'Empty';
     if (column.kind === 'status' || column.kind === 'select' || column.kind === 'rating') {
       return (
         <select
@@ -83,7 +83,7 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
     if (column.kind === 'multi' || column.kind === 'tags') {
       const selected = String(row[column.key] || '').split(',').map((item) => item.trim()).filter(Boolean);
       const options = column.options || [];
-      if (!options.length || readOnly || !onUpdate) return selected.join(', ') || '—';
+      if (!options.length || readOnly || !onUpdate) return selected.join(', ') || 'Empty';
       return (
         <div className="multi">
           {options.map((option) => {
@@ -225,7 +225,7 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
                 <article key={row.id} className="board-card">
                   <strong>{row.title || 'Untitled'}</strong>
                   {columns.filter((column) => column.key !== 'title' && column.key !== group).map((column) => (
-                    <span key={column.key} className="faint">{column.label}: {row[column.key] || '—'}</span>
+                    <span key={column.key} className="faint">{column.label}: {row[column.key] || 'Empty'}</span>
                   ))}
                 </article>
               ))}
@@ -259,7 +259,7 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
             <article key={row.id} className="gallery-card">
               <strong>{row.title || 'Untitled'}</strong>
               {columns.filter((column) => column.key !== 'title').slice(0, 3).map((column) => (
-                <span key={column.key} className="faint">{column.label}: {String(row[column.key] ?? '—')}</span>
+                <span key={column.key} className="faint">{column.label}: {String(row[column.key] ?? 'Empty')}</span>
               ))}
             </article>
           ))}

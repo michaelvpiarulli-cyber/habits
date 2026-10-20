@@ -48,7 +48,7 @@ export function fileToCoverDataUrl(file) {
             return;
           }
         }
-        reject(new Error('Cover is still too large — try a smaller photo.'));
+        reject(new Error('Cover is still too large. Try a smaller photo.'));
       };
       img.src = String(reader.result || '');
     };
