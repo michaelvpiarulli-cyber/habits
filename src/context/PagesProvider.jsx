@@ -23,6 +23,7 @@ import {
   sortPagesForWrite,
   systemPageById,
   templateSpec,
+  timeValue,
   withSystemPages,
 } from '../lib/pages';
 import { supabase } from '../lib/supabase';
@@ -45,12 +46,28 @@ function load(scope) {
   }
 }
 
-function mergeById(remote, local) {
+function isQaLeftover(page) {
+  if (!page || page.systemKey) return false;
+  const title = page.title || '';
+  return title === 'Untitled' || title.startsWith('QA ');
+}
+
+function mergeById(remote, local, dirty) {
   const map = new Map();
-  for (const row of [...remote, ...local]) {
+  for (const row of remote) {
+    if (row?.id) map.set(row.id, row);
+  }
+  for (const row of local) {
     if (!row?.id) continue;
     const prev = map.get(row.id);
-    if (!prev || new Date(row.updatedAt || 0) >= new Date(prev.updatedAt || 0)) map.set(row.id, row);
+    if (!prev) {
+      if (!(dirty && !dirty.has(row.id) && isQaLeftover(row) && (row.title || '').startsWith('QA '))) {
+        map.set(row.id, row);
+      }
+      continue;
+    }
+    const staleTestPage = dirty && !dirty.has(row.id) && prev.deleted && isQaLeftover(row) && !row.deleted;
+    if (!staleTestPage && timeValue(row.updatedAt) >= timeValue(prev.updatedAt)) map.set(row.id, row);
   }
   return [...map.values()];
 }
@@ -101,8 +118,8 @@ export function PagesProvider({ children }) {
     }
     setWarning('');
     setNotebook((prev) => ({
-      pages: mergeById((pagesRes.data || []).map(pageFromRow), prev.pages.map(coercePage)),
-      blocks: mergeById((blocksRes.data || []).map(blockFromRow), prev.blocks),
+      pages: mergeById((pagesRes.data || []).map(pageFromRow), prev.pages.map(coercePage), dirtyPages.current),
+      blocks: mergeById((blocksRes.data || []).map(blockFromRow), prev.blocks, dirtyBlocks.current),
     }));
   }, [available, user]);
 

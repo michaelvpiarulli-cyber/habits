@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
+import { purgeQaData } from './purgeQa.js';
 
 const PAGES = ['Today', 'Plan', 'Body', 'Word', 'JENO', 'Log', 'Settings'];
 
@@ -36,8 +37,16 @@ async function openSection(page, mobile, name) {
   if (mobile) await page.getByRole('button', { name: 'More' }).click();
   const row = page.locator('.tree-row').filter({ hasText: name }).first();
   await row.click();
-  if (mobile) await page.getByRole('button', { name: 'Close menu' }).click({ timeout: 1000 }).catch(() => {});
+  if (mobile) await closeDrawer(page);
 }
+
+test.beforeAll(async () => {
+  await purgeQaData();
+});
+
+test.afterAll(async () => {
+  await purgeQaData();
+});
 
 test('daily flows stay usable', async ({ page }, testInfo) => {
   const mobile = testInfo.project.name === 'iphone';
@@ -47,12 +56,28 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
   await expect(page.getByRole('heading', { name: 'Tasks' })).toBeVisible();
   await expect(page.getByText(/2,100 kcal/)).toBeVisible();
 
+  mkdirSync('/opt/cursor/artifacts', { recursive: true });
+  const tag = mobile ? 'iphone' : 'desktop';
+  if (mobile) await page.getByRole('button', { name: 'More' }).click();
+  await expect(page.locator('.side-label').filter({ hasText: 'Private' })).toBeVisible();
+  await assertSidebarAlign(page, mobile);
+  await page.screenshot({ path: `/opt/cursor/artifacts/sidebar_${tag}.png`, fullPage: false });
+  if (!mobile) {
+    const todayRow = page.locator('.tree-row').filter({ hasText: 'Today' }).first();
+    await todayRow.hover();
+    await expect(todayRow.locator('.row-actions')).toHaveCSS('opacity', '1');
+    await page.screenshot({ path: '/opt/cursor/artifacts/sidebar_desktop_hover.png', fullPage: false });
+  }
+  if (mobile) await closeDrawer(page);
+
   for (const name of PAGES) {
     await openSection(page, mobile, name);
     await expect(page.locator('input.page-title')).toHaveValue(name, { timeout: 10000 });
     const wide = await overflow(page);
     expect(wide, `${name} overflows`).toEqual([]);
   }
+
+  await checkNested(page, mobile, testInfo.project.name);
 
   await openSection(page, mobile, 'Today');
   const taskName = `QA task ${testInfo.project.name}`;
@@ -116,7 +141,7 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
   if (mobile) await page.getByRole('button', { name: 'More' }).click();
   await page.getByRole('button', { name: /Trash/ }).click();
   const noteTitle = `QA note ${testInfo.project.name}`;
-  const trashed = page.locator('.trash-row').filter({ hasText: noteTitle });
+  const trashed = page.locator('.trash-row').filter({ hasText: noteTitle }).first();
   await expect(trashed).toBeVisible();
   await trashed.getByRole('button', { name: 'Restore' }).click();
   await expect(page.locator('input.page-title')).toHaveValue(noteTitle);
@@ -129,8 +154,6 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
   await page.getByRole('dialog', { name: 'Search' }).getByRole('button', { name: /Plan/ }).first().click();
   await expect(page.locator('input.page-title')).toHaveValue('Plan');
 
-  mkdirSync('/opt/cursor/artifacts', { recursive: true });
-  const tag = mobile ? 'iphone' : 'desktop';
   await openSection(page, mobile, 'Today');
   await page.screenshot({ path: `/opt/cursor/artifacts/qa_${tag}_today.png`, fullPage: false });
   await openSection(page, mobile, 'Plan');
@@ -141,7 +164,98 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
   await openSection(page, mobile, 'Body');
   await page.screenshot({ path: `/opt/cursor/artifacts/qa_${tag}_body.png`, fullPage: false });
 
+  await page.waitForTimeout(1200);
+
   const noisy = errors.filter((line) => !/Download the React DevTools|favicon/i.test(line));
   expect(noisy, 'console errors').toEqual([]);
   expect(failed, 'failed Supabase calls').toEqual([]);
 });
+
+async function checkNested(page, mobile, project) {
+  const parentTitle = `QA nest ${project}`;
+  if (mobile) await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('button', { name: 'New page' }).click();
+  await expect(page.locator('input.page-title')).toHaveValue('Untitled');
+  await page.getByLabel('Page title').fill(parentTitle);
+  if (mobile) await page.getByRole('button', { name: 'More' }).click();
+  await sidebarReady(page);
+  const parent = page.locator('.tree-row').filter({ hasText: parentTitle }).first();
+  await parent.hover();
+  const parentX = (await parent.locator('.row-label').boundingBox()).x;
+  await parent.getByRole('button', { name: `New subpage under ${parentTitle}` }).click();
+  await expect(page.locator('input.page-title')).toHaveValue('Untitled');
+  if (mobile) await page.getByRole('button', { name: 'More' }).click();
+  await sidebarReady(page);
+  const child = page.locator('.tree-row').filter({ hasText: 'Untitled' }).first();
+  const childX = (await child.locator('.row-label').boundingBox()).x;
+  expect(childX, 'nested label indents').toBeGreaterThan(parentX + 8);
+  await page.screenshot({ path: `/opt/cursor/artifacts/sidebar_${mobile ? 'iphone' : 'desktop'}_nested.png`, fullPage: false });
+  if (mobile) await closeDrawer(page);
+  await page.getByRole('button', { name: 'Page actions' }).click();
+  await page.getByRole('button', { name: 'Move to trash' }).click();
+  if (mobile) await page.getByRole('button', { name: 'More' }).click();
+  await page.locator('.tree-row').filter({ hasText: parentTitle }).first().click();
+  if (mobile) await closeDrawer(page);
+  await page.getByRole('button', { name: 'Page actions' }).click();
+  await page.getByRole('button', { name: 'Move to trash' }).click();
+}
+
+async function closeDrawer(page) {
+  const drawer = page.locator('aside.sidebar.is-open');
+  if (await drawer.count()) {
+    await page.getByRole('button', { name: 'Close sidebar' }).click();
+    await expect(drawer).toHaveCount(0);
+  }
+}
+
+async function sidebarReady(page) {
+  await page.waitForFunction(() => {
+    const side = document.querySelector('aside.sidebar');
+    if (!side) return false;
+    const box = side.getBoundingClientRect();
+    return box.x >= -1 && box.width > 200;
+  });
+}
+
+async function assertSidebarAlign(page, mobile) {
+  await sidebarReady(page);
+  const rows = await page.evaluate(() => {
+    const names = ['Today', 'Plan', 'Body', 'Word', 'JENO', 'Log', 'Settings'];
+    return names.map((name) => {
+      const row = [...document.querySelectorAll('.tree-row')].find((el) => el.textContent.includes(name));
+      const icon = row.querySelector('.page-icon').getBoundingClientRect();
+      const label = row.querySelector('.row-label').getBoundingClientRect();
+      const box = row.getBoundingClientRect();
+      const svg = row.querySelector('.page-icon svg');
+      return {
+        name,
+        iconX: icon.x,
+        iconW: icon.width,
+        labelX: label.x,
+        rowH: box.height,
+        svg: Boolean(svg),
+      };
+    });
+  });
+  const labelX = [];
+  const iconX = [];
+  for (const row of rows) {
+    const gap = row.labelX - (row.iconX + row.iconW);
+    expect(gap, `${row.name} icon gap`).toBeGreaterThan(4);
+    expect(gap, `${row.name} icon gap`).toBeLessThan(14);
+    expect(row.iconW).toBeGreaterThan(18);
+    expect(row.iconW).toBeLessThan(26);
+    const [minH, maxH] = mobile ? [34, 40] : [26, 32];
+    expect(row.rowH, row.name).toBeGreaterThanOrEqual(minH);
+    expect(row.rowH, row.name).toBeLessThanOrEqual(maxH);
+    expect(row.svg, row.name).toBe(true);
+    labelX.push(Math.round(row.labelX));
+    iconX.push(Math.round(row.iconX));
+  }
+  expect(Math.max(...labelX) - Math.min(...labelX), 'labels share a left edge').toBeLessThan(2);
+  expect(Math.max(...iconX) - Math.min(...iconX), 'icons share a column').toBeLessThan(2);
+  const header = await page.locator('.side-label').filter({ hasText: 'Private' }).locator('span').first().boundingBox();
+  expect(Math.abs(header.x - iconX[0]), 'Private lines up with the icon column').toBeLessThan(6);
+  await expect(page.locator('.tree-row').filter({ hasText: 'QA note' })).toHaveCount(0);
+  await expect(page.locator('.tree-row').filter({ hasText: 'Untitled' })).toHaveCount(0);
+}

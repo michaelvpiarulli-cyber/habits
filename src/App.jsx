@@ -12,6 +12,7 @@ import { SettingsScreen } from './os/SettingsScreen';
 import { TodayScreen } from './os/TodayScreen';
 import { WordScreen } from './os/WordScreen';
 import { BlockEditor } from './shell/BlockEditor';
+import { PageIcon } from './shell/PageIcon';
 import { Sidebar } from './shell/Sidebar';
 import {
   COVERS,
@@ -154,6 +155,12 @@ export default function App() {
         currentId={trash ? '__trash__' : page.id}
         onOpen={openPage}
         onCreate={create}
+        onFavorite={(item) => notebook.updatePage(item.id, { favorite: !item.favorite })}
+        onDelete={(item) => {
+          if (item.systemKey) return;
+          notebook.deletePage(item.id);
+          if (item.id === page.id) openPage(today.id);
+        }}
         onCollapse={() => (wide ? toggleCollapsed() : setDrawer(false))}
         onSearch={() => { setQuick(true); setQuickQuery(''); }}
         onTrash={() => openPage('__trash__')}
@@ -167,7 +174,8 @@ export default function App() {
               <span key={crumb.id} className="crumb-wrap">
                 {index > 0 && <span className="sep">/</span>}
                 <button type="button" className={`crumb ${crumb.id === page.id ? 'is-on' : ''}`} onClick={() => openPage(crumb.id)}>
-                  <span aria-hidden="true">{crumb.icon}</span> {crumb.title || 'Untitled'}
+                  <PageIcon page={crumb} />
+                  <span className="row-label">{crumb.title || 'Untitled'}</span>
                 </button>
               </span>
             ))}
@@ -229,7 +237,10 @@ export default function App() {
                 <h1 className="page-title">Trash</h1>
                 {deleted.length === 0 ? <p className="quiet">Trash is empty.</p> : deleted.map((item) => (
                   <div key={item.id} className="trash-row">
-                    <span>{item.icon} {item.title || 'Untitled'}</span>
+                    <span className="trash-title">
+                      <PageIcon page={item} />
+                      <span className="row-label">{item.title || 'Untitled'}</span>
+                    </span>
                     <button type="button" onClick={() => { notebook.restorePage(item.id); openPage(item.id); }}>Restore</button>
                   </div>
                 ))}
@@ -240,9 +251,9 @@ export default function App() {
                   {!page.cover && <button type="button" className="meta-link" onClick={() => setCoverOpen((value) => !value)}>Add cover</button>}
                   <button type="button" className="meta-link" onClick={() => setIconOpen((value) => !value)}>{page.icon ? 'Change icon' : 'Add icon'}</button>
                 </div>
-                {(page.icon || iconOpen) && (
+                {(page.systemKey || page.icon || iconOpen) && (
                   <button type="button" className="icon-pick" aria-label="Change icon" onClick={() => setIconOpen((value) => !value)}>
-                    {page.icon || '📄'}
+                    <PageIcon page={page} large />
                   </button>
                 )}
                 {iconOpen && (
@@ -326,7 +337,8 @@ export default function App() {
             <div className="quick-list">
               {(quickQuery.trim() ? results : notebook.pages.filter((item) => !item.deleted).slice(0, 8)).map((item) => (
                 <button key={item.id} type="button" onClick={() => openPage(item.id)}>
-                  <span>{item.icon || '📄'}</span> {item.title || 'Untitled'}
+                  <PageIcon page={item} />
+                  <span className="row-label">{item.title || 'Untitled'}</span>
                 </button>
               ))}
               {quickQuery.trim() && results.length === 0 && <p className="quiet">No results</p>}

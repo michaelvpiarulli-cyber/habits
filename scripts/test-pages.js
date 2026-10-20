@@ -19,6 +19,7 @@ import {
   sortPagesForWrite,
   splitContent,
   templateSpec,
+  timeValue,
   withSystemPages,
 } from '../src/lib/pages.js';
 import { applyCollection, groupRows, matchesFilter, monthGrid, shiftMonth } from '../src/lib/collectionView.js';
@@ -109,5 +110,7 @@ assert.equal(shiftMonth('2026-10-01', 1), '2026-11-01');
 assert.equal(canonicalTitle({ systemKey: 'log', title: 'Renamed' }), 'Log');
 assert.equal(coercePage({ systemKey: 'today', title: 'Nope' }).title, 'Today');
 assert.equal(coercePage({ title: 'Notes' }).title, 'Notes');
+assert.ok(timeValue('2026-10-20T20:03:24.583762+00:00') > timeValue('2026-10-20T20:02:59.652Z'));
+assert.ok(timeValue('2026-10-20 20:03:24.583762+00') > timeValue('2026-10-20T20:02:59.652Z'));
 
 console.log('pages ok');
