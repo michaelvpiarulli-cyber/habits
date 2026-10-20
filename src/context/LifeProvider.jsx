@@ -111,7 +111,7 @@ const MISSING_TABLE_SQL = {
 };
 const missingTableMessage = (table) => {
   const sql = MISSING_TABLE_SQL[table] || 'supabase/add-life-dashboard.sql';
-  return `${table}: missing in Supabase — run ${sql} in the SQL editor, then Sync now`;
+  return `${table}: missing in Supabase. Run ${sql} in the SQL editor, then Sync now`;
 };
 
 function emptyStore() {

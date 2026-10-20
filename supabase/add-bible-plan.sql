@@ -1,0 +1,2 @@
+-- Bible checkmarks are created in supabase/add-jeno-program.sql (table bible_checks).
+-- Run that file once in the Supabase SQL editor. It is safe to re-run.

@@ -1,233 +1,351 @@
-import { useEffect, useState } from 'react';
-import { useTheme } from './hooks/useTheme';
+import { useEffect, useMemo, useState } from 'react';
 import { useData } from './context/DataProvider';
 import { useLife } from './context/LifeProvider';
-import { TodayView } from './components/TodayView';
-import { DashboardView } from './components/DashboardView';
-import { WorkoutsView } from './components/WorkoutsView';
-import { WatchLogView } from './components/WatchLogView';
-import { CaloriesView } from './components/CaloriesView';
-import { ProgressView } from './components/ProgressView';
-import { GoalsView } from './components/GoalsView';
-import { HabitsView } from './components/HabitsView';
-import { IdentityView } from './components/IdentityView';
-import { TasksView } from './components/TasksView';
-import { CalendarView } from './components/CalendarView';
-import { BooksView } from './components/BooksView';
-import { GroceryView } from './components/GroceryView';
-import { JobsView } from './components/JobsView';
-import { MoneyView } from './components/MoneyView';
-import { MailView } from './components/MailView';
-import { NotesView } from './components/NotesView';
-import { BoardsView } from './components/BoardsView';
-import { CreativityView } from './components/CreativityView';
-import { MoreView } from './components/MoreView';
-import { SideNav } from './components/SideNav';
-import { BottomNav } from './components/BottomNav';
-import { AccountMenu } from './components/AccountMenu';
-import { RewardSkin } from './components/RewardSkin';
+import { usePages } from './context/PagesProvider';
+import { useTheme } from './hooks/useTheme';
 import { NativeShell } from './components/NativeShell';
-import './App.css';
+import { BodyScreen } from './os/BodyScreen';
+import { JenoScreen } from './os/JenoScreen';
+import { LogScreen } from './os/LogScreen';
+import { PlanScreen } from './os/PlanScreen';
+import { SettingsScreen } from './os/SettingsScreen';
+import { TodayScreen } from './os/TodayScreen';
+import { WordScreen } from './os/WordScreen';
+import { BlockEditor } from './shell/BlockEditor';
+import { PageIcon } from './shell/PageIcon';
+import { Sidebar } from './shell/Sidebar';
+import {
+  COVERS,
+  breadcrumbs,
+  editedLabel,
+  pageById,
+  searchPages,
+  systemPageByKey,
+  trashedPages,
+} from './lib/pages';
+import './os/os.css';
+import './shell/shell.css';
 
-const SIDEBAR_KEY = 'tally.sidebar.open';
+const ICONS = ['📄', '☀️', '📅', '💪', '📖', '✦', '✎', '⚙️', '⭐', '🏠', '🎯', '🍎', '🧠', '📝', '❤️', '✅'];
 
-const MORE_PAGES = {
-  notes: { View: NotesView, title: 'Pages' },
-  boards: { View: BoardsView, title: 'Boards' },
-  creativity: { View: CreativityView, title: 'Creativity' },
-  calories: { View: CaloriesView, title: 'Calories' },
-  workouts: { View: WorkoutsView, title: 'Workouts' },
-  watch: { View: WatchLogView, title: 'Watch log' },
-  goals: { View: GoalsView, title: 'Goals' },
-  habits: { View: HabitsView, title: 'Edit habits' },
-  progress: { View: ProgressView, title: 'Progress' },
-  identity: { View: IdentityView, title: 'Identity' },
-  books: { View: BooksView, title: 'Books' },
-  grocery: { View: GroceryView, title: 'Fridge' },
-  jobs: { View: JobsView, title: 'Jobs' },
-  money: { View: MoneyView, title: 'Money' },
-  mail: { View: MailView, title: 'Mail' },
-  tasks: { View: TasksView, title: 'Todos' },
-};
-
-function readSidebarOpen() {
-  try {
-    const stored = localStorage.getItem(SIDEBAR_KEY);
-    if (stored === '0') return false;
-    if (stored === '1') return true;
-  } catch {
-    /* ignore */
-  }
-  if (typeof window !== 'undefined') {
-    return window.matchMedia('(min-width: 900px)').matches;
-  }
-  return false;
+function useWide() {
+  const [wide, setWide] = useState(() => window.matchMedia('(min-width: 960px)').matches);
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 960px)');
+    const onChange = () => setWide(media.matches);
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
+  return wide;
 }
 
 export default function App() {
   const theme = useTheme();
-  const { syncState, syncAvailable, dataReady } = useData();
+  const data = useData();
   const life = useLife();
-  const [tab, setTab] = useState('today');
-  const [morePage, setMorePage] = useState(null);
-  const [moreParams, setMoreParams] = useState(null);
-  const [notesEditing, setNotesEditing] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(readSidebarOpen);
+  const notebook = usePages();
+  const wide = useWide();
+  const today = systemPageByKey('today');
+  const [pageId, setPageId] = useState(today.id);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('tally-sidebar') === 'closed');
+  const [drawer, setDrawer] = useState(false);
+  const [quick, setQuick] = useState(false);
+  const [quickQuery, setQuickQuery] = useState('');
+  const [iconOpen, setIconOpen] = useState(false);
+  const [coverOpen, setCoverOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [coverUrl, setCoverUrl] = useState('');
+  const [notice, setNotice] = useState('');
 
-  const setSidebarOpen = (next) => {
-    setNavOpen(next);
-    try {
-      localStorage.setItem(SIDEBAR_KEY, next ? '1' : '0');
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const onOpen = (next, page = null, params = null) => {
-    setTab(next);
-    setMorePage(next === 'more' ? page : null);
-    setMoreParams(next === 'more' ? params : null);
-    if (next !== 'more' || page !== 'notes') setNotesEditing(false);
-  };
-
-  const onTab = (next) => {
-    setTab(next);
-    setMorePage(null);
-    setMoreParams(null);
-    setNotesEditing(false);
-  };
-
-  const onNavigate = ({ tab: nextTab, page = null }) => {
-    if (page) onOpen(nextTab || 'more', page);
-    else onTab(nextTab);
-  };
-
-  const clearMoreParams = () => setMoreParams(null);
+  const trash = pageId === '__trash__';
+  const page = pageById(notebook.pages, pageId) || today;
+  const crumbs = trash ? [] : breadcrumbs(notebook.pages, page.id);
+  const ready = data.dataReady && life.dataReady;
+  const deleted = trashedPages(notebook.pages);
+  const results = useMemo(
+    () => (quickQuery.trim() ? searchPages(notebook.pages, notebook.blocks, quickQuery) : []),
+    [notebook.pages, notebook.blocks, quickQuery]
+  );
 
   useEffect(() => {
-    if (!navOpen) return undefined;
-    const onKey = (e) => e.key === 'Escape' && setSidebarOpen(false);
+    const onKey = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setQuick(true);
+        setQuickQuery('');
+      } else if (event.key === 'Escape') {
+        setQuick(false);
+        setMoreOpen(false);
+        setShareOpen(false);
+      }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [navOpen]);
+  }, []);
 
-  useEffect(() => {
-    document.body.classList.toggle('is-side-nav-open', navOpen);
-    return () => document.body.classList.remove('is-side-nav-open');
-  }, [navOpen]);
+  const openPage = (id) => {
+    setPageId(id);
+    setDrawer(false);
+    setQuick(false);
+    setIconOpen(false);
+    setCoverOpen(false);
+    setMoreOpen(false);
+    setShareOpen(false);
+  };
 
-  if (!dataReady || !life.dataReady) {
-    return (
-      <div className="app">
-        <NativeShell isDark={theme.isDark} />
-        <main className="main">
-          <p className="status">Loading…</p>
-        </main>
-      </div>
-    );
-  }
+  const jump = (key) => {
+    const target = systemPageByKey(key);
+    if (target) openPage(target.id);
+  };
 
-  const more = morePage ? MORE_PAGES[morePage] : null;
-  const MoreViewComp = more?.View;
+  const create = (parentId) => {
+    const created = notebook.createPage(parentId);
+    if (created) openPage(created.id);
+  };
 
-  const moreProps =
-    morePage === 'notes'
-      ? {
-          initialNoteId: moreParams?.noteId || null,
-          initialCreate: Boolean(moreParams?.create),
-          onEditingChange: setNotesEditing,
-          onLeaveEditor: clearMoreParams,
-          onConsumedIntent: clearMoreParams,
-        }
-      : morePage === 'boards'
-        ? {
-            initialCardId: moreParams?.cardId || null,
-            initialCreate: Boolean(moreParams?.create),
-            onConsumedIntent: clearMoreParams,
-          }
-        : morePage === 'tasks'
-          ? {
-              initialTaskId: moreParams?.taskId || null,
-              initialCreate: Boolean(moreParams?.create),
-              onConsumedIntent: clearMoreParams,
-            }
-          : morePage === 'books'
-            ? {
-                initialCreate: Boolean(moreParams?.create),
-                onConsumedIntent: clearMoreParams,
-              }
-            : morePage === 'creativity'
-              ? { onOpen }
-              : {};
+  const toggleCollapsed = () => {
+    if (!wide) {
+      setDrawer((value) => !value);
+      return;
+    }
+    setCollapsed((value) => {
+      localStorage.setItem('tally-sidebar', value ? 'open' : 'closed');
+      return !value;
+    });
+  };
+
+  const copyLink = async () => {
+    const link = `${window.location.origin}/?page=${page.id}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setNotice('Link copied');
+    } catch {
+      setNotice(link);
+    }
+    setShareOpen(false);
+  };
+
+  const coverStyle = !trash && page.cover?.startsWith('http')
+    ? { backgroundImage: `url(${page.cover})` }
+    : !trash && page.cover && COVERS[page.cover]
+      ? { backgroundImage: COVERS[page.cover] }
+      : null;
+
+  let module = null;
+  if (!trash && ready && page.systemKey === 'today') module = <TodayScreen onLog={() => jump('log')} onSettings={() => jump('settings')} onJump={jump} />;
+  else if (!trash && ready && page.systemKey === 'plan') module = <PlanScreen onLog={() => jump('log')} onSettings={() => jump('settings')} />;
+  else if (!trash && ready && page.systemKey === 'body') module = <BodyScreen onLog={() => jump('log')} onSettings={() => jump('settings')} />;
+  else if (!trash && ready && page.systemKey === 'word') module = <WordScreen onLog={() => jump('log')} onSettings={() => jump('settings')} />;
+  else if (!trash && ready && page.systemKey === 'jeno') module = <JenoScreen onLog={() => jump('log')} onSettings={() => jump('settings')} />;
+  else if (!trash && ready && page.systemKey === 'log') module = <LogScreen onClose={() => jump('today')} />;
+  else if (!trash && ready && page.systemKey === 'settings') module = <SettingsScreen onClose={() => jump('today')} />;
+  else if (!trash && !ready) module = <p className="quiet">Loading…</p>;
+
+  const history = page.props?.history || [];
+  const fullWidth = page.props?.fullWidth != null ? !!page.props.fullWidth : Boolean(page.systemKey);
 
   return (
-    <div className={`app ${navOpen ? 'is-nav-open' : 'is-nav-closed'}`}>
+    <div className="app">
       <NativeShell isDark={theme.isDark} />
-      <RewardSkin />
-
-      <SideNav
-        tab={tab}
-        morePage={morePage}
-        open={navOpen}
-        onClose={() => setSidebarOpen(false)}
-        onToggle={() => setSidebarOpen(!navOpen)}
-        onNavigate={onNavigate}
+      {!wide && drawer && <button type="button" className="scrim" aria-label="Close menu" onClick={() => setDrawer(false)} />}
+      <Sidebar
+        className={!wide ? `sidebar is-drawer ${drawer ? 'is-open' : ''}` : `sidebar ${collapsed ? 'is-collapsed' : ''}`}
+        pages={notebook.pages}
+        currentId={trash ? '__trash__' : page.id}
+        onOpen={openPage}
+        onCreate={create}
+        onFavorite={(item) => notebook.updatePage(item.id, { favorite: !item.favorite })}
+        onDelete={(item) => {
+          if (item.systemKey) return;
+          notebook.deletePage(item.id);
+          if (item.id === page.id) openPage(today.id);
+        }}
+        onCollapse={() => (wide ? toggleCollapsed() : setDrawer(false))}
+        onSearch={() => { setQuick(true); setQuickQuery(''); }}
+        onTrash={() => openPage('__trash__')}
+        trashCount={deleted.length}
       />
-
-      <div className="app__shell">
+      <div className="workspace">
         <header className="topbar">
-          <div className="topbar__lead">
-            <button
-              type="button"
-              className="nav-toggle"
-              aria-expanded={navOpen}
-              aria-controls="side-nav"
-              aria-label={navOpen ? 'Collapse sidebar' : 'Open sidebar'}
-              onClick={() => setSidebarOpen(!navOpen)}
-            >
-              <SidebarToggleIcon />
-            </button>
-            <h1 className="wordmark">
-              Tally<span className="wordmark__dot" aria-hidden="true">.</span>
-            </h1>
-          </div>
-          <button
-            type="button"
-            className={`account ${syncState === 'error' || life.syncState === 'error' ? 'is-error' : ''}`}
-            onClick={() => setAccountOpen(true)}
-          >
-            <span
-              className={`account__dot account__dot--${syncAvailable ? syncState : 'local'}`}
-            />
-            Settings
-          </button>
+          <button type="button" className="icon-btn menu-btn" aria-label={wide && !collapsed ? 'Collapse sidebar' : 'Open sidebar'} onClick={toggleCollapsed}>☰</button>
+          <nav className="crumbs" aria-label="Breadcrumb">
+            {crumbs.map((crumb, index) => (
+              <span key={crumb.id} className="crumb-wrap">
+                {index > 0 && <span className="sep">/</span>}
+                <button type="button" className={`crumb ${crumb.id === page.id ? 'is-on' : ''}`} onClick={() => openPage(crumb.id)}>
+                  <PageIcon page={crumb} />
+                  <span className="row-label">{crumb.title || 'Untitled'}</span>
+                </button>
+              </span>
+            ))}
+            {trash && <span className="crumb is-on">Trash</span>}
+          </nav>
+          {!trash && (
+            <div className="page-actions">
+              <span className="edited">{editedLabel(page.updatedAt)}</span>
+              <button type="button" className="share" onClick={() => { setShareOpen((value) => !value); setMoreOpen(false); }}>Share</button>
+              <button type="button" className="icon-btn" aria-pressed={page.favorite} aria-label="Favorite" onClick={() => notebook.updatePage(page.id, { favorite: !page.favorite })}>
+                {page.favorite ? '★' : '☆'}
+              </button>
+              <button type="button" className="icon-btn" aria-label="Page actions" onClick={() => { setMoreOpen((value) => !value); setShareOpen(false); }}>···</button>
+            </div>
+          )}
+          {shareOpen && (
+            <div className="pop share-pop">
+              <strong>Share</strong>
+              <p>Only this household can open it.</p>
+              <button type="button" onClick={copyLink}>Copy link</button>
+            </div>
+          )}
+          {moreOpen && !trash && (
+            <div className="pop more-menu" role="menu">
+              <button type="button" onClick={() => notebook.updatePage(page.id, { props: { ...page.props, fullWidth: !fullWidth } })}>
+                {fullWidth ? 'Default width' : 'Full width'}
+              </button>
+              <button type="button" onClick={() => notebook.updatePage(page.id, { props: { ...page.props, smallText: !page.props?.smallText } })}>
+                {page.props?.smallText ? 'Default text' : 'Small text'}
+              </button>
+              <button type="button" onClick={() => { setCoverOpen(true); setMoreOpen(false); }}>Add cover</button>
+              <button type="button" onClick={() => notebook.applyTemplate(page.id, 'daily')}>Daily note</button>
+              <button type="button" onClick={() => notebook.applyTemplate(page.id, 'weekly')}>Weekly review</button>
+              <button type="button" disabled={Boolean(page.systemKey)} onClick={() => { const copy = notebook.duplicatePage(page.id); if (copy) openPage(copy.id); }}>Duplicate</button>
+              <button type="button" disabled={Boolean(page.systemKey)} onClick={() => { notebook.deletePage(page.id); openPage(today.id); }}>Move to trash</button>
+              {history.length > 0 && <p className="side-label">History</p>}
+              {history.slice(0, 6).map((shot) => (
+                <button
+                  key={shot.at}
+                  type="button"
+                  onClick={() => {
+                    notebook.restoreSnapshot(page.id, shot);
+                    setMoreOpen(false);
+                  }}
+                >
+                  {new Date(shot.at).toLocaleString()}
+                </button>
+              ))}
+            </div>
+          )}
         </header>
-
-        <main className={`main ${morePage && notesEditing ? 'main--flush' : ''}`}>
-          {tab === 'today' && <DashboardView onOpen={onOpen} />}
-          {tab === 'habits' && <TodayView onOpen={onOpen} />}
-          {tab === 'calendar' && <CalendarView />}
-          {tab === 'more' && !more && <MoreView onOpen={onOpen} />}
-          {tab === 'more' && MoreViewComp && <MoreViewComp {...moreProps} />}
-        </main>
-
-        <BottomNav
-          tab={tab === 'calendar' ? 'more' : tab === 'today' || tab === 'more' ? tab : ''}
-          onChange={onTab}
-        />
+        {notebook.warning ? <p className="notice">{notebook.warning}</p> : null}
+        {notice ? <p className="notice">{notice}</p> : null}
+        <div className="page-scroll">
+          {coverStyle && <div className="cover" style={coverStyle} role="img" aria-label="Page cover" />}
+          <article className={`page-body${fullWidth ? ' is-full' : ''}${page.props?.smallText ? ' is-small' : ''}`}>
+            {trash ? (
+              <div className="trash-list">
+                <h1 className="page-title">Trash</h1>
+                {deleted.length === 0 ? <p className="quiet">Trash is empty.</p> : deleted.map((item) => (
+                  <div key={item.id} className="trash-row">
+                    <span className="trash-title">
+                      <PageIcon page={item} />
+                      <span className="row-label">{item.title || 'Untitled'}</span>
+                    </span>
+                    <button type="button" onClick={() => { notebook.restorePage(item.id); openPage(item.id); }}>Restore</button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className="page-meta">
+                  {!page.cover && <button type="button" className="meta-link" onClick={() => setCoverOpen((value) => !value)}>Add cover</button>}
+                  <button type="button" className="meta-link" onClick={() => setIconOpen((value) => !value)}>{page.icon ? 'Change icon' : 'Add icon'}</button>
+                </div>
+                {(page.systemKey || page.icon || iconOpen) && (
+                  <button type="button" className="icon-pick" aria-label="Change icon" onClick={() => setIconOpen((value) => !value)}>
+                    <PageIcon page={page} large />
+                  </button>
+                )}
+                {iconOpen && (
+                  <div className="pop icon-pop">
+                    {ICONS.map((icon) => (
+                      <button key={icon} type="button" onClick={() => { notebook.updatePage(page.id, { icon }); setIconOpen(false); }}>{icon}</button>
+                    ))}
+                    <input aria-label="Custom emoji" placeholder="Paste emoji" onChange={(event) => {
+                      const icon = [...event.target.value].slice(-2).join('');
+                      if (icon) notebook.updatePage(page.id, { icon });
+                    }}
+                    />
+                  </div>
+                )}
+                {coverOpen && (
+                  <div className="pop cover-pop">
+                    <button type="button" className="swatch" aria-label="Remove cover" onClick={() => notebook.updatePage(page.id, { cover: '' })} />
+                    {Object.entries(COVERS).map(([key, image]) => (
+                      <button key={key} type="button" className="swatch" aria-label={`${key} cover`} style={{ backgroundImage: image }} onClick={() => { notebook.updatePage(page.id, { cover: key }); setCoverOpen(false); }} />
+                    ))}
+                    <input
+                      aria-label="Cover image URL"
+                      placeholder="Paste an image link"
+                      value={coverUrl}
+                      onChange={(event) => setCoverUrl(event.target.value)}
+                      onBlur={() => {
+                        if (/^https?:\/\//i.test(coverUrl)) notebook.updatePage(page.id, { cover: coverUrl });
+                      }}
+                    />
+                  </div>
+                )}
+                <input
+                  className="page-title"
+                  aria-label="Page title"
+                  value={page.title}
+                  placeholder="Untitled"
+                  onChange={(event) => notebook.updatePage(page.id, { title: event.target.value })}
+                />
+                {module && <div className="module">{module}</div>}
+                <BlockEditor
+                  pageId={page.id}
+                  blocks={notebook.blocks}
+                  pages={notebook.pages}
+                  onOpenPage={openPage}
+                  autoFocus={!page.systemKey}
+                  onAdd={notebook.addBlock}
+                  onUpdate={notebook.updateBlock}
+                  onDelete={notebook.deleteBlock}
+                  onReorder={notebook.reorder}
+                />
+              </>
+            )}
+          </article>
+        </div>
       </div>
-
-      {accountOpen && <AccountMenu theme={theme} onClose={() => setAccountOpen(false)} />}
+      {!wide && (
+        <nav className="tabs" aria-label="Daily">
+          {[
+            ['today', 'Today'],
+            ['plan', 'Plan'],
+            ['body', 'Body'],
+            ['word', 'Word'],
+          ].map(([key, label]) => (
+            <button key={key} type="button" className={page.systemKey === key && !trash ? 'is-on' : ''} onClick={() => jump(key)}>
+              {label}
+            </button>
+          ))}
+          <button type="button" onClick={() => setDrawer(true)}>More</button>
+        </nav>
+      )}
+      {quick && (
+        <div className="quick-scrim" onMouseDown={() => setQuick(false)}>
+          <div className="quick" role="dialog" aria-label="Search" onMouseDown={(event) => event.stopPropagation()}>
+            <input
+              autoFocus
+              placeholder="Search pages"
+              aria-label="Quick find"
+              value={quickQuery}
+              onChange={(event) => setQuickQuery(event.target.value)}
+            />
+            <div className="quick-list">
+              {(quickQuery.trim() ? results : notebook.pages.filter((item) => !item.deleted).slice(0, 8)).map((item) => (
+                <button key={item.id} type="button" onClick={() => openPage(item.id)}>
+                  <PageIcon page={item} />
+                  <span className="row-label">{item.title || 'Untitled'}</span>
+                </button>
+              ))}
+              {quickQuery.trim() && results.length === 0 && <p className="quiet">No results</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
-}
-
-function SidebarToggleIcon() {
-  return (
-    <svg className="nav-toggle__icon" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <rect x="2" y="3" width="14" height="12" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M7 3v12" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
   );
 }

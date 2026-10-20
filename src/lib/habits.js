@@ -11,12 +11,12 @@ import { WEEKDAY_LABELS } from './dates.js';
 
 export const KINDS = [
   { id: 'check', label: 'Done or not', hint: 'One tap. Best for things you either did or you didn’t.' },
-  { id: 'count', label: 'Count up to', hint: 'Tap once per rep — 3 walks, 8 glasses.' },
-  { id: 'amount', label: 'Hit a number', hint: 'Enter what you hit against a target — 8 h, 185 g.' },
+  { id: 'count', label: 'Count up to', hint: 'Tap once per rep. 3 walks, 8 glasses.' },
+  { id: 'amount', label: 'Hit a number', hint: 'Enter what you hit against a target. 8 h, 185 g.' },
   {
     id: 'measure',
     label: 'Track a number',
-    hint: 'Record a reading and watch the trend — weight, resting heart rate. Showing up is the win.',
+    hint: 'Record a reading and watch the trend. Weight, resting heart rate. Showing up is the win.',
   },
 ];
 

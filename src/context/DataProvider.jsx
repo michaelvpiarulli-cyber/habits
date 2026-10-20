@@ -122,7 +122,7 @@ const STARTER_IDENTITY = [
   {
     id: '7a110000-0000-4000-9000-000000000005',
     name: 'Chief servant in my home',
-    note: 'I lead by serving first. The house is not something I am owed — it is something I carry.',
+    note: 'I lead by serving first. The house is not something I am owed. It is something I carry.',
       verseRef: 'Mark 10:43-44',
     verseText: "Whoever wants to become great among you shall be your servant.",
   },
@@ -173,7 +173,7 @@ const isRlsViolation = (error) =>
 const isUniqueViolation = (error) =>
   error?.code === '23505' || /duplicate key/i.test(error?.message || '');
 const missingTableMessage = (table) =>
-  `${table}: missing in Supabase — run supabase/schema.sql in the SQL editor, then Sync now`;
+  `${table}: missing in Supabase. Run supabase/schema.sql in the SQL editor, then Sync now`;
 
 const TOMBSTONE_TTL_DAYS = 90;
 const PUSH_DEBOUNCE_MS = 700;

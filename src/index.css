@@ -1,179 +1,82 @@
-/**
- * Tally — fun, still spare.
- *
- * Light: warm paper. Dark: true black like a coding IDE — layered charcoal
- * cards, thin rules, off-white ink. Colour does the celebrating; layout stays quiet.
- */
-
 :root {
   color-scheme: light;
-
-  --paper: #f6f1ea;
-  --card: #fffcf8;
-  --sunk: #efe6db;
-  --rule: #e4d8cc;
-
-  --ink: #1c1915;
-  --ink-soft: #7a7168;
-
-  --blue: #3b82f6;
-  --blue-deep: #1d4ed8;
-  --blue-wash: #dceafd;
-  --pink: #f07167;
-  --pink-wash: #fde3df;
-  --violet: #7c6af2;
-  --gold: #c9a227;
-
-  --on-ink: #fffcf8;
-  --on-pink: #fffcf8;
-  --scrim: rgba(28, 25, 21, 0.4);
-  --shadow: rgba(28, 25, 21, 0.06);
-  --shadow-float: 0 4px 16px rgba(28, 25, 21, 0.08);
-
-  --nav-height: 52px;
-  --gutter: 16px;
-  /* Squared Notion-like chrome — sharp rects, quiet edges, no pill float. */
-  --radius: 3px;
-  --radius-sm: 2px;
-  /* Reserved for rare true capsules (progress thumbs). Prefer --radius for chrome. */
-  --radius-pill: 999px;
-
-  --sans: 'IBM Plex Sans', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --display: 'Anton', 'IBM Plex Sans', sans-serif;
-
+  --bg: #ffffff;
+  --sidebar: #f7f7f5;
+  --bg-raise: #f7f7f5;
+  --hover: rgba(55, 53, 47, 0.06);
+  --active: rgba(55, 53, 47, 0.1);
+  --card: #ffffff;
+  --ink: #37352f;
+  --muted: #787774;
+  --faint: #9b9a97;
+  --line: rgba(55, 53, 47, 0.09);
+  --accent: #337ea9;
+  --accent-ink: #ffffff;
+  --clay: #9f6b53;
+  --shadow: none;
+  --serif: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --tab: calc(62px + env(safe-area-inset-bottom));
   font-family: var(--sans);
-  line-height: 1.5;
+  line-height: 1.45;
   font-weight: 400;
+  color: var(--ink);
+  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* True-black dark — as dark as an IDE chrome, not charcoal-brown. */
 :root[data-theme='dark'] {
   color-scheme: dark;
-
-  --paper: #000000;
-  --card: #121212;
-  --sunk: #181818;
-  --rule: #2d2d2d;
-
-  --ink: #e0e0e0;
-  --ink-soft: #808080;
-
-  --blue: #60a5fa;
-  --blue-deep: #93c5fd;
-  --blue-wash: #0b1220;
-  --pink: #f87171;
-  --pink-wash: #1f1212;
-  --violet: #a78bfa;
-  --gold: #fbbf24;
-
-  --on-ink: #000000;
-  --on-pink: #000000;
-  --scrim: rgba(0, 0, 0, 0.72);
-  --shadow: rgba(0, 0, 0, 0.4);
-  --shadow-float: 0 4px 18px rgba(0, 0, 0, 0.45);
+  --bg: #191919;
+  --sidebar: #202020;
+  --bg-raise: #202020;
+  --hover: rgba(255, 255, 255, 0.055);
+  --active: rgba(255, 255, 255, 0.09);
+  --card: #191919;
+  --ink: #d4d4d4;
+  --muted: #9b9b9b;
+  --faint: #6f6f6f;
+  --line: rgba(255, 255, 255, 0.094);
+  --accent: #7eb6dc;
+  --accent-ink: #191919;
+  --clay: #d8a58f;
+  --shadow: none;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html,
-body {
+html, body, #root {
   margin: 0;
-  min-height: 100%;
-}
-
-html.is-app,
-html.is-app body {
-  overscroll-behavior: none;
+  width: 100%;
   height: 100%;
+  min-height: 100dvh;
+  background: var(--bg);
 }
 
 body {
-  min-width: 320px;
   min-height: 100dvh;
-  background-color: var(--paper);
-  background-image: radial-gradient(900px 420px at 50% -8%, var(--blue-wash), transparent 58%);
+  background: var(--bg);
   color: var(--ink);
+  overflow: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Flat true black — no warm wash, barely a tint at the top. */
-:root[data-theme='dark'] body {
-  background-color: #000000;
-  background-image: radial-gradient(
-    720px 280px at 50% -12%,
-    color-mix(in srgb, var(--blue) 10%, transparent),
-    transparent 60%
-  );
+#root {
+  display: flex;
+  min-height: 100dvh;
 }
 
-:root[data-reward='gold'] body {
-  background-image:
-    radial-gradient(640px 280px at 88% -6%, color-mix(in srgb, var(--gold) 22%, transparent), transparent 55%),
-    radial-gradient(900px 420px at 50% -8%, var(--blue-wash), transparent 58%);
-}
+h1, h2, h3, p { margin: 0; }
 
-:root[data-theme='dark'][data-reward='gold'] body {
-  background-image:
-    radial-gradient(640px 280px at 88% -6%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 55%),
-    radial-gradient(720px 280px at 50% -12%, color-mix(in srgb, var(--blue) 10%, transparent), transparent 60%);
-}
+button, input, textarea, select { font: inherit; color: inherit; }
 
-h1,
-h2,
-h3,
-h4,
-p {
-  margin: 0;
-}
-
-button {
-  border: none;
-  background: none;
-  font-family: inherit;
-  font-size: inherit;
-  color: inherit;
-  cursor: pointer;
-  padding: 0;
-}
-
-input,
-select,
-textarea {
-  font-family: inherit;
-  font-size: inherit;
-  color: inherit;
-}
+button { border: 0; background: none; padding: 0; cursor: pointer; }
 
 :focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-/* Quiet secondary label — Notion calm, not ticket chrome.
-   Prefer plain muted sans; keep mono/uppercase only where data density needs it. */
-.eyebrow {
-  font-family: var(--sans);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink-soft);
-}
-
-/* Optional denser label for charts / meters when a mono cue still helps. */
-.eyebrow--dense {
-  font-family: var(--mono);
-  font-size: 0.688rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .visually-hidden {
@@ -189,9 +92,7 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

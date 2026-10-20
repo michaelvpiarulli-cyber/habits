@@ -27,6 +27,9 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+playwright-report
+test-results
+blob-report
 
 # Capacitor iOS (generated copies and user data)
 ios/App/Pods

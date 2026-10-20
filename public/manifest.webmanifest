@@ -2,13 +2,12 @@
   "id": "/",
   "name": "Tally",
   "short_name": "Tally",
-  "description": "A habit tracker. Close the day, keep the chain.",
+  "description": "A personal life operating system.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#F6F1EA",
-  "theme_color": "#F6F1EA",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "/icon-192.png",

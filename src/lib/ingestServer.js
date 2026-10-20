@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { applyNutritionWrite, foodCount } from './foodLog.js';
 import { extractIngestKey, keysMatch, validateIngest } from './ingest.js';
 import { HOUSEHOLD_OWNER_ID } from './household.js';
 
@@ -22,26 +23,45 @@ function readBody(body) {
   return body;
 }
 
+async function recordActivity(client, ownerId, entry) {
+  const { error } = await client.from('jeno_activity').insert({
+    id: crypto.randomUUID(),
+    user_id: ownerId,
+    kind: entry.kind,
+    action: entry.action,
+    summary: entry.summary,
+    detail: entry.detail || {},
+    day: entry.day || null,
+    created_at: entry.at || new Date().toISOString(),
+  });
+  if (error && !isMissingTable(error)) throw error;
+}
+
+function isMissingTable(error) {
+  return error?.code === 'PGRST205' || error?.code === 'PGRST106' || error?.code === '42P01';
+}
+
 async function writeNutrition(client, ownerId, value) {
   const now = new Date().toISOString();
   const { data: existing, error: readError } = await client
     .from('daily_nutrition')
-    .select('id')
+    .select('id, meals, calories, protein, carbs, fat')
     .eq('user_id', ownerId)
     .eq('day', value.date)
     .eq('deleted', false)
     .maybeSingle();
   if (readError) throw readError;
 
+  const next = applyNutritionWrite(existing, value);
   const row = {
     id: existing?.id || crypto.randomUUID(),
     user_id: ownerId,
     day: value.date,
-    calories: value.calories,
-    protein: value.protein,
-    carbs: value.carbs,
-    fat: value.fat,
-    meals: value.meals,
+    calories: next.calories,
+    protein: next.protein,
+    carbs: next.carbs,
+    fat: next.fat,
+    meals: next.meals,
     deleted: false,
     updated_at: now,
     ...(existing ? {} : { created_at: now }),
@@ -49,8 +69,27 @@ async function writeNutrition(client, ownerId, value) {
   const { error } = await client.from('daily_nutrition').upsert(row);
   if (error) throw error;
 
-  const proteinHabitId = await syncProteinHabit(client, ownerId, value.date, value.protein, now);
-  return { ok: true, kind: 'nutrition', day: value.date, proteinHabitId };
+  const proteinHabitId = await syncProteinHabit(client, ownerId, value.date, next.protein, now);
+  const count = foodCount(next);
+  await recordActivity(client, ownerId, {
+    kind: 'nutrition',
+    action: 'logged',
+    summary: `Food for ${value.date} · ${Math.round(next.calories)} kcal · ${Math.round(next.protein)} g protein${count ? ` · ${count} foods` : ''}`,
+    detail: { meals: next.meals, calories: next.calories, protein: next.protein },
+    day: value.date,
+    at: now,
+  });
+  return {
+    ok: true,
+    kind: 'nutrition',
+    day: value.date,
+    calories: next.calories,
+    protein: next.protein,
+    carbs: next.carbs,
+    fat: next.fat,
+    meals: next.meals,
+    proteinHabitId,
+  };
 }
 
 async function syncProteinHabit(client, ownerId, day, protein, now) {

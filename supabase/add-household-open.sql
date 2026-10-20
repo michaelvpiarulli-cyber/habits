@@ -97,7 +97,8 @@ declare
     'tasks', 'calendar_events', 'books', 'job_apps',
     'finance_accounts', 'finance_entries', 'finance_budgets',
     'grocery_items', 'life_notes', 'board_cards',
-    'daily_nutrition', 'workout_logs', 'watch_entries'
+    'daily_nutrition', 'workout_logs', 'watch_entries',
+    'pages', 'blocks'
   ];
 begin
   foreach t in array tables loop
