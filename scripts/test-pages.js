@@ -80,6 +80,28 @@ assert.deepEqual(
   ['1', '2']
 );
 assert.equal(groupRows(rows, 'status').length, 2);
+assert.deepEqual(
+  applyCollection(
+    [
+      { id: 'n', title: 'Later', priority: 'none' },
+      { id: 'u', title: 'Now', priority: 'urgent' },
+      { id: 'm', title: 'Mid', priority: 'medium' },
+    ],
+    { sort: { key: 'priority', dir: 'asc' } }
+  ).map((row) => row.id),
+  ['u', 'm', 'n']
+);
+assert.deepEqual(
+  groupRows(
+    [
+      { id: 'n', priority: 'none' },
+      { id: 'u', priority: 'urgent' },
+      { id: 'h', priority: 'high' },
+    ],
+    'priority'
+  ).map(([name]) => name),
+  ['urgent', 'high', 'none']
+);
 
 assert.deepEqual(markdownShortcut('# '), { type: 'h1', content: '' });
 assert.deepEqual(markdownShortcut('- '), { type: 'bullet', content: '' });

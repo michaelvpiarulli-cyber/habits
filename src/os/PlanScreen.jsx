@@ -51,7 +51,7 @@ export function PlanScreen() {
   const setTaskPriority = (id, next) => life.updateTask(id, { priority: next });
 
   return (
-    <div className="board">
+    <div className="board plan-board">
       <section>
         <h2>Calendar</h2>
         {!google.connected ? <p className="quiet">Connect Google in Settings.</p> : null}
@@ -89,6 +89,7 @@ export function PlanScreen() {
 
       <Collection
         title="Tasks"
+        initialSort={{ key: 'priority', dir: 'asc' }}
         groupKey="status"
         rows={life.tasks.filter((task) => !task.deleted).map((task) => ({
           id: task.id,
