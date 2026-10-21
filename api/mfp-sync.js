@@ -1,7 +1,8 @@
 /**
  * /api/mfp-sync
  *
- * GET  Vercel cron. Syncs today and yesterday in America/Los_Angeles,
+ * GET  Vercel cron, once a day (Hobby cannot run every 30 minutes).
+ *      Syncs today and yesterday in America/Los_Angeles,
  *      or the last 14 days the first time a username is set.
  * POST Sync now from Settings or Food. Optional JSON `{ "username": "..." }`.
  *

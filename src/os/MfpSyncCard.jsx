@@ -111,7 +111,7 @@ export function MfpSyncCard({ variant = 'settings' }) {
       <h2>MyFitnessPal</h2>
       <p className="quiet">
         {savedName
-          ? 'Tally reads the public diary every 30 minutes. Today and yesterday stay up to date.'
+          ? 'Tally reads the public diary once a day in the morning Pacific. Sync now pulls it immediately.'
           : MFP_SETUP_MESSAGE}
       </p>
       <form onSubmit={save}>

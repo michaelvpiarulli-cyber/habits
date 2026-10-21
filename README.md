@@ -86,7 +86,7 @@ curl -X POST "$BASE/api/ingest" \
 
 `date` may be sent as `day`. Protein is still copied onto the Protein habit. 210 g is the dashboard goal. The habit keeps its own target.
 
-Tally can also read a public MyFitnessPal diary. Set the username in Settings. Leave it blank until Michael sends it. The screen says: Add your MyFitnessPal username and set your diary to public. `MFP_USERNAME` overrides that field when it is set on the server. `GET /api/mfp-sync` runs every 30 minutes for today and yesterday in America/Los_Angeles, and the first run backfills 14 days. Those rows use `daily_nutrition.source = mfp` and replace themselves on the next sync. JENO rows stay `source = jeno`.
+Tally can also read a public MyFitnessPal diary. Set the username in Settings. Leave it blank until Michael sends it. The screen says: Add your MyFitnessPal username and set your diary to public. `MFP_USERNAME` overrides that field when it is set on the server. `GET /api/mfp-sync` runs once a day at 15:00 UTC (about 8:00 am Pacific). Hobby cron cannot run every 30 minutes, so Sync now is the immediate pull. Each run covers today and yesterday in America/Los_Angeles, and the first run backfills 14 days. Those rows use `daily_nutrition.source = mfp` and replace themselves on the next sync. JENO rows stay `source = jeno`.
 
 The older `kind: workout` body still marks that calendar day’s completion row. It does not edit the program. Sunday is rejected.
 
