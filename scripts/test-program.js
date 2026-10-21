@@ -251,6 +251,56 @@ test('program API keeps one-off dates on create and later patches', async () => 
   assert.equal(bad.status, 400);
 });
 
+test('program get uses program_get and does not require a service role', async () => {
+  const calls = [];
+  const listed = await runProgram({
+    method: 'GET',
+    headers: { authorization: 'Bearer file-key' },
+    env: {},
+    lookupHash: async () => sha256Hex('file-key'),
+    clientFactory: () => ({
+      rpc: async (name, args) => {
+        calls.push({ name, args });
+        return {
+          data: {
+            adopted: true,
+            workouts: [
+              {
+                id: SEED_A_ID,
+                name: 'Strength A',
+                days: [0, 2, 4],
+                pattern: 'alternate-a',
+                dates: [],
+                exercises: [],
+                sortOrder: 0,
+                deleted: false,
+              },
+            ],
+          },
+          error: null,
+        };
+      },
+    }),
+  });
+  assert.equal(listed.status, 200);
+  assert.equal(listed.body.source, 'jeno');
+  assert.equal(listed.body.workouts[0].name, 'Strength A');
+  assert.equal(calls[0].name, 'program_get');
+  assert.equal(calls[0].args.p_key, 'file-key');
+  assert.equal(Object.hasOwn(calls[0].args, 'service'), false);
+
+  const denied = await runProgram({
+    method: 'GET',
+    headers: { authorization: 'Bearer file-key' },
+    env: {},
+    lookupHash: async () => sha256Hex('file-key'),
+    clientFactory: () => ({
+      rpc: async () => ({ data: null, error: { code: '42501', message: 'unauthorized' } }),
+    }),
+  });
+  assert.equal(denied.status, 401);
+});
+
 test('readme documents the JENO program and food entry endpoints', () => {
   const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
   assert.match(readme, /\/api\/program/);

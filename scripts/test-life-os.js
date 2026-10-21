@@ -368,6 +368,60 @@ test('life os SQL opens the new tables to the anon key', () => {
   assert.doesNotMatch(sql, /to authenticated using \(\(select auth\.uid\(\)\) = user_id\)/);
 });
 
+test('ingest writes through ingest_nutrition without a service role', async () => {
+  const calls = [];
+  let existing = null;
+  const saved = await runIngest({
+    method: 'POST',
+    headers: { authorization: 'Bearer file-key' },
+    body: { kind: 'nutrition', date: '2026-10-19', calories: 1450, protein: 120 },
+    env: {},
+    lookupHash: async () => sha256Hex('file-key'),
+    clientFactory: () => ({
+      rpc: async (name, args) => {
+        calls.push({ name, args });
+        if (name === 'ingest_nutrition' && args.p_write == null) return { data: existing, error: null };
+        existing = {
+          id: '22222222-2222-4222-8222-222222222222',
+          calories: args.p_write.calories,
+          protein: args.p_write.protein,
+          carbs: args.p_write.carbs,
+          fat: args.p_write.fat,
+          meals: args.p_write.meals,
+        };
+        return {
+          data: { ok: true, kind: 'nutrition', day: args.p_day, ...args.p_write },
+          error: null,
+        };
+      },
+    }),
+  });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.body.calories, 1450);
+  assert.equal(calls[0].name, 'ingest_nutrition');
+  assert.equal(calls[0].args.p_key, 'file-key');
+  assert.equal(calls[0].args.p_write, null);
+  assert.equal(calls[1].args.p_write.calories, 1450);
+  assert.equal(calls[1].args.p_write.protein, 120);
+
+  const again = await runIngest({
+    method: 'POST',
+    headers: { authorization: 'Bearer file-key' },
+    body: { kind: 'nutrition', date: '2026-10-19', calories: 1000 },
+    env: {},
+    lookupHash: async () => sha256Hex('file-key'),
+    clientFactory: () => ({
+      rpc: async (name, args) => {
+        if (args.p_write == null) return { data: existing, error: null };
+        return { data: { ok: true, calories: args.p_write.calories, protein: args.p_write.protein }, error: null };
+      },
+    }),
+  });
+  assert.equal(again.status, 200);
+  assert.equal(again.body.calories, 1000);
+  assert.equal(again.body.protein, 120);
+});
+
 test('ingest key SQL stores a hash and locks the table', () => {
   const sql = fs.readFileSync(new URL('../supabase/add-ingest-key.sql', import.meta.url), 'utf8');
   assert.match(sql, /create table if not exists public.app_secrets/);
@@ -376,6 +430,20 @@ test('ingest key SQL stores a hash and locks the table', () => {
   assert.match(sql, /check_ingest_key/);
   assert.match(sql, /f8ced195526e89adef759390e5404c9ded89eeb5a3fbb239b22c3d22f3d7933e/);
   assert.doesNotMatch(sql, /create policy/);
+});
+
+test('ingest rpc SQL checks the key and does not delete rows', () => {
+  const sql = fs.readFileSync(new URL('../supabase/add-ingest-rpc.sql', import.meta.url), 'utf8');
+  for (const name of ['program_get', 'program_upsert', 'ingest_nutrition', 'ingest_workout']) {
+    assert.match(sql, new RegExp(`function public.${name}`));
+  }
+  assert.match(sql, /security definer/i);
+  assert.match(sql, /check_ingest_key\(p_key\)/);
+  assert.match(sql, /a1111111-1111-4111-8111-111111111111/);
+  assert.match(sql, /source = 'jeno'/);
+  assert.match(sql, /revoke all on function public.program_get\(text\) from public/);
+  assert.match(sql, /grant execute on function public.ingest_nutrition\(text, date, jsonb\) to anon, authenticated, service_role/);
+  assert.doesNotMatch(sql, /delete from/i);
 });
 
 await Promise.all(queue);
