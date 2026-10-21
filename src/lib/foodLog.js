@@ -100,17 +100,26 @@ export function mergeMealLists(base = [], extra = []) {
 
 /**
  * Apply one ingest payload onto the stored day.
- * `foodMode` `totals-only` updates macros and leaves foods in place.
+ * `foodMode` `totals-only` replaces the macros that were sent and keeps the
+ * rest of the row, including any foods. A second total for the same day
+ * replaces the first. It does not add.
  */
 export function applyNutritionWrite(existing, value) {
   const incoming = Array.isArray(value?.meals) ? value.meals : [];
-  let meals;
-  if (value?.foodMode === 'totals-only') meals = Array.isArray(existing?.meals) ? existing.meals : [];
-  else if (value?.mode === 'append') meals = mergeMealLists(existing?.meals || [], incoming);
-  else meals = incoming;
-
-  const sums = sumMeals(meals);
   const explicit = value?.explicit || {};
+  if (value?.foodMode === 'totals-only') {
+    const pick = (key) => (explicit[key] ? num(value[key]) : num(existing?.[key]));
+    return {
+      calories: pick('calories'),
+      protein: pick('protein'),
+      carbs: pick('carbs'),
+      fat: pick('fat'),
+      meals: Array.isArray(existing?.meals) ? existing.meals : [],
+    };
+  }
+
+  const meals = value?.mode === 'append' ? mergeMealLists(existing?.meals || [], incoming) : incoming;
+  const sums = sumMeals(meals);
   const pick = (key) => {
     if (explicit[key]) return num(value[key]);
     if (meals.length) return sums[key];

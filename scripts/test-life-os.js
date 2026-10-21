@@ -272,7 +272,24 @@ test('ingest rejects a bad key and a rest day, and writes as the household', asy
   );
   assert.equal(kept.calories, 2100);
   assert.equal(kept.protein, 180);
+  assert.equal(kept.carbs, 15);
+  assert.equal(kept.fat, 17);
   assert.equal(kept.meals[0].name, 'Breakfast');
+
+  const dayTotal = validateIngest({ kind: 'nutrition', date: '2026-10-19', calories: 1000, protein: 90 });
+  assert.equal(dayTotal.ok, true);
+  assert.equal(dayTotal.value.foodMode, 'totals-only');
+  const firstTotal = applyNutritionWrite(null, dayTotal.value);
+  assert.equal(firstTotal.calories, 1000);
+  assert.equal(firstTotal.protein, 90);
+  const replacedTotal = applyNutritionWrite(
+    { ...firstTotal, meals: foods.value.meals },
+    validateIngest({ kind: 'nutrition', date: '2026-10-19', calories: 1450 }).value
+  );
+  assert.equal(replacedTotal.calories, 1450);
+  assert.equal(replacedTotal.protein, 90);
+  assert.notEqual(replacedTotal.calories, 2450);
+  assert.equal(replacedTotal.meals[0].name, 'Breakfast');
 
   const appended = applyNutritionWrite(
     { meals: foods.value.meals },
