@@ -8,6 +8,7 @@ import { agendaForDay } from '../src/lib/agenda.js';
 import { FOOD_GOALS, foodVsGoals, preferFoodEntry } from '../src/lib/foodGoals.js';
 import { applyNutritionWrite } from '../src/lib/foodLog.js';
 import { inboxItems } from '../src/lib/inbox.js';
+import { sha256Hex } from '../src/lib/ingestAuth.js';
 import { extractIngestKey, keysMatch, validateIngest } from '../src/lib/ingest.js';
 import { runIngest } from '../src/lib/ingestServer.js';
 import { HOUSEHOLD_OWNER_ID } from '../src/lib/household.js';
@@ -145,8 +146,50 @@ test('ingest rejects a bad key and a rest day, and writes as the household', asy
     headers: { authorization: 'Bearer secret-key' },
     body: { kind: 'nutrition', date: '2026-10-19', calories: 1 },
     env: {},
+    lookupHash: async () => null,
   });
   assert.equal(missing.status, 503);
+
+  const hash = sha256Hex('file-key');
+  const hashWrites = [];
+  const hashStore = {
+    async write(ownerId, value) {
+      hashWrites.push({ ownerId, value });
+      return { ok: true, kind: value.kind, day: value.date };
+    },
+  };
+  const fromHash = await runIngest({
+    method: 'POST',
+    headers: { authorization: 'Bearer file-key' },
+    body: { kind: 'nutrition', date: '2026-10-19', calories: 1 },
+    env: {},
+    lookupHash: async () => hash,
+    store: hashStore,
+  });
+  assert.equal(fromHash.status, 200);
+  assert.equal(hashWrites.length, 1);
+  assert.equal(hashWrites[0].ownerId, HOUSEHOLD_OWNER_ID);
+
+  const wrongHash = await runIngest({
+    method: 'POST',
+    headers: { authorization: 'Bearer other-key' },
+    body: { kind: 'nutrition', date: '2026-10-19', calories: 1 },
+    env: {},
+    lookupHash: async () => hash,
+    store: hashStore,
+  });
+  assert.equal(wrongHash.status, 401);
+  assert.equal(hashWrites.length, 1);
+
+  const noHeader = await runIngest({
+    method: 'POST',
+    headers: {},
+    body: { kind: 'nutrition', date: '2026-10-19', calories: 1 },
+    env: {},
+    lookupHash: async () => hash,
+    store: hashStore,
+  });
+  assert.equal(noHeader.status, 401);
 
   const writes = [];
   const store = {
@@ -306,6 +349,16 @@ test('life os SQL opens the new tables to the anon key', () => {
   assert.doesNotMatch(sql, /life_os_owner_id/);
   assert.doesNotMatch(sql, /private\.app_owner/);
   assert.doesNotMatch(sql, /to authenticated using \(\(select auth\.uid\(\)\) = user_id\)/);
+});
+
+test('ingest key SQL stores a hash and locks the table', () => {
+  const sql = fs.readFileSync(new URL('../supabase/add-ingest-key.sql', import.meta.url), 'utf8');
+  assert.match(sql, /create table if not exists public.app_secrets/);
+  assert.match(sql, /enable row level security/);
+  assert.match(sql, /revoke all on table public.app_secrets from anon, authenticated, public/);
+  assert.match(sql, /check_ingest_key/);
+  assert.match(sql, /f8ced195526e89adef759390e5404c9ded89eeb5a3fbb239b22c3d22f3d7933e/);
+  assert.doesNotMatch(sql, /create policy/);
 });
 
 await Promise.all(queue);
