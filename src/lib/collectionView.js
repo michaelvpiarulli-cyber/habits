@@ -1,7 +1,10 @@
 /**
  * Filter, sort, and group rows for table / board / list views.
  * Rows are plain objects. Missing values sort first.
+ * Priority sorts urgent, high, medium, low, then none.
  */
+
+import { priorityRank } from './life.js';
 
 export function matchesFilter(row, filter) {
   if (!filter || filter.value == null || filter.value === '') return true;
@@ -28,6 +31,11 @@ export function applyCollection(rows, { query = '', filters = [], sort = null } 
     list = list.slice().sort((a, b) => {
       const av = a[sort.key] ?? '';
       const bv = b[sort.key] ?? '';
+      if (sort.key === 'priority') {
+        const rank = priorityRank(av) - priorityRank(bv);
+        if (rank) return rank * dir;
+        return 0;
+      }
       if (av < bv) return -1 * dir;
       if (av > bv) return 1 * dir;
       return 0;
@@ -77,5 +85,7 @@ export function groupRows(rows, key) {
     if (!groups.has(name)) groups.set(name, []);
     groups.get(name).push(row);
   }
-  return [...groups.entries()];
+  const entries = [...groups.entries()];
+  if (key === 'priority') entries.sort((a, b) => priorityRank(a[0]) - priorityRank(b[0]));
+  return entries;
 }

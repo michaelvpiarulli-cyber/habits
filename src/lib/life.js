@@ -29,8 +29,8 @@ export function priorityRank(task) {
 }
 
 export function priorityTone(priority) {
-  if (priority === 'urgent' || priority === 'high' || priority === 'medium') return priority;
-  return 'low';
+  if (priority === 'urgent' || priority === 'high' || priority === 'medium' || priority === 'low') return priority;
+  return 'none';
 }
 
 export function priorityLabel(priority) {

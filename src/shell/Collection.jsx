@@ -9,10 +9,10 @@ function Pill({ value }) {
   return <span className={`pill ${tone}`}>{value || 'Empty'}</span>;
 }
 
-export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, readOnly = false }) {
+export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, readOnly = false, initialSort = null }) {
   const [view, setView] = useState('table');
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState(null);
+  const [sort, setSort] = useState(initialSort);
   const [filters, setFilters] = useState([]);
   const [draft, setDraft] = useState('');
   const [group, setGroup] = useState(groupKey || 'status');
@@ -57,15 +57,17 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
     }
     if (!onUpdate) return row[column.key] || 'Empty';
     if (column.kind === 'status' || column.kind === 'select' || column.kind === 'rating') {
+      const priority = column.key === 'priority';
       return (
         <select
+          className={priority ? `prio-select tone-${priorityTone(row[column.key])}` : undefined}
           aria-label={`${column.label} for ${row.title}`}
           value={row[column.key] || ''}
           onChange={(event) => onUpdate(row.id, { [column.key]: event.target.value })}
         >
           <option value="">Empty</option>
           {(column.options || []).map((option) => (
-            <option key={option} value={option}>{option}</option>
+            <option key={option} value={option}>{priority ? priorityLabel(option) : option}</option>
           ))}
         </select>
       );
@@ -223,10 +225,12 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
             <div key={name} className="board-col">
               <h3>{name} {items.length}</h3>
               {items.map((row) => (
-                <article key={row.id} className="board-card">
+                <article key={row.id} className={`board-card tone-${priorityTone(row.priority)}`}>
                   <strong>{row.title || 'Untitled'}</strong>
                   {columns.filter((column) => column.key !== 'title' && column.key !== group).map((column) => (
-                    <span key={column.key} className="faint">{column.label}: {row[column.key] || 'Empty'}</span>
+                    <span key={column.key} className={column.key === 'priority' ? `prio-meta tone-${priorityTone(row[column.key])}` : 'faint'}>
+                      {column.key === 'priority' ? priorityLabel(row[column.key]) : `${column.label}: ${row[column.key] || 'Empty'}`}
+                    </span>
                   ))}
                 </article>
               ))}
@@ -251,10 +255,9 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
                   const known = ['urgent', 'high', 'medium', 'low', 'none'].includes(row.priority);
                   const late = known && row.priority === 'urgent' && row.date && row.date < todayISO();
                   return (
-                    <em key={row.id} className={known ? `cal-task tone-${priorityTone(row.priority)}${late ? ' is-late' : ''}` : undefined}>
+                    <em key={row.id} className={known ? `cal-task tone-${priorityTone(row.priority)}${late ? ' is-late' : ''}` : undefined} title={known ? priorityLabel(row.priority) : undefined}>
                       {known ? <i aria-hidden="true" /> : null}
                       <b>{row.title}</b>
-                      {known ? <small>{priorityLabel(row.priority)}</small> : null}
                     </em>
                   );
                 })}
@@ -280,9 +283,9 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
       {view === 'list' && (
         <div className="list-view">
           {shown.length === 0 ? <p className="quiet">No rows</p> : shown.map((row) => (
-            <div key={row.id} className="list-row">
+            <div key={row.id} className={`list-row tone-${priorityTone(row.priority)}`}>
               <Pill value={row[groupKey] || row.status || ''} />
-              <span>{row.title || 'Untitled'}</span>
+              <span className="list-title">{row.title || 'Untitled'}</span>
               <span className="faint">{row.date || row.tags || ''}</span>
             </div>
           ))}
