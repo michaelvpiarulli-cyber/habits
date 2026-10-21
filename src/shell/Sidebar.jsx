@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { childrenOf, favoritePages } from '../lib/pages';
+import { NAV_GROUPS, childrenOf, systemPageByKey, withSystemPages } from '../lib/pages';
 import { PageIcon } from './PageIcon';
 
 function RowMenu({ page, top, left, onFavorite, onDelete, onClose }) {
@@ -79,7 +79,7 @@ function PageRow({ page, currentId, depth = 0, onOpen, onCreate, onFavorite, onD
 }
 
 function Node({ page, pages, depth, currentId, onOpen, onCreate, onFavorite, onDelete }) {
-  const kids = childrenOf(pages, page.id);
+  const kids = childrenOf(pages, page.id).filter((child) => !child.systemKey);
   const [open, setOpen] = useState(depth < 1);
   const twisty = (
     <button
@@ -122,20 +122,6 @@ function Node({ page, pages, depth, currentId, onOpen, onCreate, onFavorite, onD
   );
 }
 
-function FlatRow({ page, currentId, onOpen, onCreate, onFavorite, onDelete }) {
-  return (
-    <PageRow
-      page={page}
-      currentId={currentId}
-      onOpen={onOpen}
-      onCreate={onCreate}
-      onFavorite={onFavorite}
-      onDelete={onDelete}
-      twisty={<span className="twisty" aria-hidden="true" />}
-    />
-  );
-}
-
 export function Sidebar({
   className = 'sidebar',
   pages,
@@ -149,8 +135,11 @@ export function Sidebar({
   onTrash,
   trashCount = 0,
 }) {
-  const favorites = favoritePages(pages);
-  const roots = childrenOf(pages, null);
+  const pagesByKey = new Map(
+    withSystemPages(pages).filter((page) => page.systemKey && !page.deleted).map((page) => [page.systemKey, page])
+  );
+  const notes = childrenOf(pages, null).filter((page) => !page.systemKey);
+  const settings = pagesByKey.get('settings') || null;
 
   return (
     <aside className={className} aria-label="Pages">
@@ -167,27 +156,33 @@ export function Sidebar({
         </span>
       </button>
       <div className="side-scroll">
-        {favorites.length > 0 && (
-          <>
-            <div className="side-label"><span>Favorites</span></div>
-            {favorites.map((page) => (
-              <FlatRow
-                key={page.id}
-                page={page}
-                currentId={currentId}
-                onOpen={onOpen}
-                onCreate={onCreate}
-                onFavorite={onFavorite}
-                onDelete={onDelete}
-              />
-            ))}
-          </>
-        )}
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label || group.keys[0]}>
+            {group.label ? <div className="side-label"><span>{group.label}</span></div> : null}
+            {group.keys.map((key) => {
+              const page = pagesByKey.get(key);
+              if (!page || !systemPageByKey(key)) return null;
+              return (
+                <Node
+                  key={page.id}
+                  page={page}
+                  pages={pages}
+                  depth={0}
+                  currentId={currentId}
+                  onOpen={onOpen}
+                  onCreate={onCreate}
+                  onFavorite={onFavorite}
+                  onDelete={onDelete}
+                />
+              );
+            })}
+          </div>
+        ))}
         <div className="side-label">
-          <span>Private</span>
+          <span>Notes</span>
           <button type="button" className="row-plus" aria-label="Add a page" onClick={() => onCreate(null)}>+</button>
         </div>
-        {roots.map((page) => (
+        {notes.map((page) => (
           <Node
             key={page.id}
             page={page}
@@ -200,6 +195,20 @@ export function Sidebar({
             onDelete={onDelete}
           />
         ))}
+        {settings && (
+          <div className="side-gap">
+            <Node
+              page={settings}
+              pages={pages}
+              depth={0}
+              currentId={currentId}
+              onOpen={onOpen}
+              onCreate={onCreate}
+              onFavorite={onFavorite}
+              onDelete={onDelete}
+            />
+          </div>
+        )}
       </div>
       <button type="button" className={`side-action ${currentId === '__trash__' ? 'is-on' : ''}`} onClick={onTrash}>
         <span className="twisty" aria-hidden="true" />

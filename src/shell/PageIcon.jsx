@@ -26,10 +26,25 @@ function Glyph({ name }) {
       </svg>
     );
   }
+  if (name === 'food') {
+    return (
+      <svg {...common}>
+        <path d="M8 2.4c.3 2 2 3.2 2 5.1a2 2 0 0 1-4 0c0-1.9 1.7-3.1 2-5.1z" />
+        <path d="M8 9.5v4.1" />
+      </svg>
+    );
+  }
   if (name === 'body') {
     return (
       <svg {...common}>
         <path d="M2.2 8h11.6M4.2 5.4v5.2M11.8 5.4v5.2M2.6 6.3v3.4M13.4 6.3v3.4" />
+      </svg>
+    );
+  }
+  if (name === 'habits') {
+    return (
+      <svg {...common}>
+        <path d="M3 8.2 6.2 11.4 13 4.4" />
       </svg>
     );
   }
@@ -50,8 +65,8 @@ function Glyph({ name }) {
   if (name === 'log') {
     return (
       <svg {...common}>
-        <path d="M9.4 2.4 13.6 6.6 6.4 13.8H2.2V9.6z" />
-        <path d="M8.2 3.6 12.4 7.8" />
+        <rect x="2" y="3.6" width="12" height="8.8" rx="1.4" />
+        <path d="M6.6 6.2v3.6l3.2-1.8z" />
       </svg>
     );
   }
