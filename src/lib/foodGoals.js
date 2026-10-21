@@ -19,19 +19,33 @@ function hasFood(entry) {
   return calories > 0 || protein > 0 || carbs > 0 || fat > 0 || meals > 0;
 }
 
+function shownSource(entry) {
+  return entry?.source === 'mfp' ? 'mfp' : 'ingest';
+}
+
+/** MyFitnessPal row when it has food, otherwise the JENO ingest row. */
+export function ingestedFoodForDay(rows, day) {
+  const list = (rows || []).filter((row) => row && row.day === day && !row.deleted);
+  const mfp = list.find((row) => row.source === 'mfp');
+  const jeno = list.find((row) => row.source !== 'mfp');
+  if (hasFood(mfp)) return mfp;
+  if (hasFood(jeno)) return jeno;
+  return null;
+}
+
 /**
  * Prefer the newer of an ingested daily total and the in-app meal log.
- * `source` is `ingest` or `log`.
+ * `source` is `mfp`, `ingest`, or `log`.
  */
 export function preferFoodEntry(ingested, logged) {
   const fromIngest = hasFood(ingested) ? ingested : null;
   const fromLog = hasFood(logged) ? logged : null;
   if (!fromIngest && !fromLog) return null;
   if (!fromIngest) return { ...fromLog, source: 'log' };
-  if (!fromLog) return { ...fromIngest, source: 'ingest' };
+  if (!fromLog) return { ...fromIngest, source: shownSource(fromIngest) };
   const ingestAt = fromIngest.updatedAt || '';
   const logAt = fromLog.updatedAt || '';
-  if (ingestAt >= logAt) return { ...fromIngest, source: 'ingest' };
+  if (ingestAt >= logAt) return { ...fromIngest, source: shownSource(fromIngest) };
   return { ...fromLog, source: 'log' };
 }
 

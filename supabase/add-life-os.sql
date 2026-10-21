@@ -21,13 +21,19 @@ create table if not exists public.daily_nutrition (
   carbs      numeric     not null default 0 check (carbs >= 0),
   fat        numeric     not null default 0 check (fat >= 0),
   meals      jsonb       not null default '[]'::jsonb,
+  source     text        not null default 'jeno',
   deleted    boolean     not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create unique index if not exists daily_nutrition_user_day_alive_idx
-  on public.daily_nutrition (user_id, day)
+alter table public.daily_nutrition
+  add column if not exists source text not null default 'jeno';
+
+-- JENO ingest and the MyFitnessPal sync each keep their own row for a day.
+drop index if exists public.daily_nutrition_user_day_alive_idx;
+create unique index if not exists daily_nutrition_user_day_source_alive_idx
+  on public.daily_nutrition (user_id, day, source)
   where not deleted;
 
 create index if not exists daily_nutrition_user_day_idx

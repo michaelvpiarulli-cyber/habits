@@ -3,5 +3,11 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/mfp-sync.js": { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/api/mfp-sync", "schedule": "*/30 * * * *" }
   ]
 }
