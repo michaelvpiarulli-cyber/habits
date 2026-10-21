@@ -141,16 +141,21 @@ button.habit-badge { width: 44px; height: 44px; }
 .habit-dots span.is-on { background: var(--accent); }
 .habit-dots span.is-today { box-shadow: inset 0 0 0 1.5px var(--ink); }
 .habit-dots span.is-on.is-today { box-shadow: inset 0 0 0 1.5px var(--bg); }
+.habit-tap {
+  touch-action: manipulation;
+  cursor: pointer;
+}
 .habit-row .check.habit-tap {
-  width: 48px;
-  min-width: 48px;
-  height: 48px;
-  min-height: 48px;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 56px;
   padding: 0;
-  justify-content: center;
-  flex: none;
+  justify-content: flex-start;
 }
 .habit-row .check.is-done span { text-decoration: none; color: inherit; }
+.habit-row .check.is-done .habit-name { text-decoration: none; color: var(--muted); }
+.habit-row .check .box { margin-left: auto; }
 .habit-row .box {
   position: relative;
   width: 26px;
@@ -228,14 +233,19 @@ button.habit-badge { width: 44px; height: 44px; }
 }
 .glance-habit.is-done .habit-name { color: var(--muted); }
 .glance-habit .check.habit-tap {
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  min-height: 44px;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 48px;
   padding: 0;
-  justify-content: center;
-  flex: none;
+  justify-content: flex-start;
+  flex: 1;
 }
+.glance-habit .check.is-done .habit-name {
+  text-decoration: none;
+  color: var(--muted);
+}
+.glance-habit .check .box { margin-left: auto; }
 .day-head { display: grid; gap: 8px; width: 100%; min-width: 0; }
 .day-nav {
   display: flex;
