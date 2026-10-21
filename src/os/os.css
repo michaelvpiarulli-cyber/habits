@@ -60,6 +60,102 @@
 .fold summary { cursor: pointer; list-style: none; }
 .fold summary::-webkit-details-marker { display: none; }
 
+.habit-page { display: flex; flex-direction: column; gap: 4px; max-width: 100%; }
+.habit-tools { display: flex; justify-content: flex-end; }
+.habit-tools button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.habit-list { list-style: none; margin: 0; padding: 0; }
+.habit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  min-width: 0;
+}
+.habit-row.is-done .habit-name,
+.habit-row.is-done .habit-icon,
+.habit-row.is-done .habit-unit { color: var(--muted); }
+.habit-icon {
+  width: 28px;
+  flex: none;
+  text-align: center;
+  font-size: 18px;
+  line-height: 1;
+}
+.habit-name, .habit-rename {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+}
+.habit-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.habit-rename {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+.habit-week { display: flex; align-items: center; gap: 6px; flex: none; }
+.habit-streak { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.habit-dots { display: flex; gap: 3px; }
+.habit-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--line);
+}
+.habit-dots span.is-on { background: var(--accent); }
+.habit-dots span.is-today { box-shadow: inset 0 0 0 1px var(--muted); }
+.habit-row .check.habit-tap {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
+  justify-content: center;
+  flex: none;
+}
+.habit-row .check.is-done span { text-decoration: none; color: inherit; }
+.habit-row .box { width: 26px; height: 26px; font-size: 13px; font-weight: 650; }
+.habit-entry { display: flex; align-items: center; gap: 4px; flex: none; }
+.habit-entry input {
+  width: 64px;
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  text-align: right;
+  font-size: 16px;
+  padding: 0;
+}
+.habit-unit { color: var(--muted); font-size: 13px; }
+.habit-row > button, .habit-remove {
+  min-height: 44px;
+  min-width: 44px;
+  flex: none;
+  color: var(--muted);
+  font-size: 14px;
+}
+.habit-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+.habit-add input, .habit-add select {
+  min-height: 44px;
+  min-width: 0;
+  flex: 1 1 120px;
+  font-size: 16px;
+  border: 0;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+}
+
 .board > .card,
 .board > .banner {
   margin-bottom: 0;

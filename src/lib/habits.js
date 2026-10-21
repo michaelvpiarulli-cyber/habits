@@ -439,3 +439,32 @@ export function collapseLogsByHabitDay(logs, cleanedAt = new Date().toISOString(
 
   return { logs: next, changed };
 }
+
+const DAYPARTS = [
+  ['morning', 'Morning'],
+  ['anytime', 'Anytime'],
+  ['evening', 'Evening'],
+];
+
+/** A stored cue of Morning, Anytime, or Evening. Anything else is unset. */
+export function daypartOf(habit) {
+  const raw = String(habit?.cue || '').trim().toLowerCase();
+  if (raw === 'morning' || raw === 'am') return 'morning';
+  if (raw === 'evening' || raw === 'pm' || raw === 'night') return 'evening';
+  if (raw === 'anytime' || raw === 'any time') return 'anytime';
+  return '';
+}
+
+/**
+ * Group only when a habit already carries a daypart.
+ * Otherwise the list stays flat, with no invented Morning or Evening buckets.
+ */
+export function groupByDaypart(habits) {
+  const list = habits || [];
+  if (!list.some((habit) => daypartOf(habit))) return [{ id: 'all', label: '', habits: list }];
+  return DAYPARTS.map(([id, label]) => ({
+    id,
+    label,
+    habits: list.filter((habit) => (daypartOf(habit) || 'anytime') === id),
+  })).filter((group) => group.habits.length > 0);
+}
