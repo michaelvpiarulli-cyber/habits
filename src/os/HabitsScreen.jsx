@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../context/DataProvider';
+import { useLife } from '../context/LifeProvider';
 import { addDays, formatLong, startOfWeek, todayISO } from '../lib/dates';
+import { daysWithLoggedFood } from '../lib/foodGoals';
 import { HABIT_COLORS, HABIT_ICONS, colorForHabit, iconForHabit } from '../lib/habitIcons';
-import { groupByDaypart, isComplete, targetOf, valueOf } from '../lib/habits';
+import { groupByDaypart, isComplete, isFoodTrackingHabit, targetOf, valueOf } from '../lib/habits';
 import { currentStreak } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
 
@@ -91,13 +93,14 @@ function IconPicker({ habit, onIcon, onColor }) {
   );
 }
 
-function HabitRow({ habit, day, editing, picking, onPick, onIcon, onColor, onRename, onMove, canUp, canDown, onRemove }) {
+function HabitRow({ habit, day, editing, picking, onPick, onIcon, onColor, onRename, onMove, canUp, canDown, onRemove, foodDays }) {
   const { logFor, toggleDay, bumpDay, doneSetFor } = useData();
   const log = logFor(habit.id, day);
   const value = valueOf(habit, log);
-  const complete = isComplete(habit, log);
+  const fromFood = isFoodTrackingHabit(habit);
+  const complete = isComplete(habit, log) || (fromFood && foodDays.has(day));
+  const done = fromFood ? new Set([...doneSetFor(habit.id), ...foodDays]) : doneSetFor(habit.id);
   const numeric = habit.kind === 'amount' || habit.kind === 'measure';
-  const done = doneSetFor(habit.id);
   const [name, setName] = useState(habit.name);
   useEffect(() => {
     setName(habit.name);
@@ -193,11 +196,18 @@ function AddHabit({ onAdd }) {
 export function HabitsScreen() {
   const today = todayISO();
   const data = useData();
+  const { dailyNutrition } = useLife();
   const habits = data.activeHabits;
   const groups = groupByDaypart(habits);
   const [editing, setEditing] = useState(false);
   const [picking, setPicking] = useState(null);
-  const done = habits.filter((habit) => isComplete(habit, data.logFor(habit.id, today))).length;
+  const foodDays = useMemo(
+    () => daysWithLoggedFood(dailyNutrition, data.snapshot().nutrition),
+    [dailyNutrition, data]
+  );
+  const done = habits.filter((habit) => (
+    isComplete(habit, data.logFor(habit.id, today)) || (isFoodTrackingHabit(habit) && foodDays.has(today))
+  )).length;
   const ratio = habits.length ? Math.round((done / habits.length) * 100) : 0;
 
   const reorder = (habit, delta) => {
@@ -247,6 +257,7 @@ export function HabitsScreen() {
                   onRename={(name) => data.updateHabit(habit.id, { name })}
                   onMove={(delta) => reorder(habit, delta)}
                   onRemove={() => data.deleteHabit(habit.id)}
+                  foodDays={foodDays}
                 />
               );
             })}

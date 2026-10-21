@@ -79,6 +79,11 @@ export function isTrend(habit) {
   return habit.kind === 'measure';
 }
 
+/** The food habit is done when a nutrition total exists for that day. */
+export function isFoodTrackingHabit(habit) {
+  return String(habit?.name || '').trim().toLowerCase() === 'track food';
+}
+
 /** 'Every day' · 'Mon, Wed, Fri' · '4× a week' */
 export function describeCadence(habit) {
   if (habit.cadence === 'per_week') return `${habit.perWeek}× a week`;

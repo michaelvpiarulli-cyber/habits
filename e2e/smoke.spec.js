@@ -111,12 +111,15 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
   await expect(page.getByLabel(`Status for ${taskName}`)).toHaveValue('Done');
 
   await openSection(page, mobile, 'Habits');
-  const habit = page.locator('button.check').first();
+  const habit = page.getByRole('button', { name: 'Pray', exact: true });
   if (await habit.count()) {
+    const wasDone = (await habit.getAttribute('class'))?.includes('is-done');
     await habit.click();
-    await expect(habit).toHaveClass(/is-done/);
+    if (wasDone) await expect(habit).not.toHaveClass(/is-done/);
+    else await expect(habit).toHaveClass(/is-done/);
     await habit.click();
-    await expect(habit).not.toHaveClass(/is-done/);
+    if (wasDone) await expect(habit).toHaveClass(/is-done/);
+    else await expect(habit).not.toHaveClass(/is-done/);
   }
 
   await openSection(page, mobile, 'Bible');
