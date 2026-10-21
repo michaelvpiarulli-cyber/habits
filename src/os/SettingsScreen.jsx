@@ -4,6 +4,7 @@ import { useLife } from '../context/LifeProvider';
 import { useGoogle } from '../context/GoogleProvider';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
 import { useTheme } from '../hooks/useTheme';
+import { MfpSyncCard } from './MfpSyncCard';
 
 export function SettingsScreen({ onClose }) {
   const theme = useTheme();
@@ -38,6 +39,8 @@ export function SettingsScreen({ onClose }) {
           )}
         </div>
       </section>
+
+      <MfpSyncCard />
 
       <section className="card">
         <h2>Appearance</h2>

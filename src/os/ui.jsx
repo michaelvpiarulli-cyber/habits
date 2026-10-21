@@ -2,6 +2,7 @@ import { formatClock } from '../lib/dates';
 import { formatMacro, presentMeals } from '../lib/foodLog';
 import { formatExercise, patternLabel } from '../lib/program';
 import { whenLabel } from '../lib/upcoming';
+import { MfpSyncCard } from './MfpSyncCard';
 
 export function Frame({ kicker, title, actions, children }) {
   return (
@@ -59,7 +60,7 @@ export function FoodCard({ entry, source }) {
     <section className="card" aria-label="Food">
       <div className="card-head">
         <h2>Food</h2>
-        <span className="faint">{source === 'ingest' ? 'From JENO' : source === 'log' ? 'Logged here' : 'Waiting'}</span>
+        <span className="faint">{source === 'mfp' ? 'From MyFitnessPal' : source === 'ingest' ? 'From JENO' : source === 'log' ? 'Logged here' : 'Waiting'}</span>
       </div>
       <div className="meters">
         <div>
@@ -103,6 +104,7 @@ export function FoodCard({ entry, source }) {
           </div>
         ))
       )}
+      <MfpSyncCard variant="food" />
     </section>
   );
 }

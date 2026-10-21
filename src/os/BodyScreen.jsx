@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
 import { addDays, formatLong, todayISO, WEEKDAY_INITIALS, startOfWeek } from '../lib/dates';
-import { preferFoodEntry } from '../lib/foodGoals';
+import { ingestedFoodForDay, preferFoodEntry } from '../lib/foodGoals';
 import { dayLabels, patternLabel, workoutsOnDay } from '../lib/program';
 import { Collection } from '../shell/Collection';
 import { useProgram } from './hooks';
@@ -16,7 +16,7 @@ export function BodyScreen({ onLog, onSettings }) {
   const program = useProgram();
   const monday = startOfWeek(today);
   const week = Array.from({ length: 7 }, (_, index) => addDays(monday, index));
-  const ingested = dailyNutrition.find((row) => row.day === day) || null;
+  const ingested = ingestedFoodForDay(dailyNutrition, day);
   const food = preferFoodEntry(ingested, nutritionFor(day));
   const session = workoutsOnDay(program.workouts, day);
 

@@ -48,6 +48,7 @@ async function writeNutrition(client, ownerId, value) {
     .select('id, meals, calories, protein, carbs, fat')
     .eq('user_id', ownerId)
     .eq('day', value.date)
+    .eq('source', 'jeno')
     .eq('deleted', false)
     .maybeSingle();
   if (readError) throw readError;
@@ -57,6 +58,7 @@ async function writeNutrition(client, ownerId, value) {
     id: existing?.id || crypto.randomUUID(),
     user_id: ownerId,
     day: value.date,
+    source: 'jeno',
     calories: next.calories,
     protein: next.protein,
     carbs: next.carbs,

@@ -4,7 +4,7 @@ import { useLife } from '../context/LifeProvider';
 import { agendaForDay } from '../lib/agenda';
 import { missedDays, readingsForDate, slotsFor, yearProgress } from '../lib/biblePlan';
 import { addDays, formatClock, formatLong, todayISO } from '../lib/dates';
-import { FOOD_GOALS, foodVsGoals, preferFoodEntry } from '../lib/foodGoals';
+import { FOOD_GOALS, foodVsGoals, ingestedFoodForDay, preferFoodEntry } from '../lib/foodGoals';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
 import { isComplete, targetOf, valueOf } from '../lib/habits';
 import { groupTasks } from '../lib/life';
@@ -96,7 +96,7 @@ export function TodayScreen({ onLog, onSettings, onJump }) {
   const agenda = agendaForDay(events, google.events, today);
   const next = nextTimedItem(agenda, clockMinutes(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`) ?? 0);
   const session = workoutsOnDay(program.workouts, today);
-  const ingested = dailyNutrition.find((row) => row.day === today) || null;
+  const ingested = ingestedFoodForDay(dailyNutrition, today);
   const food = preferFoodEntry(ingested, nutritionFor(today));
   const stats = foodVsGoals(food);
   const due = activeHabits.filter((habit) => isDue(habit, today));
