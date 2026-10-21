@@ -130,6 +130,12 @@ test('private, password, and missing diaries are statuses', () => {
   assert.match(missing.message, /could not find/i);
 });
 
+test('the cron expression runs once a day so a Hobby deploy can succeed', () => {
+  const vercel = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
+  assert.equal(vercel.crons[0].path, '/api/mfp-sync');
+  assert.equal(vercel.crons[0].schedule, '0 15 * * *');
+});
+
 test('Los Angeles today and the first sync cover 14 days', () => {
   const evening = new Date('2026-10-21T06:00:00Z');
   assert.equal(laToday(evening), '2026-10-20');

@@ -8,6 +8,6 @@
     "api/mfp-sync.js": { "maxDuration": 60 }
   },
   "crons": [
-    { "path": "/api/mfp-sync", "schedule": "*/30 * * * *" }
+    { "path": "/api/mfp-sync", "schedule": "0 15 * * *" }
   ]
 }
