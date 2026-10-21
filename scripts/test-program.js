@@ -7,8 +7,10 @@ import {
   SEED_A_ID,
   SEED_WALK_ID,
   formatExercise,
+  patternLabel,
   visibleWorkouts,
   workoutMatchesDay,
+  workoutsOnDay,
 } from '../src/lib/program.js';
 import { runProgram } from '../src/lib/programServer.js';
 import { workoutFor } from '../src/lib/workouts.js';
@@ -167,9 +169,73 @@ test('create materializes the seed, update and delete stick, replace overwrites'
   assert.equal(missing.status, 404);
 });
 
+test('an extra date shows the workout that day and leaves the weekly days alone', () => {
+  const chest = {
+    id: 'c4e57da1-0c21-4411-8a11-c4e57da10001',
+    name: 'Chest Day',
+    days: [6],
+    pattern: 'weekly',
+    dates: ['2026-10-20'],
+    deleted: false,
+  };
+  const walk = { name: 'Walk', days: [1, 3, 5], pattern: 'weekly', dates: [] };
+  const core = { name: 'Core', days: [1, 3], pattern: 'weekly' };
+  assert.equal(workoutMatchesDay(chest, '2026-10-20'), true);
+  assert.equal(workoutMatchesDay(chest, '2026-10-25'), true);
+  assert.equal(workoutMatchesDay(chest, '2026-10-27'), false);
+  assert.equal(patternLabel(chest), 'Sun, plus 20 Oct');
+  const tonight = workoutsOnDay([walk, chest, core], '2026-10-20').map((workout) => workout.name);
+  assert.deepEqual(tonight, ['Walk', 'Chest Day', 'Core']);
+  assert.deepEqual(workoutsOnDay([walk, chest, core], '2026-10-27').map((workout) => workout.name), ['Walk', 'Core']);
+});
+
+test('program API keeps one-off dates on create and later patches', async () => {
+  const store = memoryStore();
+  const created = await runProgram({
+    method: 'POST',
+    headers,
+    env,
+    store,
+    body: {
+      name: 'Chest Day',
+      days: ['Sun'],
+      dates: ['2026-10-20'],
+      exercises: [{ name: 'Barbell bench press', sets: 4, reps: '8', weight: '95 lb', rest: '1:30' }],
+    },
+  });
+  assert.equal(created.status, 200);
+  const chest = created.body.workouts.find((workout) => workout.name === 'Chest Day');
+  assert.deepEqual(chest.dates, ['2026-10-20']);
+  assert.deepEqual(chest.days, [6]);
+  assert.equal(workoutMatchesDay(chest, '2026-10-20'), true);
+
+  const renamed = await runProgram({
+    method: 'PATCH',
+    headers,
+    env,
+    store,
+    body: { id: chest.id, name: 'Chest Day' },
+  });
+  assert.equal(renamed.status, 200);
+  assert.deepEqual(
+    renamed.body.workouts.find((workout) => workout.id === chest.id).dates,
+    ['2026-10-20']
+  );
+
+  const bad = await runProgram({
+    method: 'POST',
+    headers,
+    env,
+    store,
+    body: { name: 'Oops', dates: ['Tuesday'], exercises: [{ name: 'Press', sets: 1, reps: '8' }] },
+  });
+  assert.equal(bad.status, 400);
+});
+
 test('readme documents the JENO program and food entry endpoints', () => {
   const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
   assert.match(readme, /\/api\/program/);
+  assert.match(readme, /dates/);
   assert.match(readme, /TALLY_INGEST_KEY/);
   assert.match(readme, /"entries"/);
   assert.match(readme, /curl/);

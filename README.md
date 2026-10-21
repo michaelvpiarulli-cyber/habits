@@ -105,7 +105,7 @@ curl -X POST "$BASE/api/ingest" \
 
 The first create, update, or delete copies that seed into the database and then applies the change, so JENO can patch Strength A by the id from `GET`. `PUT` replaces the whole program and drops the seed.
 
-Days are `Mon`…`Sun` or `0`…`6` (Monday is 0). `kind` is `strength`, `walk`, `cardio`, or `other`. `pattern` is `weekly` (default), `alternate-a`, or `alternate-b`. Exercises stay in array order: `name`, `sets`, `reps`, `weight`, `notes`, `rest`.
+Days are `Mon`…`Sun` or `0`…`6` (Monday is 0). `kind` is `strength`, `walk`, `cardio`, or `other`. `pattern` is `weekly` (default), `alternate-a`, or `alternate-b`. Optional `dates` is a list of `YYYY-MM-DD` days that show the workout in addition to that weekly pattern. Exercises stay in array order: `name`, `sets`, `reps`, `weight`, `notes`, `rest`.
 
 ```bash
 curl "$BASE/api/program" \
