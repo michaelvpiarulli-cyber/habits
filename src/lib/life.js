@@ -14,11 +14,36 @@ export const TASK_LISTS = [
 ];
 
 export const TASK_PRIORITIES = [
-  ['none', 'None'],
-  ['low', 'Low'],
-  ['medium', 'Medium'],
+  ['urgent', 'Urgent'],
   ['high', 'High'],
+  ['medium', 'Medium'],
+  ['low', 'Low'],
+  ['none', 'None'],
 ];
+
+const PRIORITY_RANK = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
+
+export function priorityRank(task) {
+  const key = typeof task === 'string' ? task : task?.priority;
+  return PRIORITY_RANK[key] ?? PRIORITY_RANK.none;
+}
+
+export function priorityTone(priority) {
+  if (priority === 'urgent' || priority === 'high' || priority === 'medium') return priority;
+  return 'low';
+}
+
+export function priorityLabel(priority) {
+  return TASK_PRIORITIES.find(([id]) => id === priority)?.[1] || 'None';
+}
+
+export function compareByPriority(a, b) {
+  const rank = priorityRank(a) - priorityRank(b);
+  if (rank) return rank;
+  const date = (a.dueDate || a.date || '').localeCompare(b.dueDate || b.date || '');
+  if (date) return date;
+  return (a.dueTime || '99:99').localeCompare(b.dueTime || '99:99');
+}
 
 export const BOOK_STATUSES = [
   ['reading', 'Reading'],
@@ -103,15 +128,10 @@ export function groupTasks(tasks, today) {
     else upcoming.push(task);
   }
 
-  const byDue = (a, b) => {
-    const date = (a.dueDate || '').localeCompare(b.dueDate || '');
-    if (date) return date;
-    return (a.dueTime || '99:99').localeCompare(b.dueTime || '99:99');
-  };
-  overdue.sort(byDue);
-  dueToday.sort(byDue);
-  upcoming.sort(byDue);
-  later.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  overdue.sort(compareByPriority);
+  dueToday.sort(compareByPriority);
+  upcoming.sort(compareByPriority);
+  later.sort((a, b) => priorityRank(a) - priorityRank(b) || (a.createdAt || '').localeCompare(b.createdAt || ''));
 
   return { overdue, dueToday, upcoming, later, done, open };
 }

@@ -16,6 +16,7 @@ import {
   bookProgress,
   budgetProgress,
   clampPage,
+  compareByPriority,
   groupTasks,
   moneyForMonth,
   pipelineCounts,
@@ -84,6 +85,24 @@ test('groupTasks splits overdue, today, upcoming, undated, and done', () => {
     ['e']
   );
   assert.equal(grouped.open.length, 4);
+});
+
+test('groupTasks sorts a day with urgent first', () => {
+  const grouped = groupTasks(
+    [
+      stamp('low', { title: 'Low', dueDate: '2026-08-16', dueTime: '08:00', priority: 'low', done: false }),
+      stamp('urgent', { title: 'Urgent', dueDate: '2026-08-16', dueTime: '18:00', priority: 'urgent', done: false }),
+      stamp('none', { title: 'None', dueDate: '2026-08-16', dueTime: '07:00', priority: 'none', done: false }),
+      stamp('high', { title: 'High', dueDate: '2026-08-16', dueTime: '09:00', priority: 'high', done: false }),
+      stamp('late', { title: 'Late urgent', dueDate: '2026-08-01', priority: 'urgent', done: false }),
+      stamp('older', { title: 'Older low', dueDate: '2026-08-01', priority: 'low', done: false }),
+    ],
+    '2026-08-16'
+  );
+  assert.deepEqual(grouped.dueToday.map((task) => task.id), ['urgent', 'high', 'low', 'none']);
+  assert.deepEqual(grouped.overdue.map((task) => task.id), ['late', 'older']);
+  const top = [...grouped.overdue, ...grouped.dueToday].sort(compareByPriority).slice(0, 3).map((task) => task.id);
+  assert.deepEqual(top, ['late', 'urgent', 'high']);
 });
 
 test('groupFridgeItems splits by zone and keeps finished food separate', () => {

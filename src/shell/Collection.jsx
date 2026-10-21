@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { applyCollection, groupRows, monthGrid, shiftMonth } from '../lib/collectionView';
 import { todayISO } from '../lib/dates';
+import { priorityLabel, priorityRank, priorityTone } from '../lib/life';
 
 function Pill({ value }) {
   const key = String(value || '').toLowerCase();
@@ -246,7 +247,17 @@ export function Collection({ title, rows, columns, groupKey, onUpdate, onAdd, re
             {calendar.cells.map((cell, index) => (
               <div key={cell?.iso || `empty-${index}`} className="cal-day">
                 {cell && <span>{cell.day}</span>}
-                {cell?.items.slice(0, 3).map((row) => <em key={row.id}>{row.title}</em>)}
+                {cell?.items.slice().sort((a, b) => priorityRank(a) - priorityRank(b)).slice(0, 3).map((row) => {
+                  const known = ['urgent', 'high', 'medium', 'low', 'none'].includes(row.priority);
+                  const late = known && row.priority === 'urgent' && row.date && row.date < todayISO();
+                  return (
+                    <em key={row.id} className={known ? `cal-task tone-${priorityTone(row.priority)}${late ? ' is-late' : ''}` : undefined}>
+                      {known ? <i aria-hidden="true" /> : null}
+                      <b>{row.title}</b>
+                      {known ? <small>{priorityLabel(row.priority)}</small> : null}
+                    </em>
+                  );
+                })}
               </div>
             ))}
           </div>

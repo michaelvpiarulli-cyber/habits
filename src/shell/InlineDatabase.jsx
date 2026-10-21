@@ -132,7 +132,7 @@ export function InlineDatabase({ source = 'tasks' }) {
         { key: 'status', label: 'Status', kind: 'status', options: ['Open', 'Done'] },
         { key: 'date', label: 'Date', kind: 'date' },
         { key: 'tags', label: 'Tags', kind: 'multi', options: ['inbox', 'work', 'personal', 'errands'] },
-        { key: 'priority', label: 'Priority', kind: 'select', options: ['none', 'low', 'medium', 'high'] },
+        { key: 'priority', label: 'Priority', kind: 'select', options: ['urgent', 'high', 'medium', 'low', 'none'] },
       ]}
       onAdd={(title) => life.addTask({ title, dueDate: today })}
       onUpdate={(id, patch) => {
