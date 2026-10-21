@@ -6,7 +6,7 @@
  * Sets, reps, and loads on the seed are placeholders until JENO replaces them.
  */
 
-import { dow } from './dates.js';
+import { dow, formatShort } from './dates.js';
 import { workoutFor } from './workouts.js';
 
 export const SEED_A_ID = '11111111-1111-4111-8111-1111111111a1';
@@ -177,6 +177,25 @@ function inferKind(name) {
   return 'strength';
 }
 
+/** Extra calendar days, in addition to the weekly pattern. */
+export function parseDates(value) {
+  if (value == null || value === '') return { value: [] };
+  const list = Array.isArray(value) ? value : [value];
+  if (list.length > 24) return { error: 'A workout can have at most 24 extra dates.' };
+  const dates = [];
+  for (const item of list) {
+    const text = String(item || '').trim();
+    if (!text) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return { error: 'dates must be YYYY-MM-DD.' };
+    const probe = new Date(`${text}T12:00:00Z`);
+    if (Number.isNaN(probe.getTime()) || probe.toISOString().slice(0, 10) !== text) {
+      return { error: 'dates must be YYYY-MM-DD.' };
+    }
+    dates.push(text);
+  }
+  return { value: [...new Set(dates)].sort() };
+}
+
 export function normalizeWorkout(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { error: 'Workout must be an object.' };
   const name = String(raw.name || '').trim();
@@ -188,6 +207,8 @@ export function normalizeWorkout(raw) {
   if (days.error) return days;
   const pattern = raw.pattern ? String(raw.pattern) : 'weekly';
   if (!PATTERNS.has(pattern)) return { error: 'pattern must be weekly, alternate-a, or alternate-b.' };
+  const dates = parseDates(raw.dates ?? raw.date);
+  if (dates.error) return dates;
   const startTime = clock(raw.startTime, 'startTime');
   if (startTime?.error) return startTime;
   const endTime = clock(raw.endTime, 'endTime');
@@ -208,6 +229,7 @@ export function normalizeWorkout(raw) {
       kind,
       days: days.value,
       pattern,
+      dates: dates.value,
       startTime,
       endTime,
       exercises,
@@ -243,6 +265,7 @@ function byId(workouts, id) {
 
 export function workoutMatchesDay(workout, iso) {
   if (!workout || workout.deleted) return false;
+  if ((workout.dates || []).includes(iso)) return true;
   if (workout.pattern === 'alternate-a') return workoutFor(iso).id === 'strength-a';
   if (workout.pattern === 'alternate-b') return workoutFor(iso).id === 'strength-b';
   return (workout.days || []).includes(dow(iso));
@@ -262,8 +285,12 @@ export function formatExercise(exercise) {
 }
 
 export function patternLabel(workout) {
-  if (workout?.pattern === 'alternate-a' || workout?.pattern === 'alternate-b') return 'Alternates Mon, Wed, Fri';
-  return dayLabels(workout?.days) || 'No days set';
+  const extra = (workout?.dates || []).map((iso) => formatShort(iso)).join(', ');
+  const weekly = workout?.pattern === 'alternate-a' || workout?.pattern === 'alternate-b'
+    ? 'Alternates Mon, Wed, Fri'
+    : dayLabels(workout?.days);
+  if (weekly && extra) return `${weekly}, plus ${extra}`;
+  return weekly || extra || 'No days set';
 }
 
 export function dayLabels(days = []) {

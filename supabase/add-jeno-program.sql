@@ -16,6 +16,7 @@ create table if not exists public.program_workouts (
   days        smallint[]  not null default '{}',
   pattern     text        not null default 'weekly'
                 check (pattern in ('weekly', 'alternate-a', 'alternate-b')),
+  dates       date[]      not null default '{}',
   start_time  text        not null default '',
   end_time    text        not null default '',
   exercises   jsonb       not null default '[]'::jsonb,
@@ -27,6 +28,10 @@ create table if not exists public.program_workouts (
 
 create index if not exists program_workouts_user_idx
   on public.program_workouts (user_id);
+
+-- Extra calendar days (one-offs) on top of the weekly pattern.
+alter table public.program_workouts
+  add column if not exists dates date[] not null default '{}';
 
 -- ------------------------------------------------------- training_program --
 -- One row per household. adopted flips true the first time JENO writes,

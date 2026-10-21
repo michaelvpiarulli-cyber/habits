@@ -28,6 +28,7 @@ function mapWorkout(row) {
     kind: row.kind,
     days: row.days || [],
     pattern: row.pattern || 'weekly',
+    dates: (row.dates || []).map((day) => String(day).slice(0, 10)),
     startTime: row.start_time || '',
     endTime: row.end_time || '',
     exercises: Array.isArray(row.exercises) ? row.exercises : [],
