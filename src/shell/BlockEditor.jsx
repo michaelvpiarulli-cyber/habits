@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { inlineTokens, listNumber, parseMarkdown, shouldSplitMarkdown } from '../lib/markdown';
 import {
   BLOCK_COLORS,
   DATABASE_SOURCES,
@@ -14,7 +15,9 @@ import {
 } from '../lib/pages';
 import { InlineDatabase } from './InlineDatabase';
 
-function FitText({ value, onChange, placeholder, onKeyDown, blockId, autoFocus, className = 'block-edit' }) {
+const SOURCE_TYPES = new Set(['divider', 'image', 'bookmark', 'embed', 'table', 'columns', 'page', 'synced', 'database']);
+
+function FitText({ value, onChange, placeholder, onKeyDown, onPaste, onFocus, onBlur, blockId, autoFocus, className = 'block-edit' }) {
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
@@ -35,8 +38,150 @@ function FitText({ value, onChange, placeholder, onKeyDown, blockId, autoFocus, 
       aria-label="Block"
       onChange={(event) => onChange(event.target.value, event.target.selectionStart)}
       onKeyDown={onKeyDown}
+      onPaste={onPaste}
+      onFocus={onFocus}
+      onBlur={onBlur}
       className={className}
     />
+  );
+}
+
+function mentionNodes(text, pages, onOpenPage, keyPrefix) {
+  const parts = String(text || '').split(/(\[\[[^\]]+\]\]|@\d{4}-\d{2}-\d{2})/g);
+  return parts.map((part, index) => {
+    const key = `${keyPrefix}-${index}`;
+    const pageName = part.match(/^\[\[(.+)\]\]$/)?.[1];
+    if (pageName) {
+      const match = withSystemPages(pages).find((page) => page.title === pageName);
+      return (
+        <button key={key} type="button" className="token" onClick={(event) => { event.stopPropagation(); match && onOpenPage?.(match.id); }}>
+          {match?.icon || '📄'} {pageName}
+        </button>
+      );
+    }
+    if (/^@\d{4}-\d{2}-\d{2}$/.test(part)) return <span key={key} className="token date">{part.slice(1)}</span>;
+    return <span key={key}>{part}</span>;
+  });
+}
+
+function RichText({ text, pages, onOpenPage }) {
+  const render = (tokens, keyPrefix) => tokens.map((token, index) => {
+    const key = `${keyPrefix}-${index}`;
+    if (token.type === 'bold') return <strong key={key}>{render(token.children, key)}</strong>;
+    if (token.type === 'italic') return <em key={key}>{render(token.children, key)}</em>;
+    if (token.type === 'code') return <code key={key}>{token.text}</code>;
+    if (token.type === 'link') {
+      return (
+        <a key={key} href={token.url} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()}>
+          {token.text}
+        </a>
+      );
+    }
+    return <span key={key}>{mentionNodes(token.text, pages, onOpenPage, key)}</span>;
+  });
+  return <span className="rich">{render(inlineTokens(text), 't')}</span>;
+}
+
+function ReadBlock({ block, number, pages, onOpenPage, onEdit }) {
+  const indent = Number(block.props?.indent) || 0;
+  return (
+    <div
+      className={`block is-${block.type}${block.checked ? ' is-checked' : ''}`}
+      style={{ '--indent': indent }}
+    >
+      {block.type === 'todo' && <span className="check-box" aria-hidden="true">{block.checked ? '✓' : ''}</span>}
+      {block.type === 'bullet' && <span className="bullet-dot" aria-hidden="true" />}
+      {block.type === 'numbered' && <span className="num">{number}.</span>}
+      <div className="block-main">
+        {block.type === 'divider' && <div className="divider" role="separator" />}
+        {block.type === 'table' && <TableRead rows={block.props?.rows || []} header={!!block.props?.header} pages={pages} onOpenPage={onOpenPage} />}
+        {block.type !== 'divider' && block.type !== 'table' && (
+          <div className="rich-read" role="textbox" tabIndex={0} aria-label="Edit text" onClick={onEdit} onKeyDown={(event) => { if (event.key === 'Enter') onEdit(); }}>
+            {block.type === 'code' ? block.content : <RichText text={block.content} pages={pages} onOpenPage={onOpenPage} />}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MarkdownPreview({ source, pages, onOpenPage, onEdit }) {
+  const blocks = parseMarkdown(source);
+  return (
+    <div className="md-preview">
+      {blocks.map((block, index) => (
+        <ReadBlock
+          key={index}
+          block={block}
+          number={listNumber(blocks, index)}
+          pages={pages}
+          onOpenPage={onOpenPage}
+          onEdit={onEdit}
+        />
+      ))}
+    </div>
+  );
+}
+
+function TableRead({ rows, header, pages, onOpenPage }) {
+  return (
+    <div className="mini-table">
+      {rows.map((row, rowIndex) => (
+        <div key={rowIndex} className={`mini-row${header && rowIndex === 0 ? ' is-head' : ''}`} style={{ '--cols': row.length }}>
+          {row.map((cell, cellIndex) => (
+            <div key={cellIndex} className="cell-read">
+              <RichText text={cell} pages={pages} onOpenPage={onOpenPage} />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TableBlock({ block, pages, onOpenPage, onUpdate }) {
+  const [cell, setCell] = useState(null);
+  const rows = block.props?.rows || [];
+  const write = (rowIndex, cellIndex, value) => {
+    const next = rows.map((line) => line.slice());
+    next[rowIndex][cellIndex] = value;
+    onUpdate(block.id, { props: { ...block.props, rows: next } });
+  };
+  return (
+    <div className="mini-table">
+      {rows.map((row, rowIndex) => (
+        <div key={rowIndex} className={`mini-row${block.props?.header && rowIndex === 0 ? ' is-head' : ''}`} style={{ '--cols': row.length || 2 }}>
+          {row.map((value, cellIndex) => {
+            const key = `${rowIndex}:${cellIndex}`;
+            if (cell === key || !String(value || '').trim()) {
+              return (
+                <input
+                  key={cellIndex}
+                  aria-label={`Cell ${rowIndex + 1}-${cellIndex + 1}`}
+                  value={value}
+                  autoFocus={cell === key}
+                  onFocus={() => setCell(key)}
+                  onBlur={() => setCell((current) => (current === key ? null : current))}
+                  onChange={(event) => write(rowIndex, cellIndex, event.target.value)}
+                />
+              );
+            }
+            return (
+              <div key={cellIndex} className="cell-read" role="textbox" tabIndex={0} aria-label={`Cell ${rowIndex + 1}-${cellIndex + 1}`} onClick={() => setCell(key)}>
+                <RichText text={value} pages={pages} onOpenPage={onOpenPage} />
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      <button type="button" className="quiet-btn" onClick={() => {
+        const next = rows.map((line) => line.slice());
+        const width = next[0]?.length || 2;
+        next.push(Array.from({ length: width }, () => ''));
+        onUpdate(block.id, { props: { ...block.props, rows: next } });
+      }}
+      >New row</button>
+    </div>
   );
 }
 
@@ -81,6 +226,9 @@ export function BlockEditor({
   useEffect(() => {
     setFocusId(null);
     setHandleFor(null);
+  }, [pageId]);
+
+  useEffect(() => {
     if (livingBlocks(blocks, pageId).length === 0) onAdd(pageId, { type: 'text', ifEmpty: true });
   }, [pageId, blocks, onAdd]);
 
@@ -97,6 +245,84 @@ export function BlockEditor({
     const created = onAdd(pageId, { position: index + 1, ...extra });
     if (created?.id) setFocusId(created.id);
     return created;
+  };
+
+  const insertMarkdown = (block, index, before, after, parsed) => {
+    let position = index + 1;
+    let queue = parsed;
+    if (!before) {
+      const first = queue[0];
+      onUpdate(block.id, {
+        type: first.type,
+        content: first.content,
+        checked: !!first.checked,
+        props: {
+          ...defaultProps(first.type),
+          ...(first.props || {}),
+          ...(block.props?.color ? { color: block.props.color } : {}),
+          ...(block.props?.background ? { background: block.props.background } : {}),
+        },
+      });
+      queue = queue.slice(1);
+    } else {
+      onUpdate(block.id, { content: before });
+    }
+    for (const item of queue) {
+      onAdd(pageId, {
+        position,
+        type: item.type,
+        content: item.content,
+        checked: !!item.checked,
+        props: item.props || {},
+      });
+      position += 1;
+    }
+    if (after) onAdd(pageId, { position, type: 'text', content: after });
+    setFocusId(null);
+  };
+
+  const onPaste = (block, index) => (event) => {
+    if (block.type === 'code') return;
+    const text = event.clipboardData?.getData('text/plain') ?? '';
+    if (!shouldSplitMarkdown(text)) return;
+    event.preventDefault();
+    const start = event.currentTarget.selectionStart ?? 0;
+    const end = event.currentTarget.selectionEnd ?? start;
+    const before = String(block.content || '').slice(0, start);
+    const after = String(block.content || '').slice(end);
+    insertMarkdown(block, index, before, after, parseMarkdown(text));
+  };
+
+  const onPastePage = (event) => {
+    if (event.target.closest('textarea, input')) return;
+    const text = event.clipboardData?.getData('text/plain') ?? '';
+    if (!shouldSplitMarkdown(text)) return;
+    event.preventDefault();
+    const parsed = parseMarkdown(text);
+    const last = list[list.length - 1];
+    if (last && !String(last.content || '').trim() && !SOURCE_TYPES.has(last.type)) {
+      insertMarkdown(last, list.length - 1, '', '', parsed);
+      return;
+    }
+    let position = list.length;
+    for (const item of parsed) {
+      onAdd(pageId, {
+        position,
+        type: item.type,
+        content: item.content,
+        checked: !!item.checked,
+        props: item.props || {},
+      });
+      position += 1;
+    }
+  };
+
+  const leaveBlock = (block) => () => {
+    window.setTimeout(() => {
+      const el = document.activeElement;
+      if (el && el.closest && el.closest('.slash-menu, .block-edit, .pop')) return;
+      setFocusId((current) => (current === block.id ? null : current));
+    }, 0);
   };
 
   const onKeyDown = (block, index) => (event) => {
@@ -143,6 +369,7 @@ export function BlockEditor({
   };
 
   const onChange = (block) => (content) => {
+    setFocusId(block.id);
     const shortcut = markdownShortcut(content);
     if (shortcut) {
       onUpdate(block.id, { type: shortcut.type, content: '', props: { ...block.props, ...defaultProps(shortcut.type) } });
@@ -156,8 +383,9 @@ export function BlockEditor({
   return (
     <div
       className="blocks"
+      onPaste={onPastePage}
       onMouseDown={(event) => {
-        if (event.target.closest('textarea, button, input, .slash-menu, .pop')) return;
+        if (event.target.closest('textarea, button, input, .slash-menu, .pop, .rich-read, .md-preview, a')) return;
         const areas = [...document.querySelectorAll('textarea.block-edit')];
         if (areas.length) areas[areas.length - 1].focus();
         else {
@@ -167,7 +395,12 @@ export function BlockEditor({
       }}
     >
       {list.map((block, index) => {
-        const number = list.slice(0, index + 1).filter((item) => item.type === 'numbered').length;
+        const number = listNumber(list, index);
+        const indent = Number(block.props?.indent) || 0;
+        const source = String(block.content || '');
+        const editing = focusId === block.id;
+        const asBlob = block.type === 'text' && !editing && shouldSplitMarkdown(source);
+        const showSource = !SOURCE_TYPES.has(block.type) && !asBlob && (editing || !source.trim());
         const query = slashQuery(block.content);
         const commands = query == null ? [] : filterCommands(query).slice(0, 8);
         const mention = query == null ? mentionQuery(block.content) : null;
@@ -178,6 +411,7 @@ export function BlockEditor({
           <div
             key={block.id}
             className={`block is-${block.type}${block.checked ? ' is-checked' : ''}${tone}${wash}`}
+            style={{ '--indent': indent }}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => {
               event.preventDefault();
@@ -252,31 +486,7 @@ export function BlockEditor({
                 </div>
               )}
               {block.type === 'table' && (
-                <div className="mini-table">
-                  {(block.props?.rows || []).map((row, rowIndex) => (
-                    <div key={rowIndex} className="mini-row">
-                      {row.map((cell, cellIndex) => (
-                        <input
-                          key={cellIndex}
-                          aria-label={`Cell ${rowIndex + 1}-${cellIndex + 1}`}
-                          value={cell}
-                          onChange={(event) => {
-                            const rows = (block.props?.rows || []).map((line) => line.slice());
-                            rows[rowIndex][cellIndex] = event.target.value;
-                            onUpdate(block.id, { props: { ...block.props, rows } });
-                          }}
-                        />
-                      ))}
-                    </div>
-                  ))}
-                  <button type="button" className="quiet-btn" onClick={() => {
-                    const rows = (block.props?.rows || []).map((line) => line.slice());
-                    const width = rows[0]?.length || 2;
-                    rows.push(Array.from({ length: width }, () => ''));
-                    onUpdate(block.id, { props: { ...block.props, rows } });
-                  }}
-                  >New row</button>
-                </div>
+                <TableBlock block={block} pages={pages} onOpenPage={onOpenPage} onUpdate={onUpdate} />
               )}
               {block.type === 'columns' && (
                 <div className="columns">
@@ -314,7 +524,10 @@ export function BlockEditor({
                   <InlineDatabase source={block.props?.source || 'tasks'} />
                 </div>
               )}
-              {!['divider', 'image', 'bookmark', 'embed', 'table', 'columns', 'page', 'synced', 'database'].includes(block.type) && (
+              {asBlob && (
+                <MarkdownPreview source={source} pages={pages} onOpenPage={onOpenPage} onEdit={() => setFocusId(block.id)} />
+              )}
+              {showSource && (
                 <FitText
                   blockId={block.id}
                   autoFocus={focusId === block.id || (autoFocus && index === 0 && list.length === 1 && !block.content)}
@@ -323,7 +536,22 @@ export function BlockEditor({
                   className={block.type === 'code' ? 'block-edit code' : 'block-edit'}
                   onChange={onChange(block)}
                   onKeyDown={onKeyDown(block, index)}
+                  onPaste={onPaste(block, index)}
+                  onFocus={() => setFocusId(block.id)}
+                  onBlur={leaveBlock(block)}
                 />
+              )}
+              {!SOURCE_TYPES.has(block.type) && !asBlob && !showSource && (
+                <div
+                  className="rich-read"
+                  role="textbox"
+                  tabIndex={0}
+                  aria-label="Edit text"
+                  onClick={() => setFocusId(block.id)}
+                  onKeyDown={(event) => { if (event.key === 'Enter') setFocusId(block.id); }}
+                >
+                  {block.type === 'code' ? block.content : <RichText text={source} pages={pages} onOpenPage={onOpenPage} />}
+                </div>
               )}
               {block.type === 'bookmark' && (
                 <FitText blockId={`${block.id}-title`} value={block.content} placeholder="Title" onChange={onChange(block)} onKeyDown={onKeyDown(block, index)} />
@@ -331,7 +559,7 @@ export function BlockEditor({
               {block.type === 'toggle' && block.props?.open && (
                 <textarea className="block-edit toggle-body" value={block.props?.body || ''} placeholder="Hidden text" aria-label="Toggle contents" onChange={(event) => onUpdate(block.id, { props: { ...block.props, body: event.target.value, open: true } })} />
               )}
-              <TokenText content={block.content} pages={pages} onOpenPage={onOpenPage} />
+              {showSource && <TokenText content={block.content} pages={pages} onOpenPage={onOpenPage} />}
               {commands.length > 0 && (
                 <div className="slash-menu" role="listbox" aria-label="Insert block">
                   {commands.map((item, itemIndex) => (

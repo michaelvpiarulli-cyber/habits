@@ -159,6 +159,27 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
   if (await handles.count() > 1) {
     await handles.nth(1).dragTo(page.locator('.block').first());
   }
+  await page.locator('.blocks').evaluate((el) => {
+    const text = '# Hello\n\n**Bold line**\n\n- One\n  - Nested\n\n- [ ] Open item\n\n> A quote\n\n---\n\n| A | B |\n| --- | --- |\n| c | d |\n\n`code` and [notes](https://example.com/notes)';
+    const data = new DataTransfer();
+    data.setData('text/plain', text);
+    const event = new ClipboardEvent('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'clipboardData', { value: data });
+    el.dispatchEvent(event);
+  });
+  await expect(page.locator('.block.is-h1 .rich-read')).toContainText('Hello');
+  await expect(page.locator('strong', { hasText: 'Bold line' })).toBeVisible();
+  await expect(page.locator('.block.is-quote')).toContainText('A quote');
+  await expect(page.locator('.divider').first()).toBeVisible();
+  await expect(page.locator('.mini-row.is-head')).toContainText('A');
+  await expect(page.locator('.mini-row.is-head')).toContainText('B');
+  await expect(page.locator('.block.is-todo')).toBeVisible();
+  await expect(page.locator('.block.is-bullet').last()).toHaveAttribute('style', /--indent:\s*1/);
+  await expect(page.locator('.rich-read a')).toHaveAttribute('href', 'https://example.com/notes');
+  await page.locator('.block.is-h1 .rich-read').click();
+  await expect(page.locator('.block.is-h1 textarea')).toHaveValue('Hello');
+  const overflowNow = await overflow(page);
+  expect(overflowNow).toEqual([]);
   await page.getByRole('button', { name: 'Page actions' }).click();
   await page.getByRole('button', { name: 'Move to trash' }).click();
   if (mobile) await page.getByRole('button', { name: 'More' }).click();
