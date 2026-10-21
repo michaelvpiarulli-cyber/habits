@@ -22,6 +22,8 @@ create table if not exists public.habits (
   user_id     uuid        not null references auth.users (id) on delete cascade,
   name        text        not null,
   emoji       text,
+  icon        text,
+  color       text,
 
   -- WHEN it is expected:
   -- 'daily'    — every day
@@ -298,7 +300,7 @@ create table if not exists public.tasks (
   list             text        not null default 'inbox'
                      check (list in ('inbox', 'work', 'personal', 'errands')),
   priority         text        not null default 'none'
-                     check (priority in ('none', 'low', 'medium', 'high')),
+                     check (priority in ('none', 'low', 'medium', 'high', 'urgent')),
   done             boolean     not null default false,
   completed_at     timestamptz,
   google_event_id  text,

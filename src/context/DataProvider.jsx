@@ -1307,6 +1307,8 @@ export function DataProvider({ children }) {
         id: newId(),
         name: fields.name.trim(),
         emoji: fields.emoji || '',
+        icon: fields.icon || '',
+        color: fields.color || '',
         cadence: fields.cadence || 'daily',
         weekdays: fields.weekdays || [],
         perWeek: fields.perWeek ?? 3,

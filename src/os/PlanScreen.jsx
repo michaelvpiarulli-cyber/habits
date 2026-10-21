@@ -1,17 +1,54 @@
+import { useState } from 'react';
 import { useLife } from '../context/LifeProvider';
+import { agendaForDay } from '../lib/agenda';
 import { addDays, formatLong, todayISO } from '../lib/dates';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
-import { daysWithAgenda } from '../lib/upcoming';
+import { groupTasks } from '../lib/life';
 import { Collection } from '../shell/Collection';
 import { useGoogleAgenda } from './hooks';
+import { PriorityPicker, TaskLine } from './TaskLine';
 import { AgendaList } from './ui';
+
+const PRIORITY_OPTIONS = ['urgent', 'high', 'medium', 'low', 'none'];
+
+function DayTasks({ tasks, today, openId, setOpenId, onPriority }) {
+  if (!tasks.length) return null;
+  return (
+    <ul className="task-day">
+      {tasks.map((task) => (
+        <TaskLine
+          key={task.id}
+          task={task}
+          today={today}
+          open={openId === task.id}
+          onToggle={() => setOpenId((current) => (current === task.id ? null : task.id))}
+          onPriority={(priority) => onPriority(task.id, priority)}
+        />
+      ))}
+    </ul>
+  );
+}
 
 export function PlanScreen() {
   const today = todayISO();
   const life = useLife();
   const google = useGoogleAgenda(today, addDays(today, 14));
-  const days = daysWithAgenda(life.events, google.events, today, 14);
+  const grouped = groupTasks(life.tasks, today);
+  const [draft, setDraft] = useState('');
+  const [priority, setPriority] = useState('none');
+  const [openId, setOpenId] = useState(null);
   const wrongAccount = google.connected && google.accountEmail && google.accountEmail.toLowerCase() !== GOOGLE_CALENDAR_ACCOUNT;
+
+  const days = [];
+  for (let step = 0; step < 14; step += 1) {
+    const day = addDays(today, step);
+    const events = agendaForDay(life.events, google.events, day);
+    const tasks = (day === today ? grouped.dueToday : grouped.upcoming.filter((task) => task.dueDate === day));
+    if (events.length || tasks.length) days.push({ day, events, tasks });
+  }
+  const quiet = grouped.overdue.length === 0 && days.length === 0;
+
+  const setTaskPriority = (id, next) => life.updateTask(id, { priority: next });
 
   return (
     <div className="board">
@@ -20,10 +57,32 @@ export function PlanScreen() {
         {!google.connected ? <p className="quiet">Connect Google in Settings.</p> : null}
         {wrongAccount ? <p className="quiet">Connected as {google.accountEmail}. Switch to {GOOGLE_CALENDAR_ACCOUNT}.</p> : null}
         {google.note ? <p className="error">{google.note}</p> : null}
-        {days.length === 0 ? <p className="quiet">Nothing in the next two weeks.</p> : days.map((day) => (
-          <div key={day.day} style={{ marginTop: 18 }}>
+        <form
+          className="task-add"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const title = draft.trim();
+            if (!title) return;
+            life.addTask({ title, dueDate: today, priority });
+            setDraft('');
+            setPriority('none');
+          }}
+        >
+          <input aria-label="Task name" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Add a task" />
+          <PriorityPicker value={priority} onChange={setPriority} />
+          <button className="btn" type="submit">Add</button>
+        </form>
+        {grouped.overdue.length > 0 ? (
+          <div className="plan-day">
+            <h3>Overdue</h3>
+            <DayTasks tasks={grouped.overdue} today={today} openId={openId} setOpenId={setOpenId} onPriority={setTaskPriority} />
+          </div>
+        ) : null}
+        {quiet ? <p className="quiet">Nothing in the next two weeks.</p> : days.map((day) => (
+          <div key={day.day} className="plan-day">
             <h3>{day.day === today ? 'Today' : formatLong(day.day)}</h3>
-            <AgendaList items={day.items} />
+            <DayTasks tasks={day.tasks} today={today} openId={openId} setOpenId={setOpenId} onPriority={setTaskPriority} />
+            {day.events.length ? <AgendaList items={day.events} /> : null}
           </div>
         ))}
       </section>
@@ -44,7 +103,7 @@ export function PlanScreen() {
           { key: 'status', label: 'Status', kind: 'status', options: ['Open', 'Done'] },
           { key: 'date', label: 'Date', kind: 'date' },
           { key: 'tags', label: 'Tags', kind: 'multi', options: ['inbox', 'work', 'personal', 'errands'] },
-          { key: 'priority', label: 'Priority', kind: 'select', options: ['none', 'low', 'medium', 'high'] },
+          { key: 'priority', label: 'Priority', kind: 'select', options: PRIORITY_OPTIONS },
         ]}
         onAdd={(title) => life.addTask({ title, dueDate: today })}
         onUpdate={(id, patch) => {

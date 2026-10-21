@@ -6,11 +6,13 @@ import { addDays, formatClock, formatLong, todayISO } from '../lib/dates';
 import { FOOD_GOALS, foodVsGoals, ingestedFoodForDay, preferFoodEntry } from '../lib/foodGoals';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
 import { isComplete } from '../lib/habits';
-import { groupTasks } from '../lib/life';
+import { compareByPriority, groupTasks } from '../lib/life';
 import { workoutsOnDay } from '../lib/program';
 import { isDue } from '../lib/streaks';
 import { clockMinutes, nextTimedItem } from '../lib/upcoming';
+import { HabitMark } from './HabitMark';
 import { useBible, useGoogleAgenda, useProgram } from './hooks';
+import { TaskLine } from './TaskLine';
 
 export function TodayScreen() {
   const today = todayISO();
@@ -33,7 +35,7 @@ export function TodayScreen() {
   const year = Number(today.slice(0, 4));
   const slots = reading.index == null ? new Set() : slotsFor(bible.checks, year, reading.index);
   const openTasks = groupTasks(tasks, today);
-  const topTasks = [...openTasks.overdue, ...openTasks.dueToday].slice(0, 3);
+  const topTasks = [...openTasks.overdue, ...openTasks.dueToday].sort(compareByPriority).slice(0, 3);
   const wrongAccount =
     google.connected && google.accountEmail && google.accountEmail.toLowerCase() !== GOOGLE_CALENDAR_ACCOUNT;
   const calories = Math.round(stats.calories).toLocaleString('en-US');
@@ -86,8 +88,9 @@ export function TodayScreen() {
         ) : (
           <ul>
             {due.map((habit) => (
-              <li key={habit.id}>
-                {habit.name}
+              <li key={habit.id} className="glance-habit">
+                <HabitMark habit={habit} />
+                <span className="habit-name">{habit.name}</span>
                 <span className="faint">{isComplete(habit, logFor(habit.id, today)) ? ' Done' : ' Open'}</span>
               </li>
             ))}
@@ -102,10 +105,7 @@ export function TodayScreen() {
         ) : (
           <ul>
             {topTasks.map((task) => (
-              <li key={task.id}>
-                {task.title}
-                {task.dueDate < today ? <span className="faint"> Overdue</span> : null}
-              </li>
+              <TaskLine key={task.id} task={task} today={today} />
             ))}
           </ul>
         )}
