@@ -23,7 +23,7 @@ export function TaskLine({ task, today, open, onToggle, onPriority }) {
   const overdue = Boolean(task.dueDate && today && task.dueDate < today);
   const late = overdue && task.priority === 'urgent';
   return (
-    <li className={`task-line tone-${tone}${late ? ' is-late' : ''}`}>
+    <li className={`task-line tone-${tone}${late ? ' is-late' : ''}${task.done ? ' is-done' : ''}`}>
       <div className="task-main">
         <span className="task-bar" aria-hidden="true" />
         <span className="task-title">{task.title}</span>
