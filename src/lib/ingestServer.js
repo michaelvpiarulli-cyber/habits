@@ -6,7 +6,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { applyNutritionWrite, foodCount } from './foodLog.js';
-import { extractIngestKey, keysMatch, validateIngest } from './ingest.js';
+import { authorizeIngest } from './ingestAuth.js';
+import { validateIngest } from './ingest.js';
 import { HOUSEHOLD_OWNER_ID } from './household.js';
 
 const DEFAULT_URL = 'https://amrqzdnsbgoqkckcytjq.supabase.co';
@@ -183,15 +184,12 @@ export function supabaseIngestStore(env, clientFactory = createClient) {
   };
 }
 
-export async function runIngest({ method, headers, body, env = {}, store }) {
+export async function runIngest({ method, headers, body, env = {}, store, lookupHash }) {
   if (method === 'OPTIONS') return { status: 204, body: null };
   if (method !== 'POST') return { status: 405, body: { error: 'Method not allowed' } };
 
-  const expected = env.TALLY_INGEST_KEY || '';
-  if (!expected) return { status: 503, body: { error: 'Ingest is not configured.' } };
-  if (!keysMatch(extractIngestKey(headers), expected)) {
-    return { status: 401, body: { error: 'Unauthorized' } };
-  }
+  const denied = await authorizeIngest({ headers, env, lookupHash });
+  if (denied) return denied;
 
   const parsedBody = readBody(body);
   if (parsedBody?.error && !parsedBody.kind) {

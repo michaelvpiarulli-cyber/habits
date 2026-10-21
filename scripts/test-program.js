@@ -12,6 +12,7 @@ import {
   workoutMatchesDay,
   workoutsOnDay,
 } from '../src/lib/program.js';
+import { sha256Hex } from '../src/lib/ingestAuth.js';
 import { runProgram } from '../src/lib/programServer.js';
 import { workoutFor } from '../src/lib/workouts.js';
 
@@ -82,6 +83,24 @@ test('program API rejects a bad key and returns the seed before JENO writes', as
     store,
   });
   assert.equal(denied.status, 401);
+
+  const hash = sha256Hex('file-key');
+  const byHash = await runProgram({
+    method: 'GET',
+    headers: { authorization: 'Bearer file-key' },
+    env: {},
+    store,
+    lookupHash: async () => hash,
+  });
+  assert.equal(byHash.status, 200);
+  const wrongHash = await runProgram({
+    method: 'GET',
+    headers: { authorization: 'Bearer nope' },
+    env: {},
+    store,
+    lookupHash: async () => hash,
+  });
+  assert.equal(wrongHash.status, 401);
 
   const listed = await runProgram({ method: 'GET', headers, env, store });
   assert.equal(listed.status, 200);

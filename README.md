@@ -135,7 +135,7 @@ curl -X PUT "$BASE/api/program" \
   -d '{"workouts":[{"name":"Full body","days":["Mon","Thu"],"exercises":[{"name":"Squat","sets":3,"reps":"5","weight":"200 lb","rest":"2 min"}]}]}'
 ```
 
-A missing or wrong key returns 503 or 401. Run `add-jeno-program.sql` before the first write.
+A wrong key returns 401. `TALLY_INGEST_KEY` still works when it is set. When it is unset, the server accepts the key whose SHA-256 matches `app_secrets` name `ingest_key`. Run `add-jeno-program.sql` before the first write.
 
 Each food post and each program change is also written to `jeno_activity`, which the JENO tab lists.
 

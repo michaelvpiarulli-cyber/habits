@@ -4,7 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { extractIngestKey, keysMatch } from './ingest.js';
+import { authorizeIngest } from './ingestAuth.js';
 import { HOUSEHOLD_OWNER_ID } from './household.js';
 import {
   applyProgramAction,
@@ -150,18 +150,9 @@ export function supabaseProgramStore(env, clientFactory = createClient) {
   };
 }
 
-function authorize(headers, env) {
-  const expected = env.TALLY_INGEST_KEY || '';
-  if (!expected) return { status: 503, body: { error: 'Ingest is not configured.' } };
-  if (!keysMatch(extractIngestKey(headers), expected)) {
-    return { status: 401, body: { error: 'Unauthorized' } };
-  }
-  return null;
-}
-
-export async function runProgram({ method, headers, body, query = {}, env = {}, store }) {
+export async function runProgram({ method, headers, body, query = {}, env = {}, store, lookupHash }) {
   if (method === 'OPTIONS') return { status: 204, body: null };
-  const denied = authorize(headers, env);
+  const denied = await authorizeIngest({ headers, env, lookupHash });
   if (denied) return denied;
 
   const verb = String(method || '').toUpperCase();
