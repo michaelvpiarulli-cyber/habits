@@ -5,7 +5,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { agendaForDay } from '../src/lib/agenda.js';
-import { FOOD_GOALS, foodVsGoals, preferFoodEntry } from '../src/lib/foodGoals.js';
+import { FOOD_GOALS, daysWithLoggedFood, foodVsGoals, preferFoodEntry } from '../src/lib/foodGoals.js';
+import { isFoodTrackingHabit } from '../src/lib/habits.js';
 import { applyNutritionWrite } from '../src/lib/foodLog.js';
 import { inboxItems } from '../src/lib/inbox.js';
 import { sha256Hex } from '../src/lib/ingestAuth.js';
@@ -105,6 +106,15 @@ test('food prefers the newer total and scores 2100 kcal / 210 g', () => {
   const stats = foodVsGoals({ calories: 1050, protein: 105 });
   assert.equal(stats.calorieRatio, 0.5);
   assert.equal(stats.proteinRatio, 0.5);
+  const tracked = daysWithLoggedFood(
+    [{ day: '2026-10-21', source: 'jeno', calories: 404, protein: 27 }],
+    [{ day: '2026-10-19', calories: 900, meals: [{ id: 'm' }] }]
+  );
+  assert.equal(tracked.has('2026-10-21'), true);
+  assert.equal(tracked.has('2026-10-19'), true);
+  assert.equal(tracked.has('2026-10-20'), false);
+  assert.equal(isFoodTrackingHabit({ name: 'Track food' }), true);
+  assert.equal(isFoodTrackingHabit({ name: 'Protein' }), false);
 });
 
 test('watch entries clamp stars and sort recent first', () => {

@@ -6,7 +6,7 @@ import { readingsForDate, slotsFor } from '../lib/biblePlan';
 import { addDays, formatClock, formatLong } from '../lib/dates';
 import { ingestedFoodForDay, preferFoodEntry } from '../lib/foodGoals';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
-import { isComplete, targetOf, valueOf } from '../lib/habits';
+import { isComplete, isFoodTrackingHabit, targetOf, valueOf } from '../lib/habits';
 import { compareByPriority, groupTasks, living } from '../lib/life';
 import { workoutsOnDay } from '../lib/program';
 import { isDue } from '../lib/streaks';
@@ -85,11 +85,11 @@ function GlanceValue({ habit, day, value }) {
   );
 }
 
-function GlanceHabit({ habit, day }) {
+function GlanceHabit({ habit, day, alsoDone = false }) {
   const { logFor, toggleDay, bumpDay } = useData();
   const log = logFor(habit.id, day);
   const value = valueOf(habit, log);
-  const complete = isComplete(habit, log);
+  const complete = isComplete(habit, log) || alsoDone;
   const numeric = habit.kind === 'amount' || habit.kind === 'measure';
 
   const tap = () => {
@@ -196,7 +196,12 @@ export function TodayScreen() {
         ) : (
           <ul>
             {due.map((habit) => (
-              <GlanceHabit key={habit.id} habit={habit} day={day} />
+              <GlanceHabit
+                key={habit.id}
+                habit={habit}
+                day={day}
+                alsoDone={isFoodTrackingHabit(habit) && !!food}
+              />
             ))}
           </ul>
         )}
