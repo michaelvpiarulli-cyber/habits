@@ -14,6 +14,7 @@ import { runIngest } from '../src/lib/ingestServer.js';
 import { HOUSEHOLD_OWNER_ID } from '../src/lib/household.js';
 import { normalizeWatch, parseRating, recentWatches } from '../src/lib/watchLog.js';
 import { nextWorkout, todayWorkout, workoutFor } from '../src/lib/workouts.js';
+import { clampViewDay, readViewDay, searchForViewDay } from '../src/lib/viewDay.js';
 
 let failed = 0;
 const queue = [];
@@ -34,6 +35,22 @@ function test(name, fn) {
 console.log('life os');
 
 const names = (plan) => plan.exercises.map((exercise) => exercise.name);
+
+test('view day keeps a past date, clamps the future, and drops today from the url', () => {
+  const today = '2026-10-21';
+  assert.equal(clampViewDay('2026-10-20', today), '2026-10-20');
+  assert.equal(clampViewDay('2026-10-21', today), '2026-10-21');
+  assert.equal(clampViewDay('2026-10-22', today), '2026-10-21');
+  assert.equal(clampViewDay('nope', today), '2026-10-21');
+  assert.equal(clampViewDay('2026-02-31', today), '2026-10-21');
+  assert.equal(readViewDay('?date=2026-10-20', today), '2026-10-20');
+  assert.equal(readViewDay('', today), today);
+  assert.equal(readViewDay('?date=2099-01-01', today), today);
+  assert.equal(searchForViewDay('', '2026-10-20', today), '?date=2026-10-20');
+  assert.equal(searchForViewDay('?date=2026-10-20', today, today), '');
+  assert.equal(searchForViewDay('?page=abc', '2026-10-20', today), '?page=abc&date=2026-10-20');
+  assert.equal(searchForViewDay('?page=abc&date=2026-10-20', today, today), '?page=abc');
+});
 
 test('strength alternates A/B from the Monday epoch and walks sit on Tue/Thu/Sat', () => {
   const monday = workoutFor('2024-01-01');

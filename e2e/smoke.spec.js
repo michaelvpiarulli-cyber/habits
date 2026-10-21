@@ -57,6 +57,16 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
   await expect(page.getByRole('heading', { name: 'Food' })).toBeVisible();
   await expect(page.getByText(/2,100 kcal/)).toBeVisible();
   await expect(page.getByLabel('Add a task')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Next day' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Previous day' }).click();
+  await expect(page).toHaveURL(/[?&]date=\d{4}-\d{2}-\d{2}/);
+  await expect(page.getByRole('button', { name: 'Next day' })).toBeEnabled();
+  await page.reload();
+  await expect(page.locator('input.page-title')).toHaveValue('Today', { timeout: 15000 });
+  await expect(page).toHaveURL(/[?&]date=\d{4}-\d{2}-\d{2}/);
+  await page.getByRole('button', { name: 'Back to today' }).click();
+  await expect(page).not.toHaveURL(/[?&]date=/);
+  await expect(page.getByRole('button', { name: 'Next day' })).toBeDisabled();
 
   mkdirSync('/opt/cursor/artifacts', { recursive: true });
   const tag = mobile ? 'iphone' : 'desktop';
@@ -78,6 +88,14 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
     const wide = await overflow(page);
     expect(wide, `${name} overflows`).toEqual([]);
   }
+
+  await openSection(page, mobile, 'Food');
+  await page.locator('.week-bar').nth(5).click();
+  await expect(page.locator('input.page-title')).toHaveValue('Today');
+  await expect(page).toHaveURL(/[?&]date=/);
+  expect(await overflow(page), 'past day overflows').toEqual([]);
+  await page.getByRole('button', { name: 'Back to today' }).click();
+  await expect(page).not.toHaveURL(/[?&]date=/);
 
   await checkNested(page, mobile, testInfo.project.name);
 

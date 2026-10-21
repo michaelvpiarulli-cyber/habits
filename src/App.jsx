@@ -137,7 +137,7 @@ export default function App() {
 
   let module = null;
   if (!trash && ready && page.systemKey === 'today') module = <TodayScreen />;
-  else if (!trash && ready && page.systemKey === 'food') module = <FoodScreen />;
+  else if (!trash && ready && page.systemKey === 'food') module = <FoodScreen onOpenDay={() => openPage(today.id)} />;
   else if (!trash && ready && page.systemKey === 'plan') module = <PlanScreen />;
   else if (!trash && ready && page.systemKey === 'body') module = <BodyScreen />;
   else if (!trash && ready && page.systemKey === 'habits') module = <HabitsScreen />;
