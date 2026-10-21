@@ -32,10 +32,33 @@
 
 .board {
   display: grid;
-  gap: 14px;
+  gap: 28px;
   align-items: start;
   width: 100%;
 }
+
+.glance {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.glance h2,
+.fold summary {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.glance p,
+.glance li { margin: 0; }
+
+.glance ul { display: grid; gap: 8px; }
+
+.fold { margin-top: 8px; }
+.fold summary { cursor: pointer; list-style: none; }
+.fold summary::-webkit-details-marker { display: none; }
 
 .board > .card,
 .board > .banner {

@@ -131,6 +131,8 @@
   color: var(--muted);
   text-align: left;
 }
+.side-gap { margin-top: 18px; }
+
 .side-label .row-plus { opacity: 0; }
 .side-label:hover .row-plus,
 .side-label:focus-within .row-plus { opacity: 1; }
@@ -377,7 +379,7 @@
 }
 
 .module .os-head { display: none; }
-.module .board { gap: 12px; }
+.module .board { gap: 32px; grid-template-columns: 1fr; }
 
 .block {
   display: grid;
@@ -616,7 +618,7 @@ table.data td input, table.data td select {
 }
 
 @media (min-width: 1400px) {
-  .module .board { grid-template-columns: 1fr 1fr; }
+  .module .board { grid-template-columns: 1fr; }
 }
 
 @media (min-width: 960px) {
@@ -812,12 +814,21 @@ table.data td input, table.data td select {
 .group-by { width: auto; border: 0; color: var(--muted); font-size: 13px; min-height: 28px; background: transparent; }
 .multi { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; }
 .pill.is-on { background: color-mix(in srgb, var(--accent) 18%, var(--bg)); color: var(--ink); }
-.module .card { border-radius: 4px; box-shadow: none; }
-.module .card h2, .module .section-label {
+.module .card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+.module h2, .module .section-label {
   letter-spacing: 0;
   text-transform: none;
   font-size: 14px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--muted);
+  margin: 0 0 8px;
 }
+.module .glance h2 { color: var(--muted); }
 .faint { color: var(--faint); font-size: 12px; }

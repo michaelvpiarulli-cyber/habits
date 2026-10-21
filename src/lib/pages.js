@@ -7,12 +7,22 @@ import { newId, nowISO } from './mappers.js';
 
 export const SYSTEM_PAGES = [
   { id: 'b1111111-1111-4111-8111-111111111101', systemKey: 'today', title: 'Today', icon: '☀️', position: 0 },
-  { id: 'b1111111-1111-4111-8111-111111111102', systemKey: 'plan', title: 'Plan', icon: '📅', position: 1 },
-  { id: 'b1111111-1111-4111-8111-111111111103', systemKey: 'body', title: 'Body', icon: '💪', position: 2 },
-  { id: 'b1111111-1111-4111-8111-111111111104', systemKey: 'word', title: 'Word', icon: '📖', position: 3 },
-  { id: 'b1111111-1111-4111-8111-111111111105', systemKey: 'jeno', title: 'JENO', icon: '✦', position: 4 },
-  { id: 'b1111111-1111-4111-8111-111111111106', systemKey: 'log', title: 'Log', icon: '✎', position: 5 },
-  { id: 'b1111111-1111-4111-8111-111111111107', systemKey: 'settings', title: 'Settings', icon: '⚙', position: 6 },
+  { id: 'b1111111-1111-4111-8111-111111111108', systemKey: 'food', title: 'Food', icon: '🍎', position: 1 },
+  { id: 'b1111111-1111-4111-8111-111111111103', systemKey: 'body', title: 'Workouts', icon: '💪', position: 2 },
+  { id: 'b1111111-1111-4111-8111-111111111109', systemKey: 'habits', title: 'Habits', icon: '✅', position: 3 },
+  { id: 'b1111111-1111-4111-8111-111111111102', systemKey: 'plan', title: 'Plan', icon: '📅', position: 4 },
+  { id: 'b1111111-1111-4111-8111-111111111104', systemKey: 'word', title: 'Bible', icon: '📖', position: 5 },
+  { id: 'b1111111-1111-4111-8111-111111111106', systemKey: 'log', title: 'Watch', icon: '✎', position: 6 },
+  { id: 'b1111111-1111-4111-8111-111111111105', systemKey: 'jeno', title: 'JENO', icon: '✦', position: 7 },
+  { id: 'b1111111-1111-4111-8111-111111111107', systemKey: 'settings', title: 'Settings', icon: '⚙', position: 8 },
+];
+
+/** Sidebar groups. Each system page appears once. Notes are the user pages. */
+export const NAV_GROUPS = [
+  { label: '', keys: ['today'] },
+  { label: 'Health', keys: ['food', 'body', 'habits'] },
+  { label: 'Plan', keys: ['plan', 'word'] },
+  { label: 'Log', keys: ['log', 'jeno'] },
 ];
 
 export const BLOCK_MENU = [

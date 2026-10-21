@@ -5,6 +5,8 @@ import { usePages } from './context/PagesProvider';
 import { useTheme } from './hooks/useTheme';
 import { NativeShell } from './components/NativeShell';
 import { BodyScreen } from './os/BodyScreen';
+import { FoodScreen } from './os/FoodScreen';
+import { HabitsScreen } from './os/HabitsScreen';
 import { JenoScreen } from './os/JenoScreen';
 import { LogScreen } from './os/LogScreen';
 import { PlanScreen } from './os/PlanScreen';
@@ -17,7 +19,8 @@ import { Sidebar } from './shell/Sidebar';
 import {
   COVERS,
   breadcrumbs,
-  editedLabel,
+  canonicalTitle,
+  livingBlocks,
   pageById,
   searchPages,
   systemPageByKey,
@@ -133,17 +136,21 @@ export default function App() {
       : null;
 
   let module = null;
-  if (!trash && ready && page.systemKey === 'today') module = <TodayScreen onLog={() => jump('log')} onSettings={() => jump('settings')} onJump={jump} />;
-  else if (!trash && ready && page.systemKey === 'plan') module = <PlanScreen onLog={() => jump('log')} onSettings={() => jump('settings')} />;
-  else if (!trash && ready && page.systemKey === 'body') module = <BodyScreen onLog={() => jump('log')} onSettings={() => jump('settings')} />;
-  else if (!trash && ready && page.systemKey === 'word') module = <WordScreen onLog={() => jump('log')} onSettings={() => jump('settings')} />;
-  else if (!trash && ready && page.systemKey === 'jeno') module = <JenoScreen onLog={() => jump('log')} onSettings={() => jump('settings')} />;
-  else if (!trash && ready && page.systemKey === 'log') module = <LogScreen onClose={() => jump('today')} />;
-  else if (!trash && ready && page.systemKey === 'settings') module = <SettingsScreen onClose={() => jump('today')} />;
+  if (!trash && ready && page.systemKey === 'today') module = <TodayScreen />;
+  else if (!trash && ready && page.systemKey === 'food') module = <FoodScreen />;
+  else if (!trash && ready && page.systemKey === 'plan') module = <PlanScreen />;
+  else if (!trash && ready && page.systemKey === 'body') module = <BodyScreen />;
+  else if (!trash && ready && page.systemKey === 'habits') module = <HabitsScreen />;
+  else if (!trash && ready && page.systemKey === 'word') module = <WordScreen />;
+  else if (!trash && ready && page.systemKey === 'jeno') module = <JenoScreen />;
+  else if (!trash && ready && page.systemKey === 'log') module = <LogScreen />;
+  else if (!trash && ready && page.systemKey === 'settings') module = <SettingsScreen />;
   else if (!trash && !ready) module = <p className="quiet">Loading…</p>;
 
   const history = page.props?.history || [];
-  const fullWidth = page.props?.fullWidth != null ? !!page.props.fullWidth : Boolean(page.systemKey);
+  const fullWidth = !!page.props?.fullWidth;
+  const titled = canonicalTitle(page);
+  const hasNotes = livingBlocks(notebook.blocks, page.id).some((block) => block.type !== 'text' || block.content);
 
   return (
     <div className="app">
@@ -183,11 +190,6 @@ export default function App() {
           </nav>
           {!trash && (
             <div className="page-actions">
-              <span className="edited">{editedLabel(page.updatedAt)}</span>
-              <button type="button" className="share" onClick={() => { setShareOpen((value) => !value); setMoreOpen(false); }}>Share</button>
-              <button type="button" className="icon-btn" aria-pressed={page.favorite} aria-label="Favorite" onClick={() => notebook.updatePage(page.id, { favorite: !page.favorite })}>
-                {page.favorite ? '★' : '☆'}
-              </button>
               <button type="button" className="icon-btn" aria-label="Page actions" onClick={() => { setMoreOpen((value) => !value); setShareOpen(false); }}>···</button>
             </div>
           )}
@@ -200,6 +202,10 @@ export default function App() {
           )}
           {moreOpen && !trash && (
             <div className="pop more-menu" role="menu">
+              <button type="button" onClick={() => { notebook.updatePage(page.id, { favorite: !page.favorite }); setMoreOpen(false); }}>
+                {page.favorite ? 'Remove from favorites' : 'Add to favorites'}
+              </button>
+              <button type="button" onClick={() => { setShareOpen(true); setMoreOpen(false); }}>Share</button>
               <button type="button" onClick={() => notebook.updatePage(page.id, { props: { ...page.props, fullWidth: !fullWidth } })}>
                 {fullWidth ? 'Default width' : 'Full width'}
               </button>
@@ -207,8 +213,8 @@ export default function App() {
                 {page.props?.smallText ? 'Default text' : 'Small text'}
               </button>
               <button type="button" onClick={() => { setCoverOpen(true); setMoreOpen(false); }}>Add cover</button>
-              <button type="button" onClick={() => notebook.applyTemplate(page.id, 'daily')}>Daily note</button>
-              <button type="button" onClick={() => notebook.applyTemplate(page.id, 'weekly')}>Weekly review</button>
+              {!page.systemKey && <button type="button" onClick={() => notebook.applyTemplate(page.id, 'daily')}>Daily note</button>}
+              {!page.systemKey && <button type="button" onClick={() => notebook.applyTemplate(page.id, 'weekly')}>Weekly review</button>}
               <button type="button" disabled={Boolean(page.systemKey)} onClick={() => { const copy = notebook.duplicatePage(page.id); if (copy) openPage(copy.id); }}>Duplicate</button>
               <button type="button" disabled={Boolean(page.systemKey)} onClick={() => { notebook.deletePage(page.id); openPage(today.id); }}>Move to trash</button>
               {history.length > 0 && <p className="side-label">History</p>}
@@ -247,11 +253,13 @@ export default function App() {
               </div>
             ) : (
               <>
-                <div className="page-meta">
-                  {!page.cover && <button type="button" className="meta-link" onClick={() => setCoverOpen((value) => !value)}>Add cover</button>}
-                  <button type="button" className="meta-link" onClick={() => setIconOpen((value) => !value)}>{page.icon ? 'Change icon' : 'Add icon'}</button>
-                </div>
-                {(page.systemKey || page.icon || iconOpen) && (
+                {!page.systemKey && (
+                  <div className="page-meta">
+                    {!page.cover && <button type="button" className="meta-link" onClick={() => setCoverOpen((value) => !value)}>Add cover</button>}
+                    <button type="button" className="meta-link" onClick={() => setIconOpen((value) => !value)}>{page.icon ? 'Change icon' : 'Add icon'}</button>
+                  </div>
+                )}
+                {!page.systemKey && (page.icon || iconOpen) && (
                   <button type="button" className="icon-pick" aria-label="Change icon" onClick={() => setIconOpen((value) => !value)}>
                     <PageIcon page={page} large />
                   </button>
@@ -288,22 +296,27 @@ export default function App() {
                 <input
                   className="page-title"
                   aria-label="Page title"
-                  value={page.title}
+                  value={titled}
+                  readOnly={Boolean(page.systemKey)}
                   placeholder="Untitled"
-                  onChange={(event) => notebook.updatePage(page.id, { title: event.target.value })}
+                  onChange={(event) => {
+                    if (!page.systemKey) notebook.updatePage(page.id, { title: event.target.value });
+                  }}
                 />
                 {module && <div className="module">{module}</div>}
-                <BlockEditor
-                  pageId={page.id}
-                  blocks={notebook.blocks}
-                  pages={notebook.pages}
-                  onOpenPage={openPage}
-                  autoFocus={!page.systemKey}
-                  onAdd={notebook.addBlock}
-                  onUpdate={notebook.updateBlock}
-                  onDelete={notebook.deleteBlock}
-                  onReorder={notebook.reorder}
-                />
+                {(!page.systemKey || hasNotes) && (
+                  <BlockEditor
+                    pageId={page.id}
+                    blocks={notebook.blocks}
+                    pages={notebook.pages}
+                    onOpenPage={openPage}
+                    autoFocus={!page.systemKey}
+                    onAdd={notebook.addBlock}
+                    onUpdate={notebook.updateBlock}
+                    onDelete={notebook.deleteBlock}
+                    onReorder={notebook.reorder}
+                  />
+                )}
               </>
             )}
           </article>
@@ -313,9 +326,9 @@ export default function App() {
         <nav className="tabs" aria-label="Daily">
           {[
             ['today', 'Today'],
+            ['food', 'Food'],
+            ['body', 'Workouts'],
             ['plan', 'Plan'],
-            ['body', 'Body'],
-            ['word', 'Word'],
           ].map(([key, label]) => (
             <button key={key} type="button" className={page.systemKey === key && !trash ? 'is-on' : ''} onClick={() => jump(key)}>
               {label}

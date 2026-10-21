@@ -37,7 +37,7 @@ const blocks = [
 ];
 
 const shown = withSystemPages(pages);
-assert.equal(shown.filter((page) => page.systemKey).length, 7);
+assert.equal(shown.filter((page) => page.systemKey).length, 9);
 assert.equal(shown.some((page) => page.id === 'gone'), false);
 
 const roots = childrenOf(pages, null);
@@ -107,8 +107,12 @@ const grid = monthGrid('2026-10-20', [
 assert.equal(grid.cells.filter(Boolean).length, 31);
 assert.ok(grid.cells.find((cell) => cell?.iso === '2026-10-20').items.some((row) => row.id === 'a'));
 assert.equal(shiftMonth('2026-10-01', 1), '2026-11-01');
-assert.equal(canonicalTitle({ systemKey: 'log', title: 'Renamed' }), 'Log');
+assert.equal(canonicalTitle({ systemKey: 'log', title: 'Renamed' }), 'Watch');
+assert.equal(canonicalTitle({ systemKey: 'body', title: 'Body' }), 'Workouts');
+assert.equal(canonicalTitle({ systemKey: 'word', title: 'Word' }), 'Bible');
 assert.equal(coercePage({ systemKey: 'today', title: 'Nope' }).title, 'Today');
+assert.equal(withSystemPages([]).find((page) => page.systemKey === 'food').title, 'Food');
+assert.equal(withSystemPages([]).find((page) => page.systemKey === 'habits').title, 'Habits');
 assert.equal(coercePage({ title: 'Notes' }).title, 'Notes');
 assert.ok(timeValue('2026-10-20T20:03:24.583762+00:00') > timeValue('2026-10-20T20:02:59.652Z'));
 assert.ok(timeValue('2026-10-20 20:03:24.583762+00') > timeValue('2026-10-20T20:02:59.652Z'));

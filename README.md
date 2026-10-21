@@ -8,15 +8,18 @@ Vite, React, Supabase, and Vercel. No login. The open household project and its 
 
 ## Screens
 
-- **Today** — the day: next thing, Google Calendar, food against 2,100 kcal and 210 g protein, today’s session, the M’Cheyne reading, habits that are due.
-- **Plan** — the next two weeks of calendar, tasks, goals, and notes.
-- **Body** — meals and foods, plus the weekly program. View only.
-- **Word** — M’Cheyne Bible in a year (1842, public domain). Check passages, see progress, catch up missed days. 29 February is a catch-up day.
-- **JENO** — inbox of food entries and workout changes.
-- **Log** — today’s journal line and the watch log (title, link, 1–5 rating, notes).
-- **Settings** — Google Calendar, theme, sync, habits.
+- **Today** — a glance: today’s session, food against 2,100 kcal and 210 g protein, the Bible reading, habits, the top 3 tasks, and the next calendar event.
+- **Food** — meals and the MyFitnessPal sync.
+- **Workouts** — the program and the day’s session.
+- **Habits** — habits only.
+- **Plan** — calendar and tasks.
+- **Bible** — M’Cheyne Bible in a year (1842, public domain). Check passages, see progress, catch up missed days. 29 February is a catch-up day.
+- **Watch** — the watch log (title, link, 1–5 rating, notes).
+- **Notes** — pages and docs in the sidebar.
+- **JENO** — activity log of food entries and workout changes.
+- **Settings** — MyFitnessPal username, sync, and connections.
 
-Bottom tabs on a phone: Today, Plan, Body, Word, JENO. Log and Settings sit in the header.
+Bottom tabs on a phone: Today, Food, Workouts, Plan. The rest sit under More.
 
 ## What stayed, what left the screens
 

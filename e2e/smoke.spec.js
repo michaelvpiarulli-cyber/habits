@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { purgeQaData } from './purgeQa.js';
 
-const PAGES = ['Today', 'Plan', 'Body', 'Word', 'JENO', 'Log', 'Settings'];
+const PAGES = ['Today', 'Food', 'Workouts', 'Habits', 'Plan', 'Bible', 'Watch', 'JENO', 'Settings'];
 
 function attach(page) {
   const errors = [];
@@ -29,7 +29,7 @@ async function overflow(page) {
 }
 
 async function openSection(page, mobile, name) {
-  const daily = ['Today', 'Plan', 'Body', 'Word'];
+  const daily = ['Today', 'Food', 'Workouts', 'Plan'];
   if (mobile && daily.includes(name)) {
     await page.getByRole('navigation', { name: 'Daily' }).getByRole('button', { name, exact: true }).click();
     return;
@@ -54,12 +54,14 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
   await page.goto('/');
   await expect(page.locator('input.page-title')).toHaveValue('Today', { timeout: 15000 });
   await expect(page.getByRole('heading', { name: 'Tasks' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Food' })).toBeVisible();
   await expect(page.getByText(/2,100 kcal/)).toBeVisible();
+  await expect(page.getByLabel('Add a task')).toHaveCount(0);
 
   mkdirSync('/opt/cursor/artifacts', { recursive: true });
   const tag = mobile ? 'iphone' : 'desktop';
   if (mobile) await page.getByRole('button', { name: 'More' }).click();
-  await expect(page.locator('.side-label').filter({ hasText: 'Private' })).toBeVisible();
+  await expect(page.locator('.side-label').filter({ hasText: 'Notes' })).toBeVisible();
   await assertSidebarAlign(page, mobile);
   await page.screenshot({ path: `/opt/cursor/artifacts/sidebar_${tag}.png`, fullPage: false });
   if (!mobile) {
@@ -79,17 +81,19 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
 
   await checkNested(page, mobile, testInfo.project.name);
 
-  await openSection(page, mobile, 'Today');
+  await openSection(page, mobile, 'Plan');
   const taskName = `QA task ${testInfo.project.name}`;
-  await page.getByLabel('Add a task').fill(taskName);
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByRole('button', { name: taskName })).toBeVisible();
+  await page.getByLabel('New Tasks').fill(taskName);
+  await page.getByLabel('New Tasks').press('Enter');
+  await expect(page.getByRole('row', { name: new RegExp(taskName) })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('button', { name: taskName })).toBeVisible();
-  await page.getByRole('button', { name: taskName }).click();
-  await expect(page.getByRole('button', { name: taskName })).toHaveCount(0);
+  await openSection(page, mobile, 'Plan');
+  await expect(page.getByRole('row', { name: new RegExp(taskName) })).toBeVisible();
+  await page.getByLabel(`Status for ${taskName}`).selectOption('Done');
+  await expect(page.getByLabel(`Status for ${taskName}`)).toHaveValue('Done');
 
-  const habit = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Habits' }) }).locator('button.check').first();
+  await openSection(page, mobile, 'Habits');
+  const habit = page.locator('button.check').first();
   if (await habit.count()) {
     await habit.click();
     await expect(habit).toHaveClass(/is-done/);
@@ -97,7 +101,8 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
     await expect(habit).not.toHaveClass(/is-done/);
   }
 
-  const reading = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Word' }) }).locator('button.check').first();
+  await openSection(page, mobile, 'Bible');
+  const reading = page.locator('button.check').first();
   if (await reading.count()) {
     const wasDone = (await reading.getAttribute('class'))?.includes('is-done');
     await reading.click();
@@ -112,13 +117,13 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
     await expect(page.getByRole('tab', { name: view }).first()).toHaveAttribute('aria-selected', 'true');
   }
 
-  await openSection(page, mobile, 'Log');
+  await openSection(page, mobile, 'Watch');
   const watchTitle = `QA show ${testInfo.project.name}`;
   await page.getByLabel('What did you watch').fill(watchTitle);
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText(watchTitle).first()).toBeVisible();
   await page.reload();
-  await openSection(page, mobile, 'Log');
+  await openSection(page, mobile, 'Watch');
   await expect(page.getByText(watchTitle).first()).toBeVisible();
   await page.getByText(watchTitle).first().locator('xpath=ancestor::li[1]').getByRole('button', { name: 'Delete' }).click();
 
@@ -159,9 +164,9 @@ test('daily flows stay usable', async ({ page }, testInfo) => {
   await openSection(page, mobile, 'Plan');
   await page.getByRole('tab', { name: 'Calendar' }).first().click();
   await page.screenshot({ path: `/opt/cursor/artifacts/qa_${tag}_plan.png`, fullPage: false });
-  await openSection(page, mobile, 'Word');
+  await openSection(page, mobile, 'Bible');
   await page.screenshot({ path: `/opt/cursor/artifacts/qa_${tag}_word.png`, fullPage: false });
-  await openSection(page, mobile, 'Body');
+  await openSection(page, mobile, 'Workouts');
   await page.screenshot({ path: `/opt/cursor/artifacts/qa_${tag}_body.png`, fullPage: false });
 
   await page.waitForTimeout(1200);
@@ -220,7 +225,7 @@ async function sidebarReady(page) {
 async function assertSidebarAlign(page, mobile) {
   await sidebarReady(page);
   const rows = await page.evaluate(() => {
-    const names = ['Today', 'Plan', 'Body', 'Word', 'JENO', 'Log', 'Settings'];
+    const names = ['Today', 'Food', 'Workouts', 'Habits', 'Plan', 'Bible', 'Watch', 'JENO', 'Settings'];
     return names.map((name) => {
       const row = [...document.querySelectorAll('.tree-row')].find((el) => el.textContent.includes(name));
       const icon = row.querySelector('.page-icon').getBoundingClientRect();
@@ -254,8 +259,8 @@ async function assertSidebarAlign(page, mobile) {
   }
   expect(Math.max(...labelX) - Math.min(...labelX), 'labels share a left edge').toBeLessThan(2);
   expect(Math.max(...iconX) - Math.min(...iconX), 'icons share a column').toBeLessThan(2);
-  const header = await page.locator('.side-label').filter({ hasText: 'Private' }).locator('span').first().boundingBox();
-  expect(Math.abs(header.x - iconX[0]), 'Private lines up with the icon column').toBeLessThan(6);
+  const header = await page.locator('.side-label').filter({ hasText: 'Notes' }).locator('span').first().boundingBox();
+  expect(Math.abs(header.x - iconX[0]), 'Notes lines up with the icon column').toBeLessThan(6);
   await expect(page.locator('.tree-row').filter({ hasText: 'QA note' })).toHaveCount(0);
   await expect(page.locator('.tree-row').filter({ hasText: 'Untitled' })).toHaveCount(0);
 }
