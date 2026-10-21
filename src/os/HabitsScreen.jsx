@@ -1,137 +1,203 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useData } from '../context/DataProvider';
-import { todayISO } from '../lib/dates';
-import { isComplete, targetOf, valueOf } from '../lib/habits';
-import { isDue, remainingThisWeek } from '../lib/streaks';
+import { addDays, startOfWeek, todayISO } from '../lib/dates';
+import { groupByDaypart, isComplete, targetOf, valueOf } from '../lib/habits';
+import { currentStreak } from '../lib/streaks';
 
-function HabitRow({ habit, day }) {
-  const { logFor, toggleDay, bumpDay, setValue, doneSetFor } = useData();
+function WeekDots({ habit, done, today }) {
+  const start = startOfWeek(today);
+  const days = Array.from({ length: 7 }, (_, index) => addDays(start, index));
+  const streak = currentStreak(habit, done, today);
+  const filled = days.filter((day) => done.has(day)).length;
+  return (
+    <span className="habit-week" aria-label={`Streak ${streak}. This week ${filled} of 7.`}>
+      {streak > 0 ? <span className="habit-streak">{streak}</span> : null}
+      <span className="habit-dots" aria-hidden="true">
+        {days.map((day) => (
+          <span key={day} className={done.has(day) ? 'is-on' : day === today ? 'is-today' : ''} />
+        ))}
+      </span>
+    </span>
+  );
+}
+
+function ValueEntry({ habit, day, value }) {
+  const { setValue } = useData();
+  const [draft, setDraft] = useState(value ? String(value) : '');
+  useEffect(() => {
+    setDraft(value ? String(value) : '');
+  }, [value]);
+
+  const commit = () => {
+    const next = draft.trim();
+    const amount = next === '' ? 0 : Number(next);
+    if (!Number.isFinite(amount) || amount === value) return;
+    setValue(habit, day, amount);
+  };
+
+  return (
+    <span className="habit-entry">
+      <input
+        aria-label={habit.name}
+        inputMode="decimal"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur();
+        }}
+      />
+      {habit.unit ? <span className="habit-unit">{habit.unit}</span> : null}
+    </span>
+  );
+}
+
+function HabitRow({ habit, day, editing, onRename, onMove, canUp, canDown, onRemove }) {
+  const { logFor, toggleDay, bumpDay, doneSetFor } = useData();
   const log = logFor(habit.id, day);
   const value = valueOf(habit, log);
   const complete = isComplete(habit, log);
-  const needsNumber = habit.kind === 'amount' || habit.kind === 'measure';
-  const [draft, setDraft] = useState(value ? String(value) : '');
-  const weekLeft = habit.cadence === 'per_week' ? remainingThisWeek(habit, doneSetFor(habit.id), day) : null;
-
-  let detail = complete ? 'Done' : 'Open';
-  if (habit.kind === 'count') detail = `${value} of ${targetOf(habit)}${habit.unit ? ` ${habit.unit}` : ''}`;
-  if (needsNumber) {
-    detail = value
-      ? `${value}${habit.unit ? ` ${habit.unit}` : ''}`
-      : `Target ${targetOf(habit)}${habit.unit ? ` ${habit.unit}` : ''}`;
-  }
-  if (weekLeft != null) detail = `${detail} · ${weekLeft} left this week`;
+  const numeric = habit.kind === 'amount' || habit.kind === 'measure';
+  const done = doneSetFor(habit.id);
+  const [name, setName] = useState(habit.name);
+  useEffect(() => {
+    setName(habit.name);
+  }, [habit.name]);
 
   const tap = () => {
-    if (needsNumber) return;
     if (habit.kind === 'count') bumpDay(habit, day);
     else toggleDay(habit, day);
   };
 
   return (
-    <li>
-      {needsNumber ? (
-        <div className={`check ${complete ? 'is-done' : ''}`}>
-          <span className="box" aria-hidden="true" />
-          <span>
-            <strong>{habit.name}</strong>
-            <div className="faint">{detail}</div>
-          </span>
-        </div>
-      ) : (
-        <button type="button" className={`check ${complete ? 'is-done' : ''}`} onClick={tap}>
-          <span className="box" aria-hidden="true" />
-          <span>
-            <strong>{habit.name}</strong>
-            <div className="faint">{detail}</div>
-          </span>
-        </button>
-      )}
-      {needsNumber && (
-        <form
-          className="btn-row"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setValue(habit, day, draft);
+    <li className={`habit-row${complete ? ' is-done' : ''}`}>
+      {editing ? (
+        <>
+          <button type="button" aria-label={`Move ${habit.name} up`} disabled={!canUp} onClick={() => onMove(-1)}>Up</button>
+          <button type="button" aria-label={`Move ${habit.name} down`} disabled={!canDown} onClick={() => onMove(1)}>Down</button>
+        </>
+      ) : null}
+      <span className="habit-icon" aria-hidden="true">{habit.emoji || '•'}</span>
+      {editing ? (
+        <input
+          className="habit-rename"
+          aria-label={`Rename ${habit.name}`}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          onBlur={() => {
+            const next = name.trim();
+            if (next && next !== habit.name) onRename(next);
           }}
-        >
-          <input
-            aria-label={habit.name}
-            inputMode="decimal"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            style={{ width: 96, fontSize: 16, padding: 10, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--bg)' }}
-          />
-          <button className="btn" type="submit">Save</button>
-        </form>
+        />
+      ) : (
+        <span className="habit-name">{habit.name}</span>
+      )}
+      {editing ? null : <WeekDots habit={habit} done={done} today={day} />}
+      {editing ? (
+        <button type="button" className="habit-remove" onClick={onRemove}>Remove</button>
+      ) : numeric ? (
+        <ValueEntry habit={habit} day={day} value={value} />
+      ) : (
+        <button type="button" className={`check habit-tap${complete ? ' is-done' : ''}`} aria-label={habit.name} onClick={tap}>
+          <span className="box" aria-hidden="true">{habit.kind === 'count' && value > 0 && value < targetOf(habit) ? value : ''}</span>
+        </button>
       )}
     </li>
   );
 }
 
-export function HabitsScreen() {
-  const today = todayISO();
-  const data = useData();
-  const due = data.activeHabits.filter((habit) => isDue(habit, today));
+function AddHabit({ onAdd }) {
   const [name, setName] = useState('');
   const [kind, setKind] = useState('check');
   const [target, setTarget] = useState('');
   const [unit, setUnit] = useState('');
 
   return (
-    <div className="board">
-      <section>
-        {due.length === 0 ? (
-          <p className="quiet">Nothing due today.</p>
-        ) : (
-          <ul className="food-list">
-            {due.map((habit) => <HabitRow key={habit.id} habit={habit} day={today} />)}
-          </ul>
-        )}
-      </section>
+    <form
+      className="habit-add"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!name.trim()) return;
+        onAdd({
+          name,
+          kind,
+          target: kind === 'check' ? null : Number(target) || 1,
+          unit,
+        });
+        setName('');
+        setTarget('');
+        setUnit('');
+        setKind('check');
+      }}
+    >
+      <input aria-label="Habit name" value={name} onChange={(event) => setName(event.target.value)} />
+      <select aria-label="Kind" value={kind} onChange={(event) => setKind(event.target.value)}>
+        <option value="check">Check</option>
+        <option value="count">Count</option>
+        <option value="amount">Amount</option>
+        <option value="measure">Measure</option>
+      </select>
+      {kind !== 'check' ? (
+        <input aria-label="Target" inputMode="decimal" value={target} onChange={(event) => setTarget(event.target.value)} />
+      ) : null}
+      {kind !== 'check' ? (
+        <input aria-label="Unit" value={unit} onChange={(event) => setUnit(event.target.value)} />
+      ) : null}
+      <button className="btn" type="submit">Add</button>
+    </form>
+  );
+}
 
-      <details className="fold">
-        <summary>Edit habits</summary>
-        <ul className="food-list">
-          {data.activeHabits.map((habit) => (
-            <li key={habit.id}>
-              <span>{habit.name}</span>
-              <button type="button" className="text-btn" onClick={() => data.deleteHabit(habit.id)}>Remove</button>
-            </li>
-          ))}
-        </ul>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!name.trim()) return;
-            data.addHabit({
-              name,
-              kind,
-              target: kind === 'check' ? null : Number(target) || 1,
-              unit,
-            });
-            setName('');
-            setTarget('');
-            setUnit('');
-          }}
-        >
-          <label className="field"><span>Name</span><input value={name} onChange={(event) => setName(event.target.value)} /></label>
-          <label className="field">
-            <span>Kind</span>
-            <select value={kind} onChange={(event) => setKind(event.target.value)}>
-              <option value="check">Done or not</option>
-              <option value="count">Count</option>
-              <option value="amount">Amount</option>
-              <option value="measure">Measure</option>
-            </select>
-          </label>
-          {kind !== 'check' && (
-            <label className="field"><span>Target</span><input inputMode="decimal" value={target} onChange={(event) => setTarget(event.target.value)} /></label>
-          )}
-          <label className="field"><span>Unit</span><input value={unit} onChange={(event) => setUnit(event.target.value)} placeholder="g, min, walks" /></label>
-          <div className="btn-row"><button className="btn" type="submit">Add habit</button></div>
-        </form>
-      </details>
+export function HabitsScreen() {
+  const today = todayISO();
+  const data = useData();
+  const habits = data.activeHabits;
+  const groups = groupByDaypart(habits);
+  const [editing, setEditing] = useState(false);
+
+  const reorder = (habit, delta) => {
+    const index = habits.findIndex((item) => item.id === habit.id);
+    const to = index + delta;
+    if (index < 0 || to < 0 || to >= habits.length) return;
+    const next = habits.slice();
+    const [item] = next.splice(index, 1);
+    next.splice(to, 0, item);
+    next.forEach((row, position) => {
+      if (row.sortOrder !== position) data.updateHabit(row.id, { sortOrder: position });
+    });
+  };
+
+  return (
+    <div className="habit-page">
+      <div className="habit-tools">
+        <button type="button" aria-pressed={editing} onClick={() => setEditing((value) => !value)}>
+          {editing ? 'Done' : 'Edit'}
+        </button>
+      </div>
+      {groups.map((group) => (
+        <section key={group.id}>
+          {group.label ? <h2>{group.label}</h2> : null}
+          <ul className="habit-list">
+            {group.habits.map((habit) => {
+              const index = habits.findIndex((item) => item.id === habit.id);
+              return (
+                <HabitRow
+                  key={habit.id}
+                  habit={habit}
+                  day={today}
+                  editing={editing}
+                  canUp={index > 0}
+                  canDown={index < habits.length - 1}
+                  onRename={(name) => data.updateHabit(habit.id, { name })}
+                  onMove={(delta) => reorder(habit, delta)}
+                  onRemove={() => data.deleteHabit(habit.id)}
+                />
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+      {editing ? <AddHabit onAdd={data.addHabit} /> : null}
     </div>
   );
 }

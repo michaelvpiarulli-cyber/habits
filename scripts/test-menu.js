@@ -2,7 +2,7 @@
  * Menu courses for Today — run with `npm test`.
  */
 import assert from 'node:assert/strict';
-import { STARTER_HABITS } from '../src/lib/habits.js';
+import { STARTER_HABITS, daypartOf, groupByDaypart } from '../src/lib/habits.js';
 import {
   COURSES,
   courseOf,
@@ -79,6 +79,23 @@ test('five courses, in ticket order', () => {
     COURSES.map((c) => c.name),
     ['Starters', 'Mains', 'Sides', 'Desserts', 'Specials']
   );
+});
+
+test('dayparts stay a single list until a habit already has one', () => {
+  assert.equal(daypartOf({ cue: 'Morning' }), 'morning');
+  assert.equal(daypartOf({ cue: 'after coffee' }), '');
+  assert.equal(daypartOf({ name: 'Sleep' }), '');
+  const flat = groupByDaypart([{ id: 'a', name: 'Sleep' }, { id: 'b', name: 'Weigh in' }]);
+  assert.equal(flat.length, 1);
+  assert.equal(flat[0].label, '');
+  assert.equal(flat[0].habits.length, 2);
+  const grouped = groupByDaypart([
+    { id: 'a', name: 'Weigh in', cue: 'Morning' },
+    { id: 'b', name: 'Read', cue: 'Evening' },
+    { id: 'c', name: 'Walk' },
+  ]);
+  assert.deepEqual(grouped.map((group) => group.label), ['Morning', 'Anytime', 'Evening']);
+  assert.deepEqual(grouped[1].habits.map((habit) => habit.id), ['c']);
 });
 
 if (failed) {
