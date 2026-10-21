@@ -9,8 +9,43 @@ import { createClient } from '@supabase/supabase-js';
 import { extractIngestKey, keysMatch } from './ingest.js';
 
 const DEFAULT_URL = 'https://amrqzdnsbgoqkckcytjq.supabase.co';
+const PROJECT_REF = 'amrqzdnsbgoqkckcytjq';
 const PUBLISHABLE_KEY = 'sb_publishable__NKtri3G-26DlHkv-ZmQ7g_BP0rX698';
 const MISMATCH = '0'.repeat(64);
+
+/** Public project URL and anon key. Ignores a service role and any other project. */
+export function anonIngestClient(env = {}, clientFactory = createClient) {
+  const url = String(env.SUPABASE_URL || '');
+  const onProject = url.includes(PROJECT_REF);
+  const configured = String(env.SUPABASE_ANON_KEY || '');
+  return clientFactory(onProject ? url : DEFAULT_URL, onProject && configured ? configured : PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+export function ingestRpcError(error) {
+  if (!error) return null;
+  const code = String(error.code || '');
+  const message = String(error.message || '');
+  if (code === '42501' || code === '28000' || /unauthorized/i.test(message)) {
+    const err = new Error('Unauthorized');
+    err.status = 401;
+    return err;
+  }
+  if (
+    code === 'PGRST202' ||
+    code === '42883' ||
+    /could not find the function/i.test(message) ||
+    /schema cache/i.test(message)
+  ) {
+    const err = new Error('Ingest storage is not ready.');
+    err.status = 503;
+    return err;
+  }
+  const err = new Error(message || 'Ingest failed');
+  err.status = error.status || 502;
+  return err;
+}
 
 export function sha256Hex(value) {
   return createHash('sha256').update(String(value), 'utf8').digest('hex');

@@ -4,13 +4,10 @@
  * app_owner row are required.
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { applyNutritionWrite, foodCount } from './foodLog.js';
-import { authorizeIngest } from './ingestAuth.js';
-import { validateIngest } from './ingest.js';
+import { anonIngestClient, authorizeIngest, ingestRpcError } from './ingestAuth.js';
+import { extractIngestKey, validateIngest } from './ingest.js';
 import { HOUSEHOLD_OWNER_ID } from './household.js';
-
-const DEFAULT_URL = 'https://amrqzdnsbgoqkckcytjq.supabase.co';
 
 function readBody(body) {
   if (body == null || body === '') return {};
@@ -24,167 +21,57 @@ function readBody(body) {
   return body;
 }
 
-async function recordActivity(client, ownerId, entry) {
-  const { error } = await client.from('jeno_activity').insert({
-    id: crypto.randomUUID(),
-    user_id: ownerId,
-    kind: entry.kind,
-    action: entry.action,
-    summary: entry.summary,
-    detail: entry.detail || {},
-    day: entry.day || null,
-    created_at: entry.at || new Date().toISOString(),
+async function writeNutrition(client, key, value) {
+  const { data: existing, error: readError } = await client.rpc('ingest_nutrition', {
+    p_key: key,
+    p_day: value.date,
+    p_write: null,
   });
-  if (error && !isMissingTable(error)) throw error;
-}
-
-function isMissingTable(error) {
-  return error?.code === 'PGRST205' || error?.code === 'PGRST106' || error?.code === '42P01';
-}
-
-async function writeNutrition(client, ownerId, value) {
-  const now = new Date().toISOString();
-  const { data: existing, error: readError } = await client
-    .from('daily_nutrition')
-    .select('id, meals, calories, protein, carbs, fat')
-    .eq('user_id', ownerId)
-    .eq('day', value.date)
-    .eq('source', 'jeno')
-    .eq('deleted', false)
-    .maybeSingle();
-  if (readError) throw readError;
+  if (readError) throw ingestRpcError(readError);
 
   const next = applyNutritionWrite(existing, value);
-  const row = {
-    id: existing?.id || crypto.randomUUID(),
-    user_id: ownerId,
-    day: value.date,
-    source: 'jeno',
-    calories: next.calories,
-    protein: next.protein,
-    carbs: next.carbs,
-    fat: next.fat,
-    meals: next.meals,
-    deleted: false,
-    updated_at: now,
-    ...(existing ? {} : { created_at: now }),
-  };
-  const { error } = await client.from('daily_nutrition').upsert(row);
-  if (error) throw error;
-
-  const proteinHabitId = await syncProteinHabit(client, ownerId, value.date, next.protein, now);
   const count = foodCount(next);
-  await recordActivity(client, ownerId, {
-    kind: 'nutrition',
-    action: 'logged',
-    summary: `Food for ${value.date} · ${Math.round(next.calories)} kcal · ${Math.round(next.protein)} g protein${count ? ` · ${count} foods` : ''}`,
-    detail: { meals: next.meals, calories: next.calories, protein: next.protein },
-    day: value.date,
-    at: now,
+  const { data, error } = await client.rpc('ingest_nutrition', {
+    p_key: key,
+    p_day: value.date,
+    p_write: {
+      id: existing?.id || null,
+      calories: next.calories,
+      protein: next.protein,
+      carbs: next.carbs,
+      fat: next.fat,
+      meals: next.meals,
+      summary: `Food for ${value.date} · ${Math.round(next.calories)} kcal · ${Math.round(next.protein)} g protein${count ? ` · ${count} foods` : ''}`,
+      detail: { meals: next.meals, calories: next.calories, protein: next.protein },
+    },
   });
+  if (error) throw ingestRpcError(error);
+  return data;
+}
+
+async function writeWorkout(client, key, value) {
+  const { data, error } = await client.rpc('ingest_workout', {
+    p_key: key,
+    p_day: value.date,
+    p_plan_id: value.planId,
+    p_done: value.done,
+  });
+  if (error) throw ingestRpcError(error);
+  return data;
+}
+
+export function supabaseIngestStore(env, ingestKey, clientFactory) {
+  const client = anonIngestClient(env, clientFactory);
+  const key = String(ingestKey || '');
   return {
-    ok: true,
-    kind: 'nutrition',
-    day: value.date,
-    calories: next.calories,
-    protein: next.protein,
-    carbs: next.carbs,
-    fat: next.fat,
-    meals: next.meals,
-    proteinHabitId,
-  };
-}
-
-async function syncProteinHabit(client, ownerId, day, protein, now) {
-  const { data: habits, error } = await client
-    .from('habits')
-    .select('id, name, archived, deleted')
-    .eq('user_id', ownerId)
-    .eq('deleted', false);
-  if (error) throw error;
-  const habit = (habits || []).find((row) => !row.archived && /protein/i.test(row.name || ''));
-  if (!habit) return null;
-
-  const { data: logs, error: logError } = await client
-    .from('habit_logs')
-    .select('id')
-    .eq('user_id', ownerId)
-    .eq('habit_id', habit.id)
-    .eq('day', day)
-    .eq('deleted', false)
-    .limit(1);
-  if (logError) throw logError;
-
-  if (logs?.[0]) {
-    const { error: updateError } = await client
-      .from('habit_logs')
-      .update({ amount: protein, deleted: false, updated_at: now })
-      .eq('id', logs[0].id);
-    if (updateError) throw updateError;
-    return habit.id;
-  }
-  if (!(protein > 0)) return habit.id;
-
-  const { error: insertError } = await client.from('habit_logs').insert({
-    id: crypto.randomUUID(),
-    user_id: ownerId,
-    habit_id: habit.id,
-    day,
-    amount: protein,
-    deleted: false,
-    created_at: now,
-    updated_at: now,
-  });
-  if (insertError) throw insertError;
-  return habit.id;
-}
-
-async function writeWorkout(client, ownerId, value) {
-  const now = new Date().toISOString();
-  const { data: existing, error: readError } = await client
-    .from('workout_logs')
-    .select('id')
-    .eq('user_id', ownerId)
-    .eq('day', value.date)
-    .eq('deleted', false)
-    .maybeSingle();
-  if (readError) throw readError;
-
-  const row = {
-    id: existing?.id || crypto.randomUUID(),
-    user_id: ownerId,
-    day: value.date,
-    plan_id: value.planId,
-    done: value.done,
-    deleted: false,
-    updated_at: now,
-    ...(existing ? {} : { created_at: now }),
-  };
-  const { error } = await client.from('workout_logs').upsert(row);
-  if (error) throw error;
-  return { ok: true, kind: 'workout', day: value.date, planId: value.planId, done: value.done };
-}
-
-export function supabaseIngestStore(env, clientFactory = createClient) {
-  const url = env.SUPABASE_URL || DEFAULT_URL;
-  const key = env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) {
-    const error = new Error('Ingest is not configured.');
-    error.status = 503;
-    throw error;
-  }
-  const client = clientFactory(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  return {
-    write(ownerId, value) {
-      if (value.kind === 'nutrition') return writeNutrition(client, ownerId, value);
-      return writeWorkout(client, ownerId, value);
+    write(_ownerId, value) {
+      if (value.kind === 'nutrition') return writeNutrition(client, key, value);
+      return writeWorkout(client, key, value);
     },
   };
 }
 
-export async function runIngest({ method, headers, body, env = {}, store, lookupHash }) {
+export async function runIngest({ method, headers, body, env = {}, store, lookupHash, clientFactory }) {
   if (method === 'OPTIONS') return { status: 204, body: null };
   if (method !== 'POST') return { status: 405, body: { error: 'Method not allowed' } };
 
@@ -199,7 +86,7 @@ export async function runIngest({ method, headers, body, env = {}, store, lookup
   if (!validated.ok) return { status: validated.status, body: { error: validated.error } };
 
   try {
-    const active = store || supabaseIngestStore(env);
+    const active = store || supabaseIngestStore(env, extractIngestKey(headers), clientFactory);
     const result = await active.write(HOUSEHOLD_OWNER_ID, validated.value);
     return { status: 200, body: result };
   } catch (err) {

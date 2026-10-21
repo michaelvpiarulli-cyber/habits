@@ -2,9 +2,9 @@
  * POST /api/ingest
  *
  * Another assistant can write Michael's daily food totals or mark a workout
- * done. The request must carry TALLY_INGEST_KEY (Authorization: Bearer, or
- * x-tally-ingest-key). The function uses SUPABASE_SERVICE_ROLE_KEY only on
- * the server and stamps the shared household id. No owner lookup.
+ * done. The request must carry the ingest key (Authorization: Bearer, or
+ * x-tally-ingest-key). Writes go through database functions with the public
+ * anon key. The household id is fixed. No owner lookup.
  */
 
 import { runIngest } from '../src/lib/ingestServer.js';

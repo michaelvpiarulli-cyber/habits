@@ -45,11 +45,9 @@ Pages and blocks use [`supabase/add-pages.sql`](supabase/add-pages.sql). It is s
 
 ## JENO
 
-Both routes use the server secret `TALLY_INGEST_KEY` (`Authorization: Bearer` or `x-tally-ingest-key`). Set these on Vercel, never as `VITE_` variables:
+Both routes use the ingest key (`Authorization: Bearer` or `x-tally-ingest-key`). `TALLY_INGEST_KEY` still works when it is set. When it is unset, the server accepts the key whose SHA-256 matches `app_secrets` name `ingest_key`. Reads and writes use the public Supabase URL and anon key through `program_get`, `program_upsert`, and `ingest_nutrition`. `SUPABASE_SERVICE_ROLE_KEY` is not required for these routes.
 
-- `TALLY_INGEST_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `SUPABASE_URL` (optional, defaults to `https://amrqzdnsbgoqkckcytjq.supabase.co`)
+`SUPABASE_URL` is optional and defaults to `https://amrqzdnsbgoqkckcytjq.supabase.co`.
 
 `BASE` is the deployment that contains this API (preview or production). The function ignores `user_id` and writes as the household.
 
