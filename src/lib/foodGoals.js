@@ -34,28 +34,6 @@ export function ingestedFoodForDay(rows, day) {
 }
 
 /**
- * Days that already have a food total. JENO and MyFitnessPal land in
- * daily nutrition. An in-app meal log counts too.
- */
-export function daysWithLoggedFood(dailyNutrition, mealLogs) {
-  const days = new Set();
-  const grouped = new Map();
-  for (const row of dailyNutrition || []) {
-    if (!row?.day || row.deleted) continue;
-    const list = grouped.get(row.day) || [];
-    list.push(row);
-    grouped.set(row.day, list);
-  }
-  for (const [day, rows] of grouped) {
-    if (ingestedFoodForDay(rows, day)) days.add(day);
-  }
-  for (const row of mealLogs || []) {
-    if (row?.day && !row.deleted && preferFoodEntry(null, row)) days.add(row.day);
-  }
-  return days;
-}
-
-/**
  * Prefer the newer of an ingested daily total and the in-app meal log.
  * `source` is `mfp`, `ingest`, or `log`.
  */

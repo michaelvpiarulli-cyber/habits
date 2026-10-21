@@ -6,7 +6,7 @@ import { readingsForDate, slotsFor } from '../lib/biblePlan';
 import { addDays, formatClock, formatLong } from '../lib/dates';
 import { ingestedFoodForDay, preferFoodEntry } from '../lib/foodGoals';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
-import { isComplete, isFoodTrackingHabit, targetOf, valueOf } from '../lib/habits';
+import { isComplete, targetOf, valueOf } from '../lib/habits';
 import { compareByPriority, groupTasks, living } from '../lib/life';
 import { workoutsOnDay } from '../lib/program';
 import { isDue } from '../lib/streaks';
@@ -85,11 +85,11 @@ function GlanceValue({ habit, day, value }) {
   );
 }
 
-function GlanceHabit({ habit, day, alsoDone = false }) {
+function GlanceHabit({ habit, day }) {
   const { logFor, toggleDay, bumpDay } = useData();
   const log = logFor(habit.id, day);
   const value = valueOf(habit, log);
-  const complete = isComplete(habit, log) || alsoDone;
+  const complete = isComplete(habit, log);
   const numeric = habit.kind === 'amount' || habit.kind === 'measure';
 
   const tap = () => {
@@ -97,17 +97,29 @@ function GlanceHabit({ habit, day, alsoDone = false }) {
     else toggleDay(habit, day);
   };
 
+  if (numeric) {
+    return (
+      <li className={`glance-habit${complete ? ' is-done' : ''}`}>
+        <HabitMark habit={habit} />
+        <span className="habit-name">{habit.name}</span>
+        <GlanceValue habit={habit} day={day} value={value} />
+      </li>
+    );
+  }
+
   return (
     <li className={`glance-habit${complete ? ' is-done' : ''}`}>
-      <HabitMark habit={habit} />
-      <span className="habit-name">{habit.name}</span>
-      {numeric ? (
-        <GlanceValue habit={habit} day={day} value={value} />
-      ) : (
-        <button type="button" className={`check habit-tap${complete ? ' is-done' : ''}`} aria-label={habit.name} onClick={tap}>
-          <span className="box" aria-hidden="true">{habit.kind === 'count' && value > 0 && value < targetOf(habit) ? value : ''}</span>
-        </button>
-      )}
+      <button
+        type="button"
+        className={`check habit-tap${complete ? ' is-done' : ''}`}
+        aria-pressed={complete}
+        aria-label={habit.name}
+        onClick={tap}
+      >
+        <HabitMark habit={habit} />
+        <span className="habit-name">{habit.name}</span>
+        <span className="box" aria-hidden="true">{habit.kind === 'count' && value > 0 && value < targetOf(habit) ? value : ''}</span>
+      </button>
     </li>
   );
 }
@@ -196,12 +208,7 @@ export function TodayScreen() {
         ) : (
           <ul>
             {due.map((habit) => (
-              <GlanceHabit
-                key={habit.id}
-                habit={habit}
-                day={day}
-                alsoDone={isFoodTrackingHabit(habit) && !!food}
-              />
+              <GlanceHabit key={habit.id} habit={habit} day={day} />
             ))}
           </ul>
         )}
