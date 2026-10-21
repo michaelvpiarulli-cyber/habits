@@ -57,7 +57,7 @@ Both routes use the server secret `TALLY_INGEST_KEY` (`Authorization: Bearer` or
 
 `POST /api/ingest` with `kind: nutrition`.
 
-Daily totals still work. A totals-only post updates calories and protein and leaves foods already stored for that day.
+A totals-only post replaces the calories, protein, carbs, and fat you send for that day. A second post for the same day replaces those numbers and does not add to them. Fields you leave out keep the previous values. Foods already stored for that day stay in the row. The screens show only the daily total.
 
 Per-food entries use `entries` (or `foods`). Each item is `name`, `calories`, `protein`, `carbs`, `fat`, and `meal`. Omit the day totals and Tally sums the foods. `mode: "append"` adds to that day. Any other post that includes entries replaces that day’s foods so a full MyFitnessPal snapshot stays exact.
 

@@ -3,13 +3,14 @@ import { useLife } from '../context/LifeProvider';
 import { agendaForDay } from '../lib/agenda';
 import { readingsForDate, slotsFor } from '../lib/biblePlan';
 import { addDays, formatClock, formatLong, todayISO } from '../lib/dates';
-import { FOOD_GOALS, foodVsGoals, ingestedFoodForDay, preferFoodEntry } from '../lib/foodGoals';
+import { ingestedFoodForDay, preferFoodEntry } from '../lib/foodGoals';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
 import { isComplete } from '../lib/habits';
 import { compareByPriority, groupTasks } from '../lib/life';
 import { workoutsOnDay } from '../lib/program';
 import { isDue } from '../lib/streaks';
 import { clockMinutes, nextTimedItem } from '../lib/upcoming';
+import { DayTotal } from './DayTotal';
 import { HabitMark } from './HabitMark';
 import { useBible, useGoogleAgenda, useProgram } from './hooks';
 import { TaskLine } from './TaskLine';
@@ -29,7 +30,6 @@ export function TodayScreen() {
   const session = workoutsOnDay(program.workouts, today);
   const ingested = ingestedFoodForDay(dailyNutrition, today);
   const food = preferFoodEntry(ingested, nutritionFor(today));
-  const stats = foodVsGoals(food);
   const due = activeHabits.filter((habit) => isDue(habit, today));
   const reading = readingsForDate(today);
   const year = Number(today.slice(0, 4));
@@ -38,9 +38,6 @@ export function TodayScreen() {
   const topTasks = [...openTasks.overdue, ...openTasks.dueToday].sort(compareByPriority).slice(0, 3);
   const wrongAccount =
     google.connected && google.accountEmail && google.accountEmail.toLowerCase() !== GOOGLE_CALENDAR_ACCOUNT;
-  const calories = Math.round(stats.calories).toLocaleString('en-US');
-  const calorieGoal = FOOD_GOALS.calories.toLocaleString('en-US');
-  const protein = Math.round(stats.protein);
 
   return (
     <div className="glance">
@@ -53,16 +50,7 @@ export function TodayScreen() {
 
       <section>
         <h2>Food</h2>
-        <p>{calories} / {calorieGoal} kcal</p>
-        <p>{protein} / {FOOD_GOALS.protein} g protein</p>
-        <div className="meters" style={{ marginTop: 10 }}>
-          <div className="meter" aria-hidden="true">
-            <span style={{ width: `${Math.min(100, Math.round(stats.calorieRatio * 100))}%` }} />
-          </div>
-          <div className="meter clay" aria-hidden="true">
-            <span style={{ width: `${Math.min(100, Math.round(stats.proteinRatio * 100))}%` }} />
-          </div>
-        </div>
+        <DayTotal entry={food} />
       </section>
 
       <section>

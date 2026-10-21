@@ -389,8 +389,64 @@ button.habit-badge { width: 44px; height: 44px; }
 .stack { display: grid; gap: 10px; }
 .row-between { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 
-.meters { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
-.meter-value { font-variant-numeric: tabular-nums; font-weight: 650; font-size: 15px; }
+.day-total { display: grid; gap: 4px; max-width: 100%; }
+.day-figure {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.day-left {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.day-protein {
+  margin: 8px 0 0;
+  color: var(--faint);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.food-page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+.week-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+.week-bar { display: grid; justify-items: center; gap: 6px; min-width: 0; }
+.week-bar .track {
+  width: 10px;
+  height: 64px;
+  border-radius: 99px;
+  background: var(--line);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.week-bar .track > span {
+  display: block;
+  width: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+}
+.week-bar.is-over .track > span { background: var(--clay); }
+.week-bar .label {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--faint);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.week-bar.is-today .label { color: var(--ink); font-weight: 650; }
 .meter {
   height: 8px;
   border-radius: 99px;
@@ -418,8 +474,6 @@ button.habit-badge { width: 44px; height: 44px; }
   color: var(--faint);
 }
 
-.food-meal { margin-top: 14px; }
-.food-meal h3 { font-size: 16px; font-weight: 650; }
 .food-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
 .food-list li { display: flex; justify-content: space-between; gap: 12px; }
 .food-list small { color: var(--muted); }
