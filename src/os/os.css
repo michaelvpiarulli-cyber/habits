@@ -123,6 +123,17 @@ button.habit-badge { width: 44px; height: 44px; }
   letter-spacing: -0.011em;
 }
 .habit-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.step-count {
+  flex: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.glance-habit .check.is-done .step-count,
+.habit-row .check.is-done .step-count {
+  text-decoration: none;
+  color: var(--muted);
+}
 .habit-rename {
   min-height: 44px;
   border: 0;
@@ -821,3 +832,65 @@ button.habit-badge { width: 44px; height: 44px; }
   .os-scroll,
   .os.is-overlay .os-scroll { padding: 32px 40px 48px; }
 }
+
+.week-review { display: grid; gap: 28px; min-width: 0; }
+.week-review h2 { margin: 0 0 8px; }
+.week-habits, .week-lines { list-style: none; margin: 0; padding: 0; }
+.week-habit { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+.week-habit:first-child { border-top: 0; padding-top: 0; }
+.week-habit-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.week-score, .week-streak { flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.week-streak { color: var(--faint); }
+.week-grid, .week-metrics {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.week-cell {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--faint);
+  font-size: 11px;
+}
+.week-cell i {
+  width: 100%;
+  max-width: 22px;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+}
+.week-cell.is-on { color: var(--ink); }
+.week-cell.is-on i { background: var(--accent); box-shadow: none; }
+.week-metric { display: grid; gap: 2px; min-width: 0; }
+.week-metric span { color: var(--faint); font-size: 11px; }
+.week-metric strong {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.week-lines { display: grid; gap: 8px; }
+.week-lines li { display: flex; justify-content: space-between; gap: 12px; min-width: 0; }
+.week-lines li span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.week-lines li span:last-child { flex: none; color: var(--muted); font-size: 13px; }
+.week-lines li span.is-on { color: var(--ink); }
+
+.steps-setup { min-width: 0; grid-column: 1 / -1; }
+.steps-howto { margin: 14px 0 0; padding-left: 18px; display: grid; gap: 10px; }
+.steps-howto code, .steps-howto pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.steps-howto pre {
+  white-space: pre-wrap;
+  margin: 6px 0;
+  padding: 8px 10px;
+  background: var(--bg-raise);
+  border-radius: 8px;
+}
+.steps-setup input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }

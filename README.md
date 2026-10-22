@@ -9,6 +9,7 @@ Vite, React, Supabase, and Vercel. No login. The open household project and its 
 ## Screens
 
 - **Today** — a glance: today’s session, food against 2,100 kcal and 210 g protein, the Bible reading, habits, the top 3 tasks, and the next calendar event.
+- **Week**: Monday to Sunday for the selected week. Habit checks, calorie totals against 2,100, steps, workouts, and tasks finished that week.
 - **Food** — meals and the MyFitnessPal sync.
 - **Workouts** — the program and the day’s session.
 - **Habits** — habits only.
@@ -17,7 +18,7 @@ Vite, React, Supabase, and Vercel. No login. The open household project and its 
 - **Watch** — the watch log (title, link, 1–5 rating, notes).
 - **Notes** — pages and docs in the sidebar.
 - **JENO** — activity log of food entries and workout changes.
-- **Settings** — MyFitnessPal username, sync, and connections.
+- **Settings** — MyFitnessPal username, sync, connections, and the iPhone steps shortcut.
 
 Bottom tabs on a phone: Today, Food, Workouts, Plan. The rest sit under More.
 
@@ -45,7 +46,7 @@ Pages and blocks use [`supabase/add-pages.sql`](supabase/add-pages.sql). It is s
 
 ## JENO
 
-Both routes use the ingest key (`Authorization: Bearer` or `x-tally-ingest-key`). `TALLY_INGEST_KEY` still works when it is set. When it is unset, the server accepts the key whose SHA-256 matches `app_secrets` name `ingest_key`. Reads and writes use the public Supabase URL and anon key through `program_get`, `program_upsert`, and `ingest_nutrition`. `SUPABASE_SERVICE_ROLE_KEY` is not required for these routes.
+Food and workout routes use the ingest key (`Authorization: Bearer` or `x-tally-ingest-key`). `TALLY_INGEST_KEY` still works when it is set. When it is unset, the server accepts the key whose SHA-256 matches `app_secrets` name `ingest_key`. Step posts use a separate key, `app_secrets` name `steps_key`, created from Settings. That key is accepted only for `kind: steps`. Reads and writes use the public Supabase URL and anon key through `program_get`, `program_upsert`, `ingest_nutrition`, and `ingest_steps`. `SUPABASE_SERVICE_ROLE_KEY` is not required for these routes.
 
 `SUPABASE_URL` is optional and defaults to `https://amrqzdnsbgoqkckcytjq.supabase.co`.
 
@@ -97,6 +98,19 @@ curl -X POST "$BASE/api/ingest" \
   -H "Content-Type: application/json" \
   -d '{"kind":"workout","date":"2026-10-19","done":true}'
 ```
+
+### Steps
+
+`POST /api/ingest` with `kind: steps`. This route uses `$STEPS_KEY` from Settings (header `x-tally-ingest-key`). The food and workout key is rejected. A post stores that day's count. A second post for the same date replaces it. At 10,000 or more, the 10,000 steps habit is checked for that day. A lower count leaves a check made by hand in place.
+
+```bash
+curl -X POST "$BASE/api/ingest" \
+  -H "x-tally-ingest-key: $STEPS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"kind":"steps","date":"2026-10-19","steps":8420}'
+```
+
+Daily counts live in `daily_steps` from [`supabase/add-steps.sql`](supabase/add-steps.sql). The raw steps key is not stored.
 
 ### Workouts
 

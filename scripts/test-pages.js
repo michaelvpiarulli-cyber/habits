@@ -37,7 +37,8 @@ const blocks = [
 ];
 
 const shown = withSystemPages(pages);
-assert.equal(shown.filter((page) => page.systemKey).length, 9);
+assert.equal(shown.filter((page) => page.systemKey).length, 10);
+assert.ok(shown.some((page) => page.systemKey === 'week'));
 assert.equal(shown.some((page) => page.id === 'gone'), false);
 
 const roots = childrenOf(pages, null);

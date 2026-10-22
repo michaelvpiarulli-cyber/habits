@@ -18,6 +18,14 @@ function Glyph({ name }) {
       </svg>
     );
   }
+  if (name === 'week') {
+    return (
+      <svg {...common}>
+        <rect x="1.8" y="3.2" width="12.4" height="10" rx="1.4" />
+        <path d="M1.8 6.4h12.4M5.4 1.8v2.2M10.6 1.8v2.2M4.6 9.1h.1M8 9.1h.1M11.4 9.1h.1" />
+      </svg>
+    );
+  }
   if (name === 'plan') {
     return (
       <svg {...common}>

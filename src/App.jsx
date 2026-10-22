@@ -11,6 +11,7 @@ import { JenoScreen } from './os/JenoScreen';
 import { LogScreen } from './os/LogScreen';
 import { PlanScreen } from './os/PlanScreen';
 import { SettingsScreen } from './os/SettingsScreen';
+import { WeekScreen } from './os/WeekScreen';
 import { TodayScreen } from './os/TodayScreen';
 import { WordScreen } from './os/WordScreen';
 import { BlockEditor } from './shell/BlockEditor';
@@ -137,6 +138,7 @@ export default function App() {
 
   let module = null;
   if (!trash && ready && page.systemKey === 'today') module = <TodayScreen />;
+  else if (!trash && ready && page.systemKey === 'week') module = <WeekScreen />;
   else if (!trash && ready && page.systemKey === 'food') module = <FoodScreen onOpenDay={() => openPage(today.id)} />;
   else if (!trash && ready && page.systemKey === 'plan') module = <PlanScreen />;
   else if (!trash && ready && page.systemKey === 'body') module = <BodyScreen />;
@@ -148,7 +150,7 @@ export default function App() {
   else if (!trash && !ready) module = <p className="quiet">Loading…</p>;
 
   const history = page.props?.history || [];
-  const fullWidth = !!page.props?.fullWidth || page.systemKey === 'plan' || (!page.systemKey && page.props?.fullWidth !== false);
+  const fullWidth = !!page.props?.fullWidth || page.systemKey === 'plan' || page.systemKey === 'week' || (!page.systemKey && page.props?.fullWidth !== false);
   const titled = canonicalTitle(page);
   const hasNotes = livingBlocks(notebook.blocks, page.id).some((block) => block.type !== 'text' || block.content);
 

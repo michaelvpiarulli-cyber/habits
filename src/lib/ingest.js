@@ -10,6 +10,7 @@ import { isIsoDay } from './isoDay.js';
 import { workoutFor } from './workouts.js';
 
 const MAX_MACRO = 20000;
+const MAX_STEPS = 200000;
 const MAX_MEALS = 40;
 const MAX_FOODS = 200;
 const MAX_MEALS_JSON = 48000;
@@ -124,11 +125,19 @@ export function validateIngest(body) {
     return { ok: false, status: 400, error: 'Expected a JSON object.' };
   }
   const kind = body.kind;
-  if (kind !== 'nutrition' && kind !== 'workout') {
-    return { ok: false, status: 400, error: 'kind must be nutrition or workout.' };
+  if (kind !== 'nutrition' && kind !== 'workout' && kind !== 'steps') {
+    return { ok: false, status: 400, error: 'kind must be nutrition, workout, or steps.' };
   }
   const day = readDay(body);
   if (day?.error) return { ok: false, status: 400, error: day.error };
+
+  if (kind === 'steps') {
+    const steps = Number(body.steps);
+    if (!Number.isFinite(steps) || steps < 0 || steps > MAX_STEPS) {
+      return { ok: false, status: 400, error: `steps must be a number from 0 to ${MAX_STEPS}.` };
+    }
+    return { ok: true, value: { kind, date: day, steps: Math.round(steps) } };
+  }
 
   if (kind === 'workout') {
     const plan = workoutFor(day);

@@ -312,6 +312,25 @@ export const dailyNutritionToRow = (n, userId) => ({
   updated_at: n.updatedAt,
 });
 
+export const dailyStepsFromRow = (r) => ({
+  id: r.id,
+  day: r.day,
+  steps: Number(r.steps) || 0,
+  deleted: !!r.deleted,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+export const dailyStepsToRow = (row, userId) => ({
+  id: row.id,
+  user_id: userId,
+  day: row.day,
+  steps: Math.max(0, Math.round(Number(row.steps) || 0)),
+  deleted: !!row.deleted,
+  created_at: row.createdAt,
+  updated_at: row.updatedAt,
+});
+
 export const workoutLogFromRow = (r) => ({
   id: r.id,
   day: r.day,
