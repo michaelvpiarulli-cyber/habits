@@ -361,22 +361,7 @@ chain('Jack in the Box', 'jitb', [
   { id: 'milkshake', name: 'Oreo Cookie Shake', serving: 'medium', calories: 820, protein: 13, carbs: 117, fat: 34 },
 ]);
 
-// —— Wahoo's ——
-chain("Wahoo's Fish Taco", 'wahoos', [
-  { id: 'fish-taco', name: 'Fish Taco', serving: '1 taco', calories: 220, protein: 14, carbs: 22, fat: 9, aliases: ["wahoo's", 'wahoos', 'wahoo', 'fish taco'] },
-  { id: 'fish-taco-plate', name: 'Fish Taco Plate (2 tacos)', serving: '1 plate', calories: 620, protein: 32, carbs: 68, fat: 24 },
-  { id: 'chicken-taco', name: 'Chicken Taco', serving: '1 taco', calories: 200, protein: 16, carbs: 20, fat: 7 },
-  { id: 'steak-taco', name: 'Steak Taco', serving: '1 taco', calories: 230, protein: 17, carbs: 20, fat: 10 },
-  { id: 'shrimp-taco', name: 'Shrimp Taco', serving: '1 taco', calories: 190, protein: 14, carbs: 21, fat: 6 },
-  { id: 'burrito-fish', name: 'Fish Burrito', serving: '1 burrito', calories: 720, protein: 34, carbs: 82, fat: 28 },
-  { id: 'burrito-chicken', name: 'Chicken Burrito', serving: '1 burrito', calories: 680, protein: 38, carbs: 78, fat: 24 },
-  { id: 'bowl-chicken', name: 'Chicken Bowl', serving: '1 bowl', calories: 540, protein: 36, carbs: 52, fat: 18 },
-  { id: 'bowl-fish', name: 'Fish Bowl', serving: '1 bowl', calories: 560, protein: 32, carbs: 54, fat: 20 },
-  { id: 'quesadilla', name: 'Chicken Quesadilla', serving: '1 quesadilla', calories: 650, protein: 36, carbs: 48, fat: 32 },
-  { id: 'nachos', name: 'Nachos with Chicken', serving: '1 order', calories: 890, protein: 38, carbs: 72, fat: 50 },
-  { id: 'rice', name: 'Mexican Rice', serving: '1 side', calories: 180, protein: 4, carbs: 34, fat: 3 },
-  { id: 'beans', name: 'Black Beans', serving: '1 side', calories: 120, protein: 7, carbs: 20, fat: 1 },
-]);
+// Wahoo's Fish Taco lives in commonFoods.js (curated menu).
 
 chain('Qdoba', 'qdoba', [
   { id: 'burrito-chicken', name: 'Chicken Burrito', serving: '1 burrito', calories: 700, protein: 38, carbs: 78, fat: 24 },
