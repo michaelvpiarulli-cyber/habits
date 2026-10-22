@@ -41,6 +41,8 @@ import {
   boardCardToRow,
   dailyNutritionFromRow,
   dailyNutritionToRow,
+  dailyStepsFromRow,
+  dailyStepsToRow,
   lifeNoteFromRow,
   lifeNoteToRow,
   taskFromRow,
@@ -68,6 +70,7 @@ const KINDS = [
   'notes',
   'boardCards',
   'dailyNutrition',
+  'dailySteps',
   'workouts',
   'watches',
 ];
@@ -84,6 +87,7 @@ const TABLES = {
   notes: { table: 'life_notes', from: lifeNoteFromRow, to: lifeNoteToRow },
   boardCards: { table: 'board_cards', from: boardCardFromRow, to: boardCardToRow },
   dailyNutrition: { table: 'daily_nutrition', from: dailyNutritionFromRow, to: dailyNutritionToRow },
+  dailySteps: { table: 'daily_steps', from: dailyStepsFromRow, to: dailyStepsToRow },
   workouts: { table: 'workout_logs', from: workoutLogFromRow, to: workoutLogToRow },
   watches: { table: 'watch_entries', from: watchFromRow, to: watchToRow },
 };
@@ -106,6 +110,7 @@ const MISSING_TABLE_SQL = {
   life_notes: 'supabase/add-life-notes.sql',
   board_cards: 'supabase/add-boards-and-covers.sql',
   daily_nutrition: 'supabase/add-life-os.sql',
+  daily_steps: 'supabase/add-steps.sql',
   workout_logs: 'supabase/add-life-os.sql',
   watch_entries: 'supabase/add-life-os.sql',
 };
@@ -805,6 +810,7 @@ export function LifeProvider({ children }) {
     const notes = sortNotes(store.notes);
     const boardCards = living(store.boardCards);
     const dailyNutrition = living(store.dailyNutrition).sort((a, b) => b.day.localeCompare(a.day));
+    const dailySteps = living(store.dailySteps).sort((a, b) => b.day.localeCompare(a.day));
     const workoutLogs = living(store.workouts).sort((a, b) => b.day.localeCompare(a.day));
     const watches = living(store.watches).sort(
       (a, b) => (b.watchedOn || '').localeCompare(a.watchedOn || '') || b.updatedAt.localeCompare(a.updatedAt)
@@ -822,6 +828,7 @@ export function LifeProvider({ children }) {
       notes,
       boardCards,
       dailyNutrition,
+      dailySteps,
       workoutLogs,
       watches,
       addTask,

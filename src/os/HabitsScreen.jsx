@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useData } from '../context/DataProvider';
+import { useLife } from '../context/LifeProvider';
 import { addDays, formatLong, startOfWeek } from '../lib/dates';
 import { HABIT_COLORS, HABIT_ICONS, colorForHabit, iconForHabit } from '../lib/habitIcons';
 import { groupByDaypart, isComplete, targetOf, valueOf } from '../lib/habits';
+import { formatStepCount, isStepsHabit, stepsOnDay } from '../lib/steps';
 import { currentStreak } from '../lib/streaks';
 import { HabitMark } from './HabitMark';
 import { useViewDay } from './useViewDay';
@@ -92,7 +94,7 @@ function IconPicker({ habit, onIcon, onColor }) {
   );
 }
 
-function HabitRow({ habit, day, editing, picking, onPick, onIcon, onColor, onRename, onMove, canUp, canDown, onRemove }) {
+function HabitRow({ habit, day, steps = null, editing, picking, onPick, onIcon, onColor, onRename, onMove, canUp, canDown, onRemove }) {
   const { logFor, toggleDay, bumpDay, doneSetFor } = useData();
   const log = logFor(habit.id, day);
   const value = valueOf(habit, log);
@@ -124,6 +126,7 @@ function HabitRow({ habit, day, editing, picking, onPick, onIcon, onColor, onRen
   ) : (
     <span className="habit-name">{habit.name}</span>
   );
+  const count = steps == null ? null : <span className="step-count">{formatStepCount(steps)}</span>;
   const week = editing ? null : <WeekDots habit={habit} done={done} today={day} />;
   const box = (
     <span className="box" aria-hidden="true">{habit.kind === 'count' && value > 0 && value < targetOf(habit) ? value : ''}</span>
@@ -141,6 +144,7 @@ function HabitRow({ habit, day, editing, picking, onPick, onIcon, onColor, onRen
           ) : null}
           {mark}
           {title}
+          {count}
           {week}
           {editing ? (
             <button type="button" className="habit-remove" onClick={onRemove}>Remove</button>
@@ -158,6 +162,7 @@ function HabitRow({ habit, day, editing, picking, onPick, onIcon, onColor, onRen
         >
           {mark}
           {title}
+          {count}
           {week}
           {box}
         </button>
@@ -212,6 +217,7 @@ function AddHabit({ onAdd }) {
 export function HabitsScreen() {
   const { day } = useViewDay();
   const data = useData();
+  const { dailySteps } = useLife();
   const habits = data.activeHabits;
   const groups = groupByDaypart(habits);
   const [editing, setEditing] = useState(false);
@@ -256,6 +262,7 @@ export function HabitsScreen() {
                   key={habit.id}
                   habit={habit}
                   day={day}
+                  steps={isStepsHabit(habit) ? stepsOnDay(dailySteps, day) : null}
                   editing={editing}
                   picking={picking === habit.id}
                   canUp={index > 0}

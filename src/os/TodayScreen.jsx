@@ -7,6 +7,7 @@ import { addDays, formatClock, formatLong } from '../lib/dates';
 import { ingestedFoodForDay, preferFoodEntry } from '../lib/foodGoals';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
 import { isComplete, targetOf, valueOf } from '../lib/habits';
+import { formatStepCount, isStepsHabit, stepsOnDay } from '../lib/steps';
 import { compareByPriority, groupTasks, living } from '../lib/life';
 import { workoutsOnDay } from '../lib/program';
 import { isDue } from '../lib/streaks';
@@ -85,7 +86,7 @@ function GlanceValue({ habit, day, value }) {
   );
 }
 
-function GlanceHabit({ habit, day }) {
+function GlanceHabit({ habit, day, steps = null }) {
   const { logFor, toggleDay, bumpDay } = useData();
   const log = logFor(habit.id, day);
   const value = valueOf(habit, log);
@@ -102,6 +103,7 @@ function GlanceHabit({ habit, day }) {
       <li className={`glance-habit${complete ? ' is-done' : ''}`}>
         <HabitMark habit={habit} />
         <span className="habit-name">{habit.name}</span>
+        {steps == null ? null : <span className="step-count">{formatStepCount(steps)}</span>}
         <GlanceValue habit={habit} day={day} value={value} />
       </li>
     );
@@ -118,6 +120,7 @@ function GlanceHabit({ habit, day }) {
       >
         <HabitMark habit={habit} />
         <span className="habit-name">{habit.name}</span>
+        {steps == null ? null : <span className="step-count">{formatStepCount(steps)}</span>}
         <span className="box" aria-hidden="true">{habit.kind === 'count' && value > 0 && value < targetOf(habit) ? value : ''}</span>
       </button>
     </li>
@@ -130,7 +133,7 @@ export function TodayScreen() {
   const now = new Date();
   const { activeHabits, nutritionFor } = useData();
   const life = useLife();
-  const { dailyNutrition, events, tasks, workoutLogs, setWorkoutDone } = life;
+  const { dailyNutrition, dailySteps, events, tasks, workoutLogs, setWorkoutDone } = life;
   const program = useProgram();
   const bible = useBible();
   const google = useGoogleAgenda(day, addDays(day, 1));
@@ -208,7 +211,12 @@ export function TodayScreen() {
         ) : (
           <ul>
             {due.map((habit) => (
-              <GlanceHabit key={habit.id} habit={habit} day={day} />
+              <GlanceHabit
+                key={habit.id}
+                habit={habit}
+                day={day}
+                steps={isStepsHabit(habit) ? stepsOnDay(dailySteps, day) : null}
+              />
             ))}
           </ul>
         )}

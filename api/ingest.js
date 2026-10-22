@@ -2,7 +2,8 @@
  * POST /api/ingest
  *
  * Another assistant can write Michael's daily food totals or mark a workout
- * done. The request must carry the ingest key (Authorization: Bearer, or
+ * done. A steps post uses a separate key and only replaces that day's count.
+ * The request must carry a key (Authorization: Bearer, or
  * x-tally-ingest-key). Writes go through database functions with the public
  * anon key. The household id is fixed. No owner lookup.
  */

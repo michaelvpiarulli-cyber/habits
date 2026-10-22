@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { purgeQaData } from './purgeQa.js';
 
-const PAGES = ['Today', 'Food', 'Workouts', 'Habits', 'Plan', 'Bible', 'Watch', 'JENO', 'Settings'];
+const PAGES = ['Today', 'Week', 'Food', 'Workouts', 'Habits', 'Plan', 'Bible', 'Watch', 'JENO', 'Settings'];
 
 function attach(page) {
   const errors = [];

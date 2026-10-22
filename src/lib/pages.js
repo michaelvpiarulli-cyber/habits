@@ -7,6 +7,7 @@ import { newId, nowISO } from './mappers.js';
 
 export const SYSTEM_PAGES = [
   { id: 'b1111111-1111-4111-8111-111111111101', systemKey: 'today', title: 'Today', icon: '☀️', position: 0 },
+  { id: 'b1111111-1111-4111-8111-111111111110', systemKey: 'week', title: 'Week', icon: '🗓️', position: 0 },
   { id: 'b1111111-1111-4111-8111-111111111108', systemKey: 'food', title: 'Food', icon: '🍎', position: 1 },
   { id: 'b1111111-1111-4111-8111-111111111103', systemKey: 'body', title: 'Workouts', icon: '💪', position: 2 },
   { id: 'b1111111-1111-4111-8111-111111111109', systemKey: 'habits', title: 'Habits', icon: '✅', position: 3 },
@@ -19,7 +20,7 @@ export const SYSTEM_PAGES = [
 
 /** Sidebar groups. Each system page appears once. Notes are the user pages. */
 export const NAV_GROUPS = [
-  { label: '', keys: ['today'] },
+  { label: '', keys: ['today', 'week'] },
   { label: 'Health', keys: ['food', 'body', 'habits'] },
   { label: 'Plan', keys: ['plan', 'word'] },
   { label: 'Log', keys: ['log', 'jeno'] },

@@ -57,25 +57,25 @@ function clientFor(url, key) {
   });
 }
 
-async function hashFromServiceRole(env) {
+async function hashFromServiceRole(env, name) {
   const key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) return null;
   const url = env.SUPABASE_URL || DEFAULT_URL;
   const { data, error } = await clientFor(url, key)
     .from('app_secrets')
     .select('value_sha256')
-    .eq('name', 'ingest_key')
+    .eq('name', name)
     .maybeSingle();
   if (error || !data?.value_sha256) return null;
   return String(data.value_sha256).trim().toLowerCase();
 }
 
-async function hashFromRpc(env, provided) {
+async function hashFromRpc(env, provided, fn, missingMessage) {
   const url = env.SUPABASE_URL || DEFAULT_URL;
   const key = env.SUPABASE_ANON_KEY || PUBLISHABLE_KEY;
-  const { data, error } = await clientFor(url, key).rpc('check_ingest_key', { candidate: provided });
+  const { data, error } = await clientFor(url, key).rpc(fn, { candidate: provided });
   if (error) {
-    const err = new Error('Ingest is not configured.');
+    const err = new Error(missingMessage);
     err.status = 503;
     throw err;
   }
@@ -83,9 +83,31 @@ async function hashFromRpc(env, provided) {
 }
 
 export async function fetchStoredHash(env = {}, provided = '') {
-  const fromRole = await hashFromServiceRole(env);
+  const fromRole = await hashFromServiceRole(env, 'ingest_key');
   if (fromRole) return fromRole;
-  return hashFromRpc(env, provided);
+  return hashFromRpc(env, provided, 'check_ingest_key', 'Ingest is not configured.');
+}
+
+export async function fetchStepsHash(env = {}, provided = '') {
+  const fromRole = await hashFromServiceRole(env, 'steps_key');
+  if (fromRole) return fromRole;
+  return hashFromRpc(env, provided, 'check_steps_key', 'Steps ingest is not configured.');
+}
+
+/** The steps key only. The food and workout key is not accepted here. */
+export async function authorizeSteps({ headers, env = {}, lookupHash } = {}) {
+  const provided = extractIngestKey(headers);
+  if (!provided) return { status: 401, body: { error: 'Unauthorized' } };
+
+  let stored;
+  try {
+    stored = typeof lookupHash === 'function' ? await lookupHash() : await fetchStepsHash(env, provided);
+  } catch (err) {
+    return { status: err.status || 503, body: { error: 'Steps ingest is not configured.' } };
+  }
+  if (!stored) return { status: 503, body: { error: 'Steps ingest is not configured.' } };
+  if (keysMatch(sha256Hex(provided), String(stored).trim().toLowerCase())) return null;
+  return { status: 401, body: { error: 'Unauthorized' } };
 }
 
 export async function authorizeIngest({ headers, env = {}, lookupHash } = {}) {

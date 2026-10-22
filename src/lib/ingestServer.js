@@ -5,7 +5,7 @@
  */
 
 import { applyNutritionWrite, foodCount } from './foodLog.js';
-import { anonIngestClient, authorizeIngest, ingestRpcError } from './ingestAuth.js';
+import { anonIngestClient, authorizeIngest, authorizeSteps, ingestRpcError } from './ingestAuth.js';
 import { extractIngestKey, validateIngest } from './ingest.js';
 import { HOUSEHOLD_OWNER_ID } from './household.js';
 
@@ -49,6 +49,16 @@ async function writeNutrition(client, key, value) {
   return data;
 }
 
+async function writeSteps(client, key, value) {
+  const { data, error } = await client.rpc('ingest_steps', {
+    p_key: key,
+    p_day: value.date,
+    p_steps: value.steps,
+  });
+  if (error) throw ingestRpcError(error);
+  return data;
+}
+
 async function writeWorkout(client, key, value) {
   const { data, error } = await client.rpc('ingest_workout', {
     p_key: key,
@@ -66,22 +76,27 @@ export function supabaseIngestStore(env, ingestKey, clientFactory) {
   return {
     write(_ownerId, value) {
       if (value.kind === 'nutrition') return writeNutrition(client, key, value);
+      if (value.kind === 'steps') return writeSteps(client, key, value);
       return writeWorkout(client, key, value);
     },
   };
 }
 
-export async function runIngest({ method, headers, body, env = {}, store, lookupHash, clientFactory }) {
+export async function runIngest({ method, headers, body, env = {}, store, lookupHash, lookupStepsHash, clientFactory }) {
   if (method === 'OPTIONS') return { status: 204, body: null };
   if (method !== 'POST') return { status: 405, body: { error: 'Method not allowed' } };
-
-  const denied = await authorizeIngest({ headers, env, lookupHash });
-  if (denied) return denied;
+  if (!extractIngestKey(headers)) return { status: 401, body: { error: 'Unauthorized' } };
 
   const parsedBody = readBody(body);
   if (parsedBody?.error && !parsedBody.kind) {
     return { status: 400, body: { error: parsedBody.error } };
   }
+
+  const denied = parsedBody?.kind === 'steps'
+    ? await authorizeSteps({ headers, env, lookupHash: lookupStepsHash })
+    : await authorizeIngest({ headers, env, lookupHash });
+  if (denied) return denied;
+
   const validated = validateIngest(parsedBody);
   if (!validated.ok) return { status: validated.status, body: { error: validated.error } };
 

@@ -3,6 +3,7 @@ import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
 import { useTheme } from '../hooks/useTheme';
 import { MfpSyncCard } from './MfpSyncCard';
+import { StepsKeyCard } from './StepsKeyCard';
 
 export function SettingsScreen() {
   const theme = useTheme();
@@ -24,6 +25,8 @@ export function SettingsScreen() {
           )}
         </div>
       </section>
+
+      <StepsKeyCard />
 
       <MfpSyncCard />
 
