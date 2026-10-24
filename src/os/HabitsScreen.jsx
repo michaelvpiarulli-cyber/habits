@@ -238,7 +238,7 @@ export function HabitsScreen() {
   };
 
   return (
-    <div className="habit-page">
+    <div className={`habit-page${editing ? ' is-editing' : ''}`}>
       <div className="habit-tools">
         <div className="habit-head">
           <p>{formatLong(day)}</p>

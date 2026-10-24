@@ -1,12 +1,10 @@
 import { useGoogle } from '../context/GoogleProvider';
 import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
-import { useTheme } from '../hooks/useTheme';
 import { MfpSyncCard } from './MfpSyncCard';
 import { StepsKeyCard } from './StepsKeyCard';
 
 export function SettingsScreen() {
-  const theme = useTheme();
   const data = useData();
   const life = useLife();
   const google = useGoogle();
@@ -32,13 +30,7 @@ export function SettingsScreen() {
 
       <section>
         <h2>Appearance</h2>
-        <div className="btn-row">
-          {['light', 'dark', 'system'].map((pref) => (
-            <button key={pref} type="button" className={theme.pref === pref ? 'btn' : 'btn secondary'} onClick={() => theme.setPref(pref)}>
-              {pref}
-            </button>
-          ))}
-        </div>
+        <p className="quiet">Command deck. The panels stay dark.</p>
       </section>
 
       <section>

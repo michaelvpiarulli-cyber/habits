@@ -1,19 +1,22 @@
-:root {
-  color-scheme: light;
-  --bg: #ffffff;
-  --sidebar: #f7f7f5;
-  --bg-raise: #f7f7f5;
-  --hover: rgba(55, 53, 47, 0.06);
-  --active: rgba(55, 53, 47, 0.1);
-  --card: #ffffff;
-  --ink: #37352f;
-  --muted: #787774;
-  --faint: #9b9a97;
-  --line: rgba(55, 53, 47, 0.09);
-  --accent: #337ea9;
-  --accent-ink: #ffffff;
-  --clay: #9f6b53;
-  --shadow: none;
+:root,
+:root[data-theme='light'],
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #04070e;
+  --sidebar: rgba(5, 14, 26, 0.92);
+  --bg-raise: rgba(10, 28, 48, 0.72);
+  --hover: rgba(80, 220, 255, 0.1);
+  --active: rgba(80, 220, 255, 0.18);
+  --card: rgba(8, 22, 40, 0.82);
+  --panel: linear-gradient(180deg, rgba(16, 46, 72, 0.55), rgba(5, 14, 28, 0.88));
+  --ink: #f4fbff;
+  --muted: #8eb6c9;
+  --faint: #5d8496;
+  --line: rgba(92, 214, 255, 0.32);
+  --accent: #3ad7ff;
+  --accent-ink: #041018;
+  --clay: #7fd4ff;
+  --shadow: 0 0 24px rgba(58, 215, 255, 0.16);
   --serif: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   --tab: calc(62px + env(safe-area-inset-bottom));
@@ -27,24 +30,6 @@
   -webkit-font-smoothing: antialiased;
 }
 
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --bg: #191919;
-  --sidebar: #202020;
-  --bg-raise: #202020;
-  --hover: rgba(255, 255, 255, 0.055);
-  --active: rgba(255, 255, 255, 0.09);
-  --card: #191919;
-  --ink: #d4d4d4;
-  --muted: #9b9b9b;
-  --faint: #6f6f6f;
-  --line: rgba(255, 255, 255, 0.094);
-  --accent: #7eb6dc;
-  --accent-ink: #191919;
-  --clay: #d8a58f;
-  --shadow: none;
-}
-
 * { box-sizing: border-box; }
 
 html, body, #root {
@@ -52,12 +37,14 @@ html, body, #root {
   width: 100%;
   height: 100%;
   min-height: 100dvh;
-  background: var(--bg);
+  background:
+    radial-gradient(900px 520px at 50% 8%, rgba(36, 130, 190, 0.22), transparent 62%),
+    radial-gradient(520px 360px at 88% 92%, rgba(16, 70, 120, 0.2), transparent 70%),
+    #04070e;
 }
 
 body {
   min-height: 100dvh;
-  background: var(--bg);
   color: var(--ink);
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;

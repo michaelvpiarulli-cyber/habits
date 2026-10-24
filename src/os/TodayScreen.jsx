@@ -3,8 +3,8 @@ import { useData } from '../context/DataProvider';
 import { useLife } from '../context/LifeProvider';
 import { agendaForDay } from '../lib/agenda';
 import { readingsForDate, slotsFor } from '../lib/biblePlan';
-import { addDays, formatClock, formatLong } from '../lib/dates';
-import { ingestedFoodForDay, preferFoodEntry } from '../lib/foodGoals';
+import { WEEKDAY_INITIALS, addDays, formatClock, formatLong, startOfWeek } from '../lib/dates';
+import { FOOD_GOALS, ingestedFoodForDay, preferFoodEntry } from '../lib/foodGoals';
 import { GOOGLE_CALENDAR_ACCOUNT } from '../lib/google';
 import { isComplete, targetOf, valueOf } from '../lib/habits';
 import { formatStepCount, isStepsHabit, stepsOnDay } from '../lib/steps';
@@ -17,6 +17,31 @@ import { HabitMark } from './HabitMark';
 import { useBible, useGoogleAgenda, useProgram } from './hooks';
 import { TaskLine } from './TaskLine';
 import { useViewDay } from './useViewDay';
+
+function greetingFor(date) {
+  const hour = date.getHours();
+  if (hour < 12) return 'Good morning.';
+  if (hour < 17) return 'Good afternoon.';
+  return 'Good evening.';
+}
+
+function formatCount(value) {
+  return Math.round(Number(value) || 0).toLocaleString('en-US');
+}
+
+function HudCore() {
+  return (
+    <div className="hud-core" aria-hidden="true">
+      <svg viewBox="0 0 220 220">
+        <circle cx="110" cy="110" r="98" />
+        <circle cx="110" cy="110" r="76" />
+        <circle cx="110" cy="110" r="48" />
+        <circle className="hud-core-hot" cx="110" cy="110" r="16" />
+        <path d="M110 6v18M110 196v18M6 110h18M196 110h18" />
+      </svg>
+    </div>
+  );
+}
 
 function Chevron({ dir }) {
   return (
@@ -131,7 +156,7 @@ export function TodayScreen() {
   const { day, today, go } = useViewDay();
   const viewingToday = day === today;
   const now = new Date();
-  const { activeHabits, nutritionFor } = useData();
+  const { activeHabits, nutritionFor, logFor } = useData();
   const life = useLife();
   const { dailyNutrition, dailySteps, events, tasks, workoutLogs, setWorkoutDone } = life;
   const program = useProgram();
@@ -145,11 +170,17 @@ export function TodayScreen() {
   const ingested = ingestedFoodForDay(dailyNutrition, day);
   const food = preferFoodEntry(ingested, nutritionFor(day));
   const due = activeHabits.filter((habit) => isDue(habit, day));
+  const habitsDone = due.filter((habit) => isComplete(habit, logFor(habit.id, day))).length;
+  const calories = Math.round(Math.max(0, Number(food?.calories) || 0));
+  const calorieGap = FOOD_GOALS.calories - calories;
+  const calorieLine = calorieGap >= 0
+    ? `${formatCount(calorieGap)} left`
+    : `${formatCount(-calorieGap)} over`;
   const reading = readingsForDate(day);
   const year = Number(day.slice(0, 4));
   const slots = reading.index == null ? new Set() : slotsFor(bible.checks, year, reading.index);
   const openTasks = groupTasks(tasks, today);
-  const topTasks = [...openTasks.overdue, ...openTasks.dueToday].sort(compareByPriority).slice(0, 3);
+  const topTasks = [...openTasks.overdue, ...openTasks.dueToday].sort(compareByPriority).slice(0, 4);
   const datedTasks = living(tasks)
     .filter((task) => task.dueDate === day)
     .sort((a, b) => Number(a.done) - Number(b.done) || compareByPriority(a, b));
@@ -157,6 +188,8 @@ export function TodayScreen() {
   const wrongAccount =
     google.connected && google.accountEmail && google.accountEmail.toLowerCase() !== GOOGLE_CALENDAR_ACCOUNT;
   const sessionName = session.length ? session.map((workout) => workout.name).join(', ') : 'Rest';
+  const weekStart = startOfWeek(day);
+  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
 
   const markWorkout = () => {
     const planId = session[0]?.id || workoutLog?.planId || '';
@@ -164,101 +197,150 @@ export function TodayScreen() {
   };
 
   return (
-    <div className="glance">
-      <div className="day-head">
-        <DayNav day={day} today={today} onChange={go} />
-        <div className="day-session">
-          <p className="lede">{sessionName}</p>
-          {session.length > 0 || workoutLog ? (
-            <button
-              type="button"
-              className={`day-status${workoutLog?.done ? ' is-done' : ''}`}
-              aria-pressed={Boolean(workoutLog?.done)}
-              aria-label={workoutLog?.done ? 'Workout done' : 'Workout open'}
-              onClick={markWorkout}
-            >
-              {workoutLog?.done ? 'Done' : 'Open'}
-            </button>
-          ) : null}
+    <div className="hud">
+      <DayNav day={day} today={today} onChange={go} />
+      <div className="hud-stage">
+        <section className="hud-panel">
+          <h2>Habits</h2>
+          {due.length === 0 ? (
+            <p className="quiet">Nothing due.</p>
+          ) : (
+            <ul className="hud-tiles">
+              {due.map((habit) => (
+                <GlanceHabit
+                  key={habit.id}
+                  habit={habit}
+                  day={day}
+                  steps={isStepsHabit(habit) ? stepsOnDay(dailySteps, day) : null}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="hud-hero" aria-label="Status">
+          <HudCore />
+          <p className="hud-greet">{greetingFor(now)}</p>
+          <ul className="hud-stats">
+            <li>
+              <strong>{calorieLine}</strong>
+              <span>of {formatCount(FOOD_GOALS.calories)}</span>
+            </li>
+            <li>
+              <strong>{habitsDone} / {due.length}</strong>
+              <span>habits</span>
+            </li>
+            <li>
+              <strong>{sessionName}</strong>
+              <span>{workoutLog?.done ? 'Done' : 'Workout'}</span>
+            </li>
+          </ul>
+        </section>
+
+        <div className="hud-stack">
+          <section className="hud-panel">
+            <h2>Food</h2>
+            <DayTotal entry={food} />
+          </section>
+          <section className="hud-panel">
+            <h2>Workouts</h2>
+            <p className="lede">{sessionName}</p>
+            {session.length > 0 || workoutLog ? (
+              <button
+                type="button"
+                className={`day-status${workoutLog?.done ? ' is-done' : ''}`}
+                aria-pressed={Boolean(workoutLog?.done)}
+                aria-label={workoutLog?.done ? 'Workout done' : 'Workout open'}
+                onClick={markWorkout}
+              >
+                {workoutLog?.done ? 'Done' : 'Open'}
+              </button>
+            ) : (
+              <p className="quiet">Rest day.</p>
+            )}
+          </section>
         </div>
       </div>
 
-      <section>
-        <h2>Food</h2>
-        <DayTotal entry={food} />
+      <section className="hud-panel">
+        <h2>Week</h2>
+        <div className="hud-week" aria-label="This week">
+          {weekDays.map((item, index) => {
+            const dueCount = activeHabits.filter((habit) => isDue(habit, item)).length;
+            const doneCount = activeHabits.filter((habit) => isDue(habit, item) && isComplete(habit, logFor(habit.id, item))).length;
+            const clear = dueCount > 0 && doneCount === dueCount;
+            return (
+              <button
+                key={item}
+                type="button"
+                className={`hud-day${item === day ? ' is-on' : ''}${clear ? ' is-clear' : ''}`}
+                disabled={item > today}
+                aria-label={formatLong(item)}
+                onClick={() => go(item)}
+              >
+                <span>{WEEKDAY_INITIALS[index]}</span>
+                <i />
+              </button>
+            );
+          })}
+        </div>
       </section>
 
-      <section>
-        <h2>Bible</h2>
-        {reading.catchUpDay ? (
-          <p className="quiet">Catch up day.</p>
-        ) : (
-          <ul>
-            {reading.readings.map((item) => (
-              <li key={item.slot}>
-                {item.ref}
-                {slots.has(item.slot) ? <span className="faint"> Read</span> : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h2>Habits</h2>
-        {due.length === 0 ? (
-          <p className="quiet">Nothing due.</p>
-        ) : (
-          <ul>
-            {due.map((habit) => (
-              <GlanceHabit
-                key={habit.id}
-                habit={habit}
-                day={day}
-                steps={isStepsHabit(habit) ? stepsOnDay(dailySteps, day) : null}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h2>Tasks</h2>
-        {shownTasks.length === 0 ? (
-          <p className="quiet">Nothing due.</p>
-        ) : (
-          <ul>
-            {shownTasks.map((task) => (
-              <TaskLine key={task.id} task={task} today={viewingToday ? today : day} />
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {viewingToday ? (
-        <section>
-          <h2>Next</h2>
-          {wrongAccount ? <p className="quiet">Calendar is connected as {google.accountEmail}.</p> : null}
-          {!google.connected ? <p className="quiet">Calendar is not connected.</p> : null}
-          {google.note ? <p className="error">{google.note}</p> : null}
-          {next ? (
-            <p>{next.title} at {formatClock(next.startTime)}</p>
+      <div className="hud-lower">
+        <section className="hud-panel">
+          <h2>Tasks</h2>
+          {shownTasks.length === 0 ? (
+            <p className="quiet">Nothing due.</p>
           ) : (
-            <p className="quiet">Nothing next.</p>
+            <ul className="hud-task-tiles">
+              {shownTasks.map((task) => (
+                <TaskLine key={task.id} task={task} today={viewingToday ? today : day} />
+              ))}
+            </ul>
           )}
         </section>
-      ) : agenda.length > 0 ? (
-        <section>
-          <h2>Events</h2>
-          <ul>
-            {agenda.map((item) => (
-              <li key={item.id}>
-                {item.allDay || !item.startTime ? item.title : `${item.title} at ${formatClock(item.startTime)}`}
-              </li>
-            ))}
-          </ul>
+
+        <section className="hud-panel">
+          <h2>Bible</h2>
+          {reading.catchUpDay ? (
+            <p className="quiet">Catch up day.</p>
+          ) : (
+            <ul>
+              {reading.readings.map((item) => (
+                <li key={item.slot}>
+                  {item.ref}
+                  {slots.has(item.slot) ? <span className="faint"> Read</span> : null}
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
-      ) : null}
+
+        {viewingToday ? (
+          <section className="hud-panel">
+            <h2>Next</h2>
+            {wrongAccount ? <p className="quiet">Calendar is connected as {google.accountEmail}.</p> : null}
+            {!google.connected ? <p className="quiet">Calendar is not connected.</p> : null}
+            {google.note ? <p className="error">{google.note}</p> : null}
+            {next ? (
+              <p>{next.title} at {formatClock(next.startTime)}</p>
+            ) : (
+              <p className="quiet">Nothing next.</p>
+            )}
+          </section>
+        ) : agenda.length > 0 ? (
+          <section className="hud-panel">
+            <h2>Events</h2>
+            <ul>
+              {agenda.map((item) => (
+                <li key={item.id}>
+                  {item.allDay || !item.startTime ? item.title : `${item.title} at ${formatClock(item.startTime)}`}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+      </div>
     </div>
   );
 }
