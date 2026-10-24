@@ -2,15 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 
 const KEY = 'tally-theme'; // 'light' | 'dark' | 'system'
 
-const systemPrefersDark = () =>
-  window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-function apply(pref) {
-  const dark = pref === 'dark' || (pref === 'system' && systemPrefersDark());
-  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  // Keep the mobile browser chrome in step with the page.
+function apply() {
+  document.documentElement.setAttribute('data-theme', 'dark');
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', dark ? '#191919' : '#ffffff');
+  if (meta) meta.setAttribute('content', '#04070e');
 }
 
 /** Theme preference: follow the system, or pin light/dark. Defaults to light. */
@@ -18,7 +13,7 @@ export function useTheme() {
   const [pref, setPref] = useState(() => localStorage.getItem(KEY) || 'light');
 
   useEffect(() => {
-    apply(pref);
+    apply();
     localStorage.setItem(KEY, pref);
 
     if (pref !== 'system' || !window.matchMedia) return;
@@ -28,7 +23,7 @@ export function useTheme() {
     return () => mq.removeEventListener('change', onChange);
   }, [pref]);
 
-  const isDark = pref === 'dark' || (pref === 'system' && systemPrefersDark());
+  const isDark = true;
 
   /** Cycle light → dark → system. */
   const cycle = useCallback(() => {

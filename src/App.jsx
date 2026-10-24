@@ -150,7 +150,7 @@ export default function App() {
   else if (!trash && !ready) module = <p className="quiet">Loading…</p>;
 
   const history = page.props?.history || [];
-  const fullWidth = !!page.props?.fullWidth || page.systemKey === 'plan' || page.systemKey === 'week' || (!page.systemKey && page.props?.fullWidth !== false);
+  const fullWidth = Boolean(page.systemKey) || page.props?.fullWidth !== false;
   const titled = canonicalTitle(page);
   const hasNotes = livingBlocks(notebook.blocks, page.id).some((block) => block.type !== 'text' || block.content);
 
