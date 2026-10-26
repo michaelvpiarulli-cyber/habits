@@ -898,6 +898,32 @@ button.habit-badge { width: 44px; height: 44px; }
 }
 .steps-setup input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
+.tv-boot {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: #04070e;
+  color: #f4fbff;
+  font-size: clamp(28px, 3vw, 64px);
+}
+.tv-url {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  color: var(--accent);
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.tv-steps {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+}
+a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+
 .hud { display: grid; gap: 14px; min-width: 0; }
 .hud-stage, .hud-stack, .hud-lower { display: grid; gap: 14px; min-width: 0; }
 .hud-hero { order: -1; }

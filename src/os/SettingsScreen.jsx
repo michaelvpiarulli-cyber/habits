@@ -9,8 +9,33 @@ export function SettingsScreen() {
   const life = useLife();
   const google = useGoogle();
 
+  const tvUrl = `${window.location.origin}/tv`;
+  const copyTv = async () => {
+    try {
+      await navigator.clipboard.writeText(tvUrl);
+    } catch {
+      /* The address stays on screen if the TV browser blocks clipboard. */
+    }
+  };
+
   return (
     <div className="board">
+      <section>
+        <h2>Open on TV</h2>
+        <p className="quiet">The Visio dashboard fills the screen and refreshes on its own.</p>
+        <p className="tv-url">{tvUrl}</p>
+        <div className="btn-row">
+          <a className="btn" href="/tv">Open the TV dashboard</a>
+          <button type="button" className="btn secondary" onClick={copyTv}>Copy address</button>
+        </div>
+        <ol className="tv-steps">
+          <li>On the Visio, open the SmartCast browser and type the address.</li>
+          <li>Add the page to favorites if the browser offers it.</li>
+          <li>From a phone, open the address in Chrome, tap Cast, choose the Visio, and cast the tab.</li>
+        </ol>
+        <p className="quiet">Cast the tab so the TV shows this page. The TV address also installs as a full screen web app when the browser can save a favorite.</p>
+      </section>
+
       <section>
         <h2>Google Calendar</h2>
         {google.accountEmail ? <p className="faint">Connected as {google.accountEmail}</p> : null}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useData } from './context/DataProvider';
 import { useLife } from './context/LifeProvider';
 import { usePages } from './context/PagesProvider';
@@ -27,8 +27,21 @@ import {
   systemPageByKey,
   trashedPages,
 } from './lib/pages';
+import { isTvPath } from './lib/tvClock';
 import './os/os.css';
 import './shell/shell.css';
+
+const TvScreen = lazy(() => import('./os/TvScreen.jsx'));
+
+function useTvRoute() {
+  const [tv, setTv] = useState(() => isTvPath(window.location.pathname));
+  useEffect(() => {
+    const sync = () => setTv(isTvPath(window.location.pathname));
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, []);
+  return tv;
+}
 
 const ICONS = ['📄', '☀️', '📅', '💪', '📖', '✦', '✎', '⚙️', '⭐', '🏠', '🎯', '🍎', '🧠', '📝', '❤️', '✅'];
 
@@ -49,6 +62,7 @@ export default function App() {
   const life = useLife();
   const notebook = usePages();
   const wide = useWide();
+  const tv = useTvRoute();
   const today = systemPageByKey('today');
   const [pageId, setPageId] = useState(today.id);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('tally-sidebar') === 'closed');
@@ -153,6 +167,14 @@ export default function App() {
   const fullWidth = Boolean(page.systemKey) || page.props?.fullWidth !== false;
   const titled = canonicalTitle(page);
   const hasNotes = livingBlocks(notebook.blocks, page.id).some((block) => block.type !== 'text' || block.content);
+
+  if (tv) {
+    return (
+      <Suspense fallback={<div className="tv-boot">Loading the deck.</div>}>
+        <TvScreen />
+      </Suspense>
+    );
+  }
 
   return (
     <div className="app">
