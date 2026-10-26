@@ -1,0 +1,25 @@
+{
+  "id": "/tv",
+  "name": "Tally TV",
+  "short_name": "Tally TV",
+  "description": "Tally on the television.",
+  "start_url": "/tv",
+  "scope": "/",
+  "display": "fullscreen",
+  "background_color": "#04070e",
+  "theme_color": "#04070e",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
